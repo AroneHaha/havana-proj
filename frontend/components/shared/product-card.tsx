@@ -9,6 +9,8 @@ import { RatingStars } from "./rating-stars";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCartStore, useWishlistStore } from "@/store";
+import { useLanguageStore } from "@/store/language-store";
+import { getDictionary } from "@/i18n";
 import type { Product } from "@/types";
 
 interface ProductCardProps {
@@ -22,6 +24,8 @@ export function ProductCard({ product, index = 0, className }: ProductCardProps)
   const addItem = useCartStore((s) => s.addItem);
   const toggleWishlist = useWishlistStore((s) => s.toggleItem);
   const isInWishlist = useWishlistStore((s) => s.isInWishlist(product.id));
+  const locale = useLanguageStore((s) => s.locale);
+  const t = getDictionary(locale);
 
   const hasDiscount = product.salePrice && product.salePrice < product.price;
 
@@ -58,13 +62,13 @@ export function ProductCard({ product, index = 0, className }: ProductCardProps)
         {/* New Badge */}
         {product.isNew && !hasDiscount && (
           <Badge variant="new" className="absolute top-3 left-3 z-10">
-            New
+            {t.productCard.new}
           </Badge>
         )}
         {/* Best Seller Badge */}
         {product.isBestSeller && !hasDiscount && !product.isNew && (
           <Badge variant="gold" className="absolute top-3 left-3 z-10">
-            Best Seller
+            {t.productCard.bestSeller}
           </Badge>
         )}
         {/* Wishlist Button */}
@@ -92,7 +96,7 @@ export function ProductCard({ product, index = 0, className }: ProductCardProps)
             className="gap-2 bg-white text-foreground hover:bg-maroon hover:text-white shadow-xl dark:bg-dark-card dark:text-white dark:hover:bg-maroon"
           >
             <ShoppingBag className="h-4 w-4" />
-            Add to Cart
+            {t.productCard.addToCart}
           </Button>
         </div>
       </div>

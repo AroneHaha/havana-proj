@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Inter, Playfair_Display, Noto_Sans_Arabic } from "next/font/google";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { CartDrawer } from "@/components/layout/cart-drawer";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { DirectionProvider } from "@/components/shared/direction-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -15,6 +16,12 @@ const inter = Inter({
 const playfair = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-playfair",
+});
+
+const notoArabic = Noto_Sans_Arabic({
+  subsets: ["arabic"],
+  variable: "--font-noto-arabic",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -30,13 +37,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${playfair.variable} antialiased`}>
+      <body className={`${inter.variable} ${playfair.variable} ${notoArabic.variable} antialiased`}>
         <ThemeProvider>
-          <Header />
-          <CartDrawer />
-          <MobileNav />
-          <main>{children}</main>
-          <Footer />
+          <DirectionProvider>
+            <Header />
+            <CartDrawer />
+            <MobileNav />
+            <main>{children}</main>
+            <Footer />
+          </DirectionProvider>
         </ThemeProvider>
       </body>
     </html>

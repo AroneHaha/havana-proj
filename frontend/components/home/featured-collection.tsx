@@ -6,36 +6,42 @@ import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { SectionHeader } from "@/components/shared/section-header";
 import { ProductCard } from "@/components/shared/product-card";
+import { useLanguageStore } from "@/store/language-store";
+import { getDictionary } from "@/i18n";
 import type { Product } from "@/types";
 
-const featuredProducts: Product[] = [
+const featuredProductKeys = [
   {
-    id: "fp1", name: "Royal Rose Symphony",
-    description: "Luxurious red roses arrangement",
-    price: 850, salePrice: 699,
-    image: "https://images.unsplash.com/photo-1494972308805-463bc619d34e?w=600&q=80",
-    category: "roses", rating: 4.9, reviewCount: 128, inStock: true, isFeatured: true,
+    key: "royalRose" as const,
+    product: {
+      id: "fp1", price: 850, salePrice: 699,
+      image: "https://images.unsplash.com/photo-1494972308805-463bc619d34e?w=600&q=80",
+      category: "roses", rating: 4.9, reviewCount: 128, inStock: true, isFeatured: true,
+    },
   },
   {
-    id: "fp2", name: "Golden Hour Bouquet",
-    description: "Sunflowers and gold accents",
-    price: 620,
-    image: "https://images.unsplash.com/photo-1508610048659-a06b669e3321?w=600&q=80",
-    category: "mixed", rating: 4.8, reviewCount: 95, inStock: true, isFeatured: true,
+    key: "goldenHour" as const,
+    product: {
+      id: "fp2", price: 620,
+      image: "https://images.unsplash.com/photo-1508610048659-a06b669e3321?w=600&q=80",
+      category: "mixed", rating: 4.8, reviewCount: 95, inStock: true, isFeatured: true,
+    },
   },
   {
-    id: "fp3", name: "Midnight Orchid Elegance",
-    description: "Exotic orchids in dark vase",
-    price: 1200, salePrice: 999,
-    image: "https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=600&q=80",
-    category: "orchids", rating: 5.0, reviewCount: 67, inStock: true, isFeatured: true,
+    key: "midnightOrchid" as const,
+    product: {
+      id: "fp3", price: 1200, salePrice: 999,
+      image: "https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=600&q=80",
+      category: "orchids", rating: 5.0, reviewCount: 67, inStock: true, isFeatured: true,
+    },
   },
   {
-    id: "fp4", name: "Pearl White Lilies",
-    description: "Elegant white lily arrangement",
-    price: 780,
-    image: "https://images.unsplash.com/photo-1468327768560-75b778cbb551?w=600&q=80",
-    category: "lilies", rating: 4.7, reviewCount: 84, inStock: true, isFeatured: true, isNew: true,
+    key: "pearlLilies" as const,
+    product: {
+      id: "fp4", price: 780,
+      image: "https://images.unsplash.com/photo-1468327768560-75b778cbb551?w=600&q=80",
+      category: "lilies", rating: 4.7, reviewCount: 84, inStock: true, isFeatured: true, isNew: true,
+    },
   },
 ];
 
@@ -45,6 +51,14 @@ export function FeaturedCollection() {
   ]);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(true);
+  const locale = useLanguageStore((s) => s.locale);
+  const t = getDictionary(locale);
+
+  const featuredProducts: Product[] = featuredProductKeys.map((item) => ({
+    ...item.product,
+    name: t.featuredCollection.products[item.key].name,
+    description: t.featuredCollection.products[item.key].description,
+  }));
 
   const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
   const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
@@ -67,8 +81,8 @@ export function FeaturedCollection() {
       <div className="container mx-auto px-4 lg:px-8">
         <div className="flex items-end justify-between mb-12">
           <SectionHeader
-            title="Featured Collection"
-            subtitle="Handpicked selections from our master florists"
+            title={t.featuredCollection.title}
+            subtitle={t.featuredCollection.subtitle}
             align="start"
             className="mb-0"
           />

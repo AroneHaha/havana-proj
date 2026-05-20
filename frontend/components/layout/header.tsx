@@ -7,21 +7,25 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { LanguageToggle } from "@/components/shared/language-toggle";
 import { useUIStore, useCartStore, useWishlistStore } from "@/store";
+import { useLanguageStore } from "@/store/language-store";
+import { getDictionary } from "@/i18n";
+import { useHydrated } from "@/hooks/use-hydrated";
 
-const occasions = [
-  "Eid", "Weddings", "Birthday", "Anniversary",
-  "Graduation", "Mother's Day", "Love & Romance", "Sympathy",
-];
+const occasionKeys = [
+  "eid", "weddings", "birthday", "anniversary",
+  "graduation", "mothersDay", "loveRomance", "sympathy",
+] as const;
 
-const navItems = [
-  { label: "Home", href: "/" },
-  { label: "Shop", href: "/shop" },
-  { label: "Categories", href: "/categories" },
-  { label: "Occasions", href: "#occasions", hasDropdown: true },
-  { label: "Blog", href: "/blog" },
-  { label: "About", href: "/about" },
-  { label: "Contact", href: "/contact" },
+const navKeys = [
+  { key: "home" as const, href: "/" },
+  { key: "shop" as const, href: "/shop" },
+  { key: "categories" as const, href: "/categories" },
+  { key: "occasions" as const, href: "#occasions", hasDropdown: true },
+  { key: "blog" as const, href: "/blog" },
+  { key: "about" as const, href: "/about" },
+  { key: "contact" as const, href: "/contact" },
 ];
 
 export function Header() {
@@ -32,6 +36,9 @@ export function Header() {
   const openCart = useUIStore((s) => s.openCart);
   const cartCount = useCartStore((s) => s.getItemCount());
   const wishlistCount = useWishlistStore((s) => s.getItemCount());
+  const locale = useLanguageStore((s) => s.locale);
+  const t = getDictionary(locale);
+  const hydrated = useHydrated();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -45,7 +52,7 @@ export function Header() {
       <div className="bg-maroon text-white text-xs py-2 text-center font-medium tracking-wide">
         <div className="flex items-center justify-center gap-2">
           <Truck className="h-3.5 w-3.5" />
-          <span>Free delivery over QAR 500</span>
+          <span>{t.announcement.text}</span>
         </div>
       </div>
 
@@ -80,16 +87,16 @@ export function Header() {
 
             {/* Desktop Nav */}
             <nav className="hidden lg:flex items-center gap-1">
-              {navItems.map((item) =>
+              {navKeys.map((item) =>
                 item.hasDropdown ? (
                   <div
-                    key={item.label}
+                    key={item.key}
                     className="relative"
                     onMouseEnter={() => setIsOccasionsOpen(true)}
                     onMouseLeave={() => setIsOccasionsOpen(false)}
                   >
                     <button className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-foreground hover:text-maroon dark:hover:text-gold transition-colors rounded-lg hover:bg-muted cursor-pointer">
-                      {item.label}
+                      {t.nav[item.key]}
                       <ChevronDown className="h-3.5 w-3.5" />
                     </button>
                     <AnimatePresence>
@@ -101,13 +108,13 @@ export function Header() {
                           transition={{ duration: 0.2 }}
                           className="absolute top-full left-0 mt-1 w-56 rounded-xl border border-border bg-card shadow-xl p-2"
                         >
-                          {occasions.map((occ) => (
+                          {occasionKeys.map((occ) => (
                             <a
                               key={occ}
                               href="#occasions"
                               className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-maroon/10 hover:text-maroon dark:hover:bg-gold/10 dark:hover:text-gold transition-colors"
                             >
-                              {occ}
+                              {t.occasions[occ]}
                             </a>
                           ))}
                         </motion.div>
@@ -116,11 +123,11 @@ export function Header() {
                   </div>
                 ) : (
                   <a
-                    key={item.label}
+                    key={item.key}
                     href={item.href}
                     className="px-3 py-2 text-sm font-medium text-foreground hover:text-maroon dark:hover:text-gold transition-colors rounded-lg hover:bg-muted"
                   >
-                    {item.label}
+                    {t.nav[item.key]}
                   </a>
                 )
               )}
@@ -158,12 +165,13 @@ export function Header() {
                 </AnimatePresence>
               </Button>
 
+              <LanguageToggle />
               <ThemeToggle />
 
               {/* Wishlist */}
               <Button variant="ghost" size="icon" className="relative hidden sm:flex">
                 <Heart className="h-5 w-5" />
-                {wishlistCount > 0 && (
+                {hydrated && wishlistCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-maroon text-[10px] font-bold text-white">
                     {wishlistCount}
                   </span>
@@ -181,7 +189,7 @@ export function Header() {
               {/* Cart */}
               <Button variant="ghost" size="icon" onClick={openCart} className="relative">
                 <ShoppingBag className="h-5 w-5" />
-                {cartCount > 0 && (
+                {hydrated && cartCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-maroon text-[10px] font-bold text-white">
                     {cartCount}
                   </span>
@@ -203,9 +211,9 @@ export function Header() {
             >
               <div className="container mx-auto px-4 lg:px-8 py-4">
                 <div className="relative max-w-2xl mx-auto">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground rtl:left-auto rtl:right-4" />
                   <Input
-                    placeholder="Search flowers, arrangements..."
+                    placeholder={t.search.placeholder}
                     className="pl-12 h-12 text-base rounded-xl bg-muted border-0 focus-visible:ring-2 focus-visible:ring-maroon dark:focus-visible:ring-gold"
                     autoFocus
                   />

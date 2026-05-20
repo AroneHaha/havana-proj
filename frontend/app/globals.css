@@ -80,6 +80,20 @@
   .font-serif {
     font-family: 'Playfair Display', serif;
   }
+
+  /* RTL Support */
+  [dir="rtl"] {
+    font-family: 'Noto Sans Arabic', 'Inter', sans-serif;
+  }
+
+  [dir="rtl"] .font-serif {
+    font-family: 'Noto Sans Arabic', 'Playfair Display', serif;
+  }
+
+  /* Logical property helpers for RTL */
+  [dir="rtl"] .rtl-flip {
+    transform: scaleX(-1);
+  }
 }
 
 @layer utilities {

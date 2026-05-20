@@ -1,20 +1,22 @@
 "use client";
 
 import { MapPin, Phone, Mail, Clock, Camera, Video, MessageCircle, Music } from "lucide-react";
+import { useLanguageStore } from "@/store/language-store";
+import { getDictionary } from "@/i18n";
 
-const quickLinks = [
-  { label: "FAQ", href: "#" },
-  { label: "Shipping Policy", href: "#" },
-  { label: "Returns & Refunds", href: "#" },
-  { label: "Privacy Policy", href: "#" },
-  { label: "Terms of Service", href: "#" },
-];
+const quickLinkKeys = [
+  { key: "faq", href: "#" },
+  { key: "shippingPolicy", href: "#" },
+  { key: "returnsRefunds", href: "#" },
+  { key: "privacyPolicy", href: "#" },
+  { key: "termsOfService", href: "#" },
+] as const;
 
-const customerLinks = [
-  { label: "Track Order", href: "#" },
-  { label: "Gift Cards", href: "#" },
-  { label: "Corporate Orders", href: "#" },
-];
+const customerLinkKeys = [
+  { key: "trackOrder", href: "#" },
+  { key: "giftCards", href: "#" },
+  { key: "corporateOrders", href: "#" },
+] as const;
 
 const socialLinks = [
   { icon: Camera, label: "Instagram", href: "#" },
@@ -25,6 +27,8 @@ const socialLinks = [
 
 export function Footer() {
   const year = new Date().getFullYear();
+  const locale = useLanguageStore((s) => s.locale);
+  const t = getDictionary(locale);
 
   return (
     <footer className="bg-[#080808] text-white">
@@ -38,8 +42,7 @@ export function Footer() {
             <span className="text-2xl font-serif font-bold text-gold-gradient">HAVANA</span>
             <p className="text-[10px] tracking-[0.3em] text-white/50 uppercase">Flowers</p>
             <p className="text-sm text-white/60 leading-relaxed">
-              Havana Flowers is Qatar&apos;s premier luxury floral boutique, delivering exquisite
-              arrangements crafted with passion and precision since 2018.
+              {t.footer.about}
             </p>
             <div className="flex items-center gap-3 pt-2">
               {socialLinks.map((social) => (
@@ -57,12 +60,12 @@ export function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4 text-gold">Quick Links</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4 text-gold">{t.footer.quickLinks}</h3>
             <ul className="space-y-2.5">
-              {quickLinks.map((link) => (
-                <li key={link.label}>
+              {quickLinkKeys.map((link) => (
+                <li key={link.key}>
                   <a href={link.href} className="text-sm text-white/60 hover:text-gold transition-colors">
-                    {link.label}
+                    {t.footer[link.key]}
                   </a>
                 </li>
               ))}
@@ -71,12 +74,12 @@ export function Footer() {
 
           {/* Customer Service */}
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4 text-gold">Customer Service</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4 text-gold">{t.footer.customerService}</h3>
             <ul className="space-y-2.5">
-              {customerLinks.map((link) => (
-                <li key={link.label}>
+              {customerLinkKeys.map((link) => (
+                <li key={link.key}>
                   <a href={link.href} className="text-sm text-white/60 hover:text-gold transition-colors">
-                    {link.label}
+                    {t.footer[link.key]}
                   </a>
                 </li>
               ))}
@@ -85,11 +88,11 @@ export function Footer() {
 
           {/* Contact Info */}
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4 text-gold">Contact Info</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4 text-gold">{t.footer.contactInfo}</h3>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
                 <MapPin className="h-4 w-4 text-gold mt-0.5 flex-shrink-0" />
-                <span className="text-sm text-white/60">The Pearl-Qatar, Porto Arabia, Doha, Qatar</span>
+                <span className="text-sm text-white/60">{t.footer.address}</span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="h-4 w-4 text-gold flex-shrink-0" />
@@ -101,7 +104,7 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-3">
                 <Clock className="h-4 w-4 text-gold flex-shrink-0" />
-                <span className="text-sm text-white/60">Sat-Thu: 9AM - 10PM</span>
+                <span className="text-sm text-white/60">{t.footer.hours}</span>
               </li>
             </ul>
           </div>
@@ -110,7 +113,7 @@ export function Footer() {
         {/* Bottom */}
         <div className="mt-12 pt-8 border-t border-white/10 text-center">
           <p className="text-xs text-white/40">
-            &copy; {year} Havana Flowers. All rights reserved.
+            &copy; {year} {t.footer.copyright}
           </p>
         </div>
       </div>

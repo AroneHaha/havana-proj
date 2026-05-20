@@ -5,10 +5,14 @@ import { motion } from "framer-motion";
 import { Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useLanguageStore } from "@/store/language-store";
+import { getDictionary } from "@/i18n";
 
 export function Newsletter() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const locale = useLanguageStore((s) => s.locale);
+  const t = getDictionary(locale);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,13 +46,13 @@ export function Newsletter() {
         >
           <div className="inline-flex items-center gap-2 mb-6">
             <Sparkles className="h-5 w-5 text-gold" />
-            <span className="text-sm font-medium text-gold uppercase tracking-wider">Exclusive</span>
+            <span className="text-sm font-medium text-gold uppercase tracking-wider">{t.newsletter.exclusive}</span>
           </div>
           <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
-            Stay in Bloom
+            {t.newsletter.title}
           </h2>
           <p className="text-lg text-white/70 max-w-xl mx-auto mb-10">
-            Subscribe to receive exclusive offers, new arrivals, and floral inspiration.
+            {t.newsletter.description}
           </p>
 
           <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-lg mx-auto">
@@ -57,7 +61,7 @@ export function Newsletter() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email address"
+                placeholder={t.newsletter.placeholder}
                 className="h-12 px-5 rounded-xl bg-white/10 border-white/20 text-white placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-0 focus-visible:border-transparent"
                 required
               />
@@ -68,7 +72,7 @@ export function Newsletter() {
               className="bg-gold hover:bg-gold-dark text-dark-bg font-semibold gap-2 shrink-0"
             >
               <Send className="h-4 w-4" />
-              Subscribe
+              {t.newsletter.subscribe}
             </Button>
           </form>
 
@@ -78,11 +82,11 @@ export function Newsletter() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-4 text-sm text-gold"
             >
-              Thank you for subscribing!
+              {t.newsletter.thankYou}
             </motion.p>
           )}
 
-          <p className="mt-6 text-xs text-white/40">By subscribing, you agree to our Privacy Policy.</p>
+          <p className="mt-6 text-xs text-white/40">{t.newsletter.privacy}</p>
         </motion.div>
       </div>
     </section>
