@@ -1,6 +1,10 @@
 /**
  * Base translation type using `string` for all text values.
  * Both en.ts and ar.ts satisfy this type.
+ *
+ * Product name/description entries are now `Record<string, ...>`
+ * so that products can be added/removed from the DB without
+ * needing to update this type file.
  */
 
 export interface Translation {
@@ -59,23 +63,15 @@ export interface Translation {
   featuredCollection: {
     title: string;
     subtitle: string;
-    products: {
-      royalRose: { name: string; description: string };
-      goldenHour: { name: string; description: string };
-      midnightOrchid: { name: string; description: string };
-      pearlLilies: { name: string; description: string };
-    };
+    /** Dynamic — products keyed by slug, fetched from DB */
+    products: Record<string, { name: string; description: string }>;
   };
 
   bestSellers: {
     title: string;
     subtitle: string;
-    products: {
-      classicRed: { name: string; description: string };
-      pastelDream: { name: string; description: string };
-      tulipParadise: { name: string; description: string };
-      luxuryWhiteGold: { name: string; description: string };
-    };
+    /** Dynamic — products keyed by slug, fetched from DB */
+    products: Record<string, { name: string; description: string }>;
   };
 
   productCard: {

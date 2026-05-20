@@ -8,42 +8,8 @@ import { SectionHeader } from "@/components/shared/section-header";
 import { ProductCard } from "@/components/shared/product-card";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
+import { getFeaturedProducts } from "@/services/product-service";
 import type { Product } from "@/types";
-
-const featuredProductKeys = [
-  {
-    key: "royalRose" as const,
-    product: {
-      id: "fp1", price: 850, salePrice: 699,
-      image: "https://images.unsplash.com/photo-1494972308805-463bc619d34e?w=600&q=80",
-      category: "roses", rating: 4.9, reviewCount: 128, inStock: true, isFeatured: true,
-    },
-  },
-  {
-    key: "goldenHour" as const,
-    product: {
-      id: "fp2", price: 620,
-      image: "https://images.unsplash.com/photo-1508610048659-a06b669e3321?w=600&q=80",
-      category: "mixed", rating: 4.8, reviewCount: 95, inStock: true, isFeatured: true,
-    },
-  },
-  {
-    key: "midnightOrchid" as const,
-    product: {
-      id: "fp3", price: 1200, salePrice: 999,
-      image: "https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=600&q=80",
-      category: "orchids", rating: 5.0, reviewCount: 67, inStock: true, isFeatured: true,
-    },
-  },
-  {
-    key: "pearlLilies" as const,
-    product: {
-      id: "fp4", price: 780,
-      image: "https://images.unsplash.com/photo-1468327768560-75b778cbb551?w=600&q=80",
-      category: "lilies", rating: 4.7, reviewCount: 84, inStock: true, isFeatured: true, isNew: true,
-    },
-  },
-];
 
 export function FeaturedCollection() {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: "start" }, [
@@ -51,14 +17,15 @@ export function FeaturedCollection() {
   ]);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
+
   const locale = useLanguageStore((s) => s.locale);
   const t = getDictionary(locale);
 
-  const featuredProducts: Product[] = featuredProductKeys.map((item) => ({
-    ...item.product,
-    name: t.featuredCollection.products[item.key].name,
-    description: t.featuredCollection.products[item.key].description,
-  }));
+  // Fetch products from service (API or seed data)
+  useEffect(() => {
+    getFeaturedProducts(locale).then(setProducts);
+  }, [locale]);
 
   const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
   const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
@@ -75,6 +42,8 @@ export function FeaturedCollection() {
     emblaApi.on("select", onSelect);
     return () => { emblaApi.off("select", onSelect); };
   }, [emblaApi, onSelect]);
+
+  if (products.length === 0) return null;
 
   return (
     <section className="py-20 lg:py-28">
@@ -107,7 +76,7 @@ export function FeaturedCollection() {
       <div className="px-4 lg:px-8">
         <div className="overflow-hidden" ref={emblaRef}>
           <div className="flex gap-6 -ml-4 lg:-ml-8">
-            {featuredProducts.map((product, index) => (
+            {products.map((product, index) => (
               <div key={product.id} className="flex-[0_0_85%] sm:flex-[0_0_45%] lg:flex-[0_0_30%] pl-4 lg:pl-8">
                 <ProductCard product={product} index={index} />
               </div>
