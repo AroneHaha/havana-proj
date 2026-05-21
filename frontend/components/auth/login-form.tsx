@@ -8,23 +8,56 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
-import { login, AuthError } from "@/services/auth-service";
+import { useAuthStore } from "@/store/auth-store";
+import { AuthError } from "@/services/auth-service";
+
+/**
+ * Helper: map AuthError codes to i18n message keys.
+ * When the backend goes live, Laravel returns specific error codes
+ * that we map here — the UI never needs to change.
+ */
+function getLoginErrorMessage(err: unknown, t: ReturnType<typeof getDictionary>): string {
+  if (!(err instanceof AuthError)) {
+    return t.auth.login.requiredFields;
+  }
+
+  switch (err.code) {
+    case "INVALID_CREDENTIALS":
+      return t.auth.login.invalidCredentials;
+    case "TOKEN_EXPIRED":
+      return t.auth.login.sessionExpired ?? t.auth.login.invalidCredentials;
+    case "VALIDATION_ERROR": {
+      // Laravel returns per-field errors — show the first one
+      const firstField = Object.values(err.fields)[0];
+      return firstField?.[0] ?? t.auth.login.requiredFields;
+    }
+    case "NETWORK_ERROR":
+      return t.auth.login.networkError ?? t.auth.login.requiredFields;
+    default:
+      return t.auth.login.requiredFields;
+  }
+}
 
 export function LoginPage() {
   const router = useRouter();
   const locale = useLanguageStore((s) => s.locale);
   const t = getDictionary(locale);
+  const login = useAuthStore((s) => s.login);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  /** Per-field errors from Laravel validation (422) */
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
 
+    // ── Client-side validation ──
     if (!email || !password) {
       setError(t.auth.login.requiredFields);
       return;
@@ -39,18 +72,21 @@ export function LoginPage() {
     try {
       const res = await login(email, password);
       if (res.user.role === "admin") {
-        // Hard navigation — we're crossing route groups ((site) → (admin))
-        // so soft router.push can silently fail
-        window.location.href = "/admin/dashboard";
+        // Hard navigation — crossing route groups (site → admin)
+        window.location.href = "/dashboard";
       } else {
         router.push("/");
       }
     } catch (err) {
-      if (err instanceof AuthError && err.code === "INVALID_CREDENTIALS") {
-        setError(t.auth.login.invalidCredentials);
-      } else {
-        setError(t.auth.login.requiredFields);
+      // Map Laravel field errors to per-field UI state
+      if (err instanceof AuthError && err.code === "VALIDATION_ERROR" && err.fields) {
+        const mapped: Record<string, string> = {};
+        for (const [field, messages] of Object.entries(err.fields)) {
+          mapped[field] = messages[0] ?? "";
+        }
+        setFieldErrors(mapped);
       }
+      setError(getLoginErrorMessage(err, t));
       setLoading(false);
     }
   };
@@ -175,10 +211,13 @@ export function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t.auth.login.emailPlaceholder}
-                  className="pl-10 h-11"
+                  className={`pl-10 h-11 ${fieldErrors.email ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                   dir="ltr"
                 />
               </div>
+              {fieldErrors.email && (
+                <p className="text-xs text-red-500 mt-1">{fieldErrors.email}</p>
+              )}
             </div>
 
             {/* Password */}
@@ -201,7 +240,7 @@ export function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={t.auth.login.passwordPlaceholder}
-                  className="pl-10 pr-10 h-11"
+                  className={`pl-10 pr-10 h-11 ${fieldErrors.password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                   dir="ltr"
                 />
                 <button
@@ -216,6 +255,9 @@ export function LoginPage() {
                   )}
                 </button>
               </div>
+              {fieldErrors.password && (
+                <p className="text-xs text-red-500 mt-1">{fieldErrors.password}</p>
+              )}
             </div>
 
             {/* Submit */}
