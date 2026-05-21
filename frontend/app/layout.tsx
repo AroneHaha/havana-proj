@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display, Noto_Sans_Arabic } from "next/font/google";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { DirectionProvider } from "@/components/shared/direction-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { CartDrawer } from "@/components/layout/cart-drawer";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { DirectionProvider } from "@/components/shared/direction-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -39,7 +39,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${playfair.variable} ${notoArabic.variable} antialiased`}>
         <ThemeProvider>
-          <DirectionProvider>
+            <DirectionProvider>
             <Header />
             <CartDrawer />
             <MobileNav />
