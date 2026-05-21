@@ -233,6 +233,46 @@ const en: Translation = {
     en: "EN",
     ar: "عربي",
   },
+
+  // Auth
+  auth: {
+    login: {
+      title: "Welcome Back",
+      subtitle: "Sign in to your Havana Flowers account and explore our latest collections",
+      email: "Email Address",
+      emailPlaceholder: "you@example.com",
+      password: "Password",
+      passwordPlaceholder: "Enter your password",
+      forgotPassword: "Forgot password?",
+      signIn: "Sign In",
+      orContinueWith: "Or continue with",
+      noAccount: "Don't have an account?",
+      createAccount: "Create one",
+      requiredFields: "Please fill in all required fields",
+      invalidEmail: "Please enter a valid email address",
+      invalidCredentials: "Invalid email or password. Please try again.",
+      welcomeBack: "Welcome back to Havana",
+    },
+    signup: {
+      title: "Join Havana",
+      subtitle: "Create an account to enjoy exclusive offers and personalized recommendations",
+      firstName: "First Name",
+      firstNamePlaceholder: "Your first name",
+      lastName: "Last Name",
+      lastNamePlaceholder: "Your last name",
+      email: "Email Address",
+      emailPlaceholder: "you@example.com",
+      password: "Password",
+      passwordPlaceholder: "Create a password",
+      confirmPassword: "Confirm Password",
+      confirmPasswordPlaceholder: "Confirm your password",
+      createAccount: "Create Account",
+      alreadyHaveAccount: "Already have an account?",
+      signIn: "Sign In",
+      passwordMismatch: "Passwords do not match",
+      agreeToTerms: "By creating an account, you agree to our Terms of Service and Privacy Policy",
+    },
+  },
 };
 
 export default en;

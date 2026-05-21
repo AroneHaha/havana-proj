@@ -154,4 +154,43 @@ export interface Translation {
     en: string;
     ar: string;
   };
+
+  auth: {
+    login: {
+      title: string;
+      subtitle: string;
+      email: string;
+      emailPlaceholder: string;
+      password: string;
+      passwordPlaceholder: string;
+      forgotPassword: string;
+      signIn: string;
+      orContinueWith: string;
+      noAccount: string;
+      createAccount: string;
+      requiredFields: string;
+      invalidEmail: string;
+      invalidCredentials: string;
+      welcomeBack: string;
+    };
+    signup: {
+      title: string;
+      subtitle: string;
+      firstName: string;
+      firstNamePlaceholder: string;
+      lastName: string;
+      lastNamePlaceholder: string;
+      email: string;
+      emailPlaceholder: string;
+      password: string;
+      passwordPlaceholder: string;
+      confirmPassword: string;
+      confirmPasswordPlaceholder: string;
+      createAccount: string;
+      alreadyHaveAccount: string;
+      signIn: string;
+      passwordMismatch: string;
+      agreeToTerms: string;
+    };
+  };
 }

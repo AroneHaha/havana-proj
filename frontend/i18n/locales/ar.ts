@@ -233,6 +233,46 @@ const ar: Translation = {
     en: "EN",
     ar: "عربي",
   },
+
+  // Auth
+  auth: {
+    login: {
+      title: "مرحباً بعودتك",
+      subtitle: "سجّل الدخول إلى حسابك في هافانا فلاورز واستكشف أحدث مجموعاتنا",
+      email: "البريد الإلكتروني",
+      emailPlaceholder: "you@example.com",
+      password: "كلمة المرور",
+      passwordPlaceholder: "أدخل كلمة المرور",
+      forgotPassword: "نسيت كلمة المرور؟",
+      signIn: "تسجيل الدخول",
+      orContinueWith: "أو تابع مع",
+      noAccount: "ليس لديك حساب؟",
+      createAccount: "أنشئ واحداً",
+      requiredFields: "يرجى ملء جميع الحقول المطلوبة",
+      invalidEmail: "يرجى إدخال بريد إلكتروني صالح",
+      invalidCredentials: "البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى.",
+      welcomeBack: "مرحباً بعودتك إلى هافانا",
+    },
+    signup: {
+      title: "انضم إلى هافانا",
+      subtitle: "أنشئ حساباً للاستمتاع بعروض حصرية وتوصيات مخصصة",
+      firstName: "الاسم الأول",
+      firstNamePlaceholder: "اسمك الأول",
+      lastName: "اسم العائلة",
+      lastNamePlaceholder: "اسم عائلتك",
+      email: "البريد الإلكتروني",
+      emailPlaceholder: "you@example.com",
+      password: "كلمة المرور",
+      passwordPlaceholder: "أنشئ كلمة مرور",
+      confirmPassword: "تأكيد كلمة المرور",
+      confirmPasswordPlaceholder: "أكّد كلمة المرور",
+      createAccount: "إنشاء حساب",
+      alreadyHaveAccount: "لديك حساب بالفعل؟",
+      signIn: "تسجيل الدخول",
+      passwordMismatch: "كلمات المرور غير متطابقة",
+      agreeToTerms: "بإنشاء حساب، أنت توافق على شروط الخدمة وسياسة الخصوصية",
+    },
+  },
 };
 
 export default ar;
