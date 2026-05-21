@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
 import { login, AuthError } from "@/services/auth-service";
-import { cn } from "@/lib/utils";
 
 export function LoginPage() {
   const router = useRouter();
@@ -40,7 +39,9 @@ export function LoginPage() {
     try {
       const res = await login(email, password);
       if (res.user.role === "admin") {
-        router.push("/admin/dashboard");
+        // Hard navigation — we're crossing route groups ((site) → (admin))
+        // so soft router.push can silently fail
+        window.location.href = "/admin/dashboard";
       } else {
         router.push("/");
       }
@@ -50,7 +51,6 @@ export function LoginPage() {
       } else {
         setError(t.auth.login.requiredFields);
       }
-    } finally {
       setLoading(false);
     }
   };

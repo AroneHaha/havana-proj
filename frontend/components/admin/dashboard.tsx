@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   LayoutDashboard,
@@ -15,9 +14,7 @@ import {
   Bell,
   TrendingUp,
   DollarSign,
-  Eye,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { getCurrentUser, logout, type AuthUser } from "@/services/auth-service";
 
 const stats = [
@@ -42,23 +39,23 @@ const statusColors: Record<string, string> = {
 };
 
 export function AdminDashboard() {
-  const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     const current = getCurrentUser();
     if (!current || current.role !== "admin") {
-      router.push("/login");
+      // Hard redirect — crossing route groups
+      window.location.href = "/login";
       return;
     }
     setUser(current);
     setChecking(false);
-  }, [router]);
+  }, []);
 
   const handleLogout = () => {
     logout();
-    router.push("/login");
+    window.location.href = "/login";
   };
 
   if (checking) {
