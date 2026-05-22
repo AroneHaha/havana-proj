@@ -1,5 +1,4 @@
 /** /frontend/components/reviews/review-filters.tsx */
-
 "use client";
 
 import type { ReviewFilters, ReviewVisibility } from "@/types/review";

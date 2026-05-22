@@ -6,8 +6,7 @@
  * layer provides seed objects that satisfy these same interfaces.
  */
 
-
-  /** /frontend/types/review.ts */
+/** /frontend/types/review.ts */
 export type ReviewVisibility = "visible" | "hidden" | "pending";
 
 export interface ReviewProductSnapshot {

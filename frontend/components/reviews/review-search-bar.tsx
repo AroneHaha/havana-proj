@@ -1,5 +1,4 @@
 /** /frontend/components/reviews/review-search-bar.tsx */
-
 "use client";
 
 import { Search, X, SlidersHorizontal } from "lucide-react";

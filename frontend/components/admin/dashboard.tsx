@@ -24,7 +24,7 @@ const sidebarItems = [
   { icon: LayoutDashboard, labelKey: "dashboard", href: "/dashboard" },
   { icon: ShoppingBag, labelKey: "orders", href: "/orders" },
   { icon: Package, labelKey: "products", href: "#" },
-  { icon: Users, labelKey: "customers", href: "#" },
+  { icon: Users, labelKey: "customers", href: "/reviews#" },
   { icon: BarChart3, labelKey: "analytics", href: "#" },
   { icon: Settings, labelKey: "settings", href: "#" },
 ];

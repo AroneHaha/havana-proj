@@ -1,5 +1,4 @@
 /** /frontend/components/reviews/rating-summary.tsx */
-
 "use client";
 
 import { RatingStars } from "./rating-stars";

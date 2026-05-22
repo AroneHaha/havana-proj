@@ -1,5 +1,4 @@
 /** /frontend/components/reviews/review-list.tsx */
-
 "use client";
 
 import type { Review } from "@/types/review";
