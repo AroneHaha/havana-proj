@@ -90,6 +90,8 @@ export function AdminOrders() {
   const hydrated = useAuthStore((s) => s.hydrated);
 
   const orders = useOrdersStore((s) => s.orders);
+  const storeFetchOrders = useOrdersStore((s) => s.fetchOrders);
+  const storeFetchStats = useOrdersStore((s) => s.fetchStats);
   const updateOrderStatus = useOrdersStore((s) => s.updateOrderStatus);
   const deleteOrder = useOrdersStore((s) => s.deleteOrder);
   const getStatusCounts = useOrdersStore((s) => s.getStatusCounts);
@@ -107,7 +109,7 @@ export function AdminOrders() {
   const [dateTo, setDateTo] = useState("");
   const [activeDatePreset, setActiveDatePreset] = useState<"today" | "7d" | "30d" | null>(null);
 
-  // Auth guard
+  // Auth guard + data fetch
   useEffect(() => { hydrate(); }, [hydrate]);
 
   useEffect(() => {
@@ -117,6 +119,9 @@ export function AdminOrders() {
       return;
     }
     setChecking(false);
+    // Fetch orders & stats once authenticated
+    storeFetchOrders();
+    storeFetchStats();
   }, [hydrated, user]);
 
   const statusCounts = getStatusCounts();
@@ -178,21 +183,29 @@ export function AdminOrders() {
     setDrawerOpen(true);
   };
 
-  const handleUpdateStatus = (id: string, status: OrderStatus) => {
-    updateOrderStatus(id, status);
-    if (selectedOrder?.id === id) {
-      setSelectedOrder((prev) =>
-        prev ? { ...prev, status, updatedAt: new Date().toISOString() } : null
-      );
+  const handleUpdateStatus = async (id: string, status: OrderStatus) => {
+    try {
+      await updateOrderStatus(id, status);
+      if (selectedOrder?.id === id) {
+        setSelectedOrder((prev) =>
+          prev ? { ...prev, status, updatedAt: new Date().toISOString() } : null
+        );
+      }
+    } catch {
+      // Error is set in store — UI can react to store.error
     }
   };
 
-  const handleDeleteOrder = (id: string) => {
-    deleteOrder(id);
-    setDeleteConfirm(null);
-    if (selectedOrder?.id === id) {
-      setDrawerOpen(false);
-      setSelectedOrder(null);
+  const handleDeleteOrder = async (id: string) => {
+    try {
+      await deleteOrder(id);
+      setDeleteConfirm(null);
+      if (selectedOrder?.id === id) {
+        setDrawerOpen(false);
+        setSelectedOrder(null);
+      }
+    } catch {
+      // Error is set in store
     }
   };
 

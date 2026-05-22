@@ -35,7 +35,7 @@ interface OrderDetailDrawerProps {
   order: Order | null;
   open: boolean;
   onClose: () => void;
-  onUpdateStatus: (id: string, status: OrderStatus) => void;
+  onUpdateStatus: (id: string, status: OrderStatus) => Promise<void>;
   t: Translation["admin"]["orders"];
 }
 

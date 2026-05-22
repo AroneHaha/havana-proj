@@ -161,7 +161,7 @@ let refreshPromise: Promise<boolean> | null = null;
  *  2. On 401, tries to refresh the token once and retries
  *  3. Maps Laravel error responses to AuthError
  */
-async function authFetch<T>(
+export async function authFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
