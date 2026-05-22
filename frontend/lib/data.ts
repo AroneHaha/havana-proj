@@ -1,0 +1,167 @@
+/**
+ * Seed / mock data for frontend-only development.
+ *
+ * Every product has a full `localeText` record so the product-service
+ * can resolve the right name/description per locale — exactly like
+ * the Laravel API would return.
+ *
+ * When the backend is live, this file is simply never called.
+ */
+
+import type { Product } from "@/types";
+
+export const featuredProducts: Product[] = [
+  {
+    id: "fp1",
+    slug: "royal-rose-symphony",
+    localeText: {
+      en: { name: "Royal Rose Symphony", description: "Luxurious red roses arrangement" },
+      ar: { name: "سمفونية الورد الملكي", description: "ترتيب ورود حمراء فاخرة" },
+    },
+    name: "",
+    description: "",
+    price: 850,
+    salePrice: 699,
+    image: "https://images.unsplash.com/photo-1494972308805-463bc619d34e?w=600&q=80",
+    images: [],
+    category: "roses",
+    rating: 4.9,
+    reviewCount: 128,
+    inStock: true,
+    isFeatured: true,
+  },
+  {
+    id: "fp2",
+    slug: "golden-hour-bouquet",
+    localeText: {
+      en: { name: "Golden Hour Bouquet", description: "Sunflowers and gold accents" },
+      ar: { name: "باقة الساعة الذهبية", description: "دوار الشمس مع لمسات ذهبية" },
+    },
+    name: "",
+    description: "",
+    price: 620,
+    image: "https://images.unsplash.com/photo-1508610048659-a06b669e3321?w=600&q=80",
+    images: [],
+    category: "mixed",
+    rating: 4.8,
+    reviewCount: 95,
+    inStock: true,
+    isFeatured: true,
+  },
+  {
+    id: "fp3",
+    slug: "midnight-orchid-elegance",
+    localeText: {
+      en: { name: "Midnight Orchid Elegance", description: "Exotic orchids in dark vase" },
+      ar: { name: "أناقة الأوركيد الليلية", description: "أوركيدات غريبة في مزهرية داكنة" },
+    },
+    name: "",
+    description: "",
+    price: 1200,
+    salePrice: 999,
+    image: "https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=600&q=80",
+    images: [],
+    category: "orchids",
+    rating: 5.0,
+    reviewCount: 67,
+    inStock: true,
+    isFeatured: true,
+  },
+  {
+    id: "fp4",
+    slug: "pearl-white-lilies",
+    localeText: {
+      en: { name: "Pearl White Lilies", description: "Elegant white lily arrangement" },
+      ar: { name: "زنابق اللؤلؤ الأبيض", description: "ترتيب زنابق بيضاء أنيقة" },
+    },
+    name: "",
+    description: "",
+    price: 780,
+    image: "https://images.unsplash.com/photo-1468327768560-75b778cbb551?w=600&q=80",
+    images: [],
+    category: "lilies",
+    rating: 4.7,
+    reviewCount: 84,
+    inStock: true,
+    isFeatured: true,
+    isNew: true,
+  },
+];
+
+export const bestSellerProducts: Product[] = [
+  {
+    id: "bs1",
+    slug: "classic-red-rose-box",
+    localeText: {
+      en: { name: "Classic Red Rose Box", description: "24 premium red roses in luxury box" },
+      ar: { name: "صندوق الورد الأحمر الكلاسيكي", description: "٢٤ وردة حمراء فاخرة في صندوق فاخر" },
+    },
+    name: "",
+    description: "",
+    price: 550,
+    image: "https://images.unsplash.com/photo-1455659817273-f96807779a8a?w=600&q=80",
+    images: [],
+    category: "roses",
+    rating: 4.9,
+    reviewCount: 256,
+    inStock: true,
+    isBestSeller: true,
+  },
+  {
+    id: "bs2",
+    slug: "pastel-dream-arrangement",
+    localeText: {
+      en: { name: "Pastel Dream Arrangement", description: "Soft pastel floral arrangement" },
+      ar: { name: "ترتيب حلم الباستيل", description: "ترتيب زهري بألوان الباستيل الناعمة" },
+    },
+    name: "",
+    description: "",
+    price: 720,
+    salePrice: 599,
+    image: "https://images.unsplash.com/photo-1487530811176-3780de880c2d?w=600&q=80",
+    images: [],
+    category: "mixed",
+    rating: 4.8,
+    reviewCount: 189,
+    inStock: true,
+    isBestSeller: true,
+  },
+  {
+    id: "bs3",
+    slug: "tulip-paradise",
+    localeText: {
+      en: { name: "Tulip Paradise", description: "Colorful tulip bouquet" },
+      ar: { name: "جنة التيوليب", description: "باقة تيوليب ملونة" },
+    },
+    name: "",
+    description: "",
+    price: 480,
+    image: "https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=600&q=80",
+    images: [],
+    category: "tulips",
+    rating: 4.7,
+    reviewCount: 142,
+    inStock: true,
+    isBestSeller: true,
+  },
+  {
+    id: "bs4",
+    slug: "luxury-white-gold",
+    localeText: {
+      en: { name: "Luxury White & Gold", description: "White roses with gold accents" },
+      ar: { name: "فاخر أبيض وذهبي", description: "ورود بيضاء مع لمسات ذهبية" },
+    },
+    name: "",
+    description: "",
+    price: 950,
+    salePrice: 799,
+    image: "https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=600&q=80",
+    images: [],
+    category: "luxury",
+    rating: 4.9,
+    reviewCount: 201,
+    inStock: true,
+    isBestSeller: true,
+    isNew: true,
+  },
+];

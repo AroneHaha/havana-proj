@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: #6D0F1B;
+  --color-primary-foreground: #ffffff;
+  --color-accent: #C9A227;
+  --color-accent-light: #E8D48B;
+  --color-accent-dark: #A07D1A;
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border-color);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-maroon: #6D0F1B;
+  --color-maroon-light: #8B1A2B;
+  --color-maroon-dark: #4A0A13;
+  --color-gold: #C9A227;
+  --color-gold-light: #E8D48B;
+  --color-gold-dark: #A07D1A;
+  --color-dark-bg: #0B0B0B;
+  --color-dark-card: #141414;
+  --color-dark-border: #252525;
+  --color-light-bg: #F8F5F2;
+  --color-light-card: #FFFFFF;
+  --color-light-border: #E5E5E5;
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Playfair Display', serif;
+  --radius: 0.75rem;
+}
+
+:root {
+  --background: #F8F5F2;
+  --foreground: #1a1a1a;
+  --card: #FFFFFF;
+  --card-foreground: #1a1a1a;
+  --muted: #f4f1ed;
+  --muted-foreground: #737373;
+  --border-color: #E5E5E5;
+  --ring: #6D0F1B;
+  --input: #E5E5E5;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #1a1a1a;
+}
+
+.dark {
+  --background: #0B0B0B;
+  --foreground: #ededed;
+  --card: #141414;
+  --card-foreground: #ededed;
+  --muted: #1a1a1a;
+  --muted-foreground: #a3a3a3;
+  --border-color: #252525;
+  --ring: #C9A227;
+  --input: #252525;
+  --sidebar: #141414;
+  --sidebar-foreground: #ededed;
+}
+
+@layer base {
+  * {
+    border-color: var(--border-color);
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .font-serif {
+    font-family: 'Playfair Display', serif;
+  }
+
+  /* RTL Support */
+  [dir="rtl"] {
+    font-family: 'Noto Sans Arabic', 'Inter', sans-serif;
+  }
+
+  [dir="rtl"] .font-serif {
+    font-family: 'Noto Sans Arabic', 'Playfair Display', serif;
+  }
+
+  /* Logical property helpers for RTL */
+  [dir="rtl"] .rtl-flip {
+    transform: scaleX(-1);
+  }
+}
+
+@layer utilities {
+  .text-gold-gradient {
+    background: linear-gradient(135deg, #C9A227 0%, #E8D48B 50%, #A07D1A 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .border-gold {
+    border-color: #C9A227;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
