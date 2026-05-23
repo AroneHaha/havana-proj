@@ -399,6 +399,7 @@ const en: Translation = {
       backToSales: "Back to Sales",
       saleDetails: "Sale Details",
       orderInfo: "Order Information",
+      pending: "Pending",
       delivered: "Delivered",
       confirmed: "Confirmed",
       preparing: "Preparing",

@@ -318,6 +318,7 @@ export interface Translation {
       backToSales: string;
       saleDetails: string;
       orderInfo: string;
+      pending: string;
       delivered: string;
       confirmed: string;
       preparing: string;
