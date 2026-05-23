@@ -1,4 +1,4 @@
-import { AdminOrders } from "@/components/admin/orders-page";
+import { AdminOrders } from "@/components/admin/ui/orders";
 
 export const metadata = {
   title: "Orders | Havana Admin",
