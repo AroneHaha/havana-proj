@@ -1,5 +1,5 @@
-import { AdminProducts } from "@/components/admin/products-page";
+import { ProductsPage } from "@/components/admin/ui/products";
 
 export default function ProductsRoute() {
-  return <AdminProducts />;
+  return <ProductsPage />;
 }

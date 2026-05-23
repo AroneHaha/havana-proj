@@ -1,6 +1,14 @@
 "use client";
 
-import { LayoutDashboard, ShoppingBag, Package, Users, LogOut, Menu, X } from "lucide-react";
+import {
+  LayoutDashboard,
+  ShoppingBag,
+  TrendingUp,
+  Package,
+  LogOut,
+  Menu,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
@@ -9,13 +17,29 @@ import { getDictionary } from "@/i18n";
 import { useState } from "react";
 
 const sidebarItems = [
-  { icon: LayoutDashboard, labelKey: "dashboard" as const, href: "/dashboard" },
-  { icon: ShoppingBag, labelKey: "orders" as const, href: "/orders" },
-  { icon: Package, labelKey: "products" as const, href: "/products" },
-  { icon: Users, labelKey: "salesReviews" as const, href: "/sales-reviews" },
+  {
+    icon: LayoutDashboard,
+    labelKey: "dashboard" as const,
+    href: "/dashboard",
+  },
+  {
+    icon: ShoppingBag,
+    labelKey: "orders" as const,
+    href: "/orders",
+  },
+  {
+    icon: TrendingUp,
+    labelKey: "salesReviews" as const,
+    href: "/sales-reviews",
+  },
+  {
+    icon: Package,
+    labelKey: "products" as const,
+    href: "/products",
+  },
 ];
 
-export default function AdminSidebar() {
+export function AdminSidebar() {
   const pathname = usePathname();
   const locale = useLanguageStore((s) => s.locale);
   const dict = getDictionary(locale);
@@ -50,6 +74,7 @@ export default function AdminSidebar() {
           );
         })}
       </nav>
+
       <div className="mt-auto pt-4 border-t border-border">
         <button
           onClick={handleLogout}
@@ -64,15 +89,23 @@ export default function AdminSidebar() {
 
   return (
     <>
+      {/* Mobile hamburger button */}
       <button
         onClick={() => setMobileOpen(true)}
         className="lg:hidden fixed bottom-6 left-6 z-50 flex items-center justify-center h-12 w-12 rounded-full bg-maroon dark:bg-gold text-white shadow-lg cursor-pointer"
       >
         <Menu className="h-5 w-5" />
       </button>
+
+      {/* Mobile overlay */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          onClick={() => setMobileOpen(false)}
+        />
       )}
+
+      {/* Mobile sidebar drawer */}
       <aside
         className={`lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-dark-card border-r border-border p-4 flex flex-col transition-transform duration-300 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
@@ -81,14 +114,21 @@ export default function AdminSidebar() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Package className="h-5 w-5 text-maroon dark:text-gold" />
-            <span className="font-serif text-lg font-semibold text-foreground">Menu</span>
+            <span className="font-serif text-lg font-semibold text-foreground">
+              Menu
+            </span>
           </div>
-          <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer">
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+          >
             <X className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
         <div className="flex-1">{sidebarContent}</div>
       </aside>
+
+      {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col w-60 min-h-[calc(100vh-4rem)] border-r border-border bg-white dark:bg-dark-card p-4">
         {sidebarContent}
       </aside>

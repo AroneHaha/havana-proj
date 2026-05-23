@@ -32,7 +32,7 @@ import { OrderDetailDrawer } from "@/components/admin/order-detail-drawer";
 import { formatPrice } from "@/lib/format-price";
 
 import AdminTopbar from "@/components/admin/ui/admin-topbar";
-import AdminSidebar from "@/components/admin/ui/admin-sidebar";
+import  { AdminSidebar } from "@/components/admin/ui/admin-sidebar";
 
 const ITEMS_PER_PAGE = 8;
 

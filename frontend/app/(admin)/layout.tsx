@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth-store";
 import AdminTopbar from "@/components/admin/ui/admin-topbar";
-import AdminSidebar from "@/components/admin/ui/admin-sidebar";
+import { AdminSidebar } from "@/components/admin/ui/admin-sidebar";
 
 export default function AdminLayout({
   children,
