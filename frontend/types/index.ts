@@ -1,21 +1,15 @@
 /**
  * Localized text — the API returns name/description per locale.
- * This replaces the old i18n-keyed product names.
  */
 export interface ProductLocaleText {
   name: string;
   description: string;
 }
-export type ProductStatus = "in_stock" | "low_stock" | "sold_out";
-
-export type ProductFilterStatus = "all" | "in_stock" | "low_stock" | "sold_out";
 
 /**
  * The canonical Product shape — backend-ready.
  *
- * When the Laravel API is live, every field here maps 1:1 to the
- * JSON response.  While developing frontend-only, `lib/data.ts`
- * provides seed objects that satisfy this same interface.
+ * Every field here maps 1:1 to the Laravel API JSON response.
  */
 export interface Product {
   id: string;
@@ -31,9 +25,10 @@ export interface Product {
   image: string;
   images?: string[];
   category: string;
+  stock: number;          // actual inventory count from backend
   rating: number;
   reviewCount: number;
-  inStock: boolean;
+  inStock: boolean;       // derived: stock > 0
   isNew?: boolean;
   isBestSeller?: boolean;
   isFeatured?: boolean;
@@ -56,5 +51,8 @@ export interface ApiResponse<T> {
     per_page: number;
     total: number;
   };
-  
 }
+
+export type ProductStatus = "in_stock" | "low_stock" | "sold_out";
+
+export type ProductFilterStatus = "all" | "in_stock" | "low_stock" | "sold_out";

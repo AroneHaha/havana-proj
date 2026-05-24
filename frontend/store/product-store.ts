@@ -10,6 +10,8 @@ interface ProductsState {
   error: string | null;
   fetchProducts: () => Promise<void>;
   addProduct: (product: Omit<Product, "id" | "slug" | "rating" | "reviewCount" | "createdAt">) => void;
+  updateProduct: (id: string, data: Partial<Product>) => void;
+  deleteProduct: (id: string) => void;
   getProductsByStatus: (status: ProductStockStatus) => Product[];
   getLowStockProducts: () => Product[];
   getOutOfStockProducts: () => Product[];
@@ -17,8 +19,8 @@ interface ProductsState {
 }
 
 export function getStockStatus(product: Product): ProductStockStatus {
-  if (!product.inStock) return "sold_out";
-  if (product.reviewCount > 0 && product.reviewCount < 50) return "low_stock";
+  if (product.stock <= 0) return "sold_out";
+  if (product.stock < 10) return "low_stock";
   return "in_stock";
 }
 
@@ -45,16 +47,35 @@ export const useProductsStore = create<ProductsState>()((set, get) => ({
     const id = `prod_${Date.now()}`;
     const name = productData.name;
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const stock = productData.stock ?? 0;
     const newProduct: Product = {
       ...productData,
       id,
       slug,
+      inStock: stock > 0,
       rating: 0,
       reviewCount: 0,
       createdAt: new Date().toISOString(),
     };
     set((state) => ({
       products: [newProduct, ...state.products],
+    }));
+  },
+
+  updateProduct: (id, data) => {
+    set((state) => ({
+      products: state.products.map((p) => {
+        if (p.id !== id) return p;
+        const updated = { ...p, ...data };
+        updated.inStock = updated.stock > 0;
+        return updated;
+      }),
+    }));
+  },
+
+  deleteProduct: (id) => {
+    set((state) => ({
+      products: state.products.filter((p) => p.id !== id),
     }));
   },
 
@@ -68,5 +89,5 @@ export const useProductsStore = create<ProductsState>()((set, get) => ({
     get().products.filter((p) => getStockStatus(p) === "sold_out"),
 
   getTotalValue: () =>
-    get().products.reduce((sum, p) => sum + (p.salePrice ?? p.price), 0),
+    get().products.reduce((sum, p) => sum + (p.salePrice ?? p.price) * p.stock, 0),
 }));
