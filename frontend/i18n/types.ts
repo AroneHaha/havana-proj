@@ -304,9 +304,11 @@ export interface Translation {
       subtitle: string;
       search: string;
       totalRevenue: string;
-      totalSales: string;
-      avgOrderValue: string;
+      totalOrders: string;
       productsSold: string;
+      allProducts: string;
+      filterByProduct: string;
+      filterByMonth: string;
       orderID: string;
       customer: string;
       products: string;
