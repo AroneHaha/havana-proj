@@ -14,9 +14,11 @@ export function CartDrawer() {
   const items = useCartStore((s) => s.items);
   const removeItem = useCartStore((s) => s.removeItem);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
-  const getSubtotal = useCartStore((s) => s.getSubtotal);
-  const deliveryFee = getSubtotal() >= 500 ? 0 : 30;
-  const total = getSubtotal() + deliveryFee;
+  const subtotal = useCartStore((s) =>
+    s.items.reduce((sum, item) => sum + (item.product.salePrice || item.product.price) * item.quantity, 0)
+  );
+  const deliveryFee = subtotal >= 500 ? 0 : 30;
+  const total = subtotal + deliveryFee;
   const locale = useLanguageStore((s) => s.locale);
   const t = getDictionary(locale);
 
@@ -114,7 +116,7 @@ export function CartDrawer() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t.cart.subtotal}</span>
-                    <span className="font-medium">{formatPrice(getSubtotal())}</span>
+                    <span className="font-medium">{formatPrice(subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t.cart.deliveryFee}</span>

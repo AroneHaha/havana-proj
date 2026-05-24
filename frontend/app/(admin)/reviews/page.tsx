@@ -1,9 +1,8 @@
-/** /frontend/app/(admin)/reviews/page.tsx */
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { motion } from "framer-motion";
-import { MessageSquare, Star, TrendingUp } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MessageSquare, Star, TrendingUp, X } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { useLanguageStore } from "@/store/language-store";
 import { useReviewsStore } from "@/store/review-store";
@@ -33,6 +32,7 @@ export default function ReviewsPage() {
   const deleteReview = useReviewsStore((s) => s.deleteReview);
 
   const [searchValue, setSearchValue] = useState(filters.search ?? "");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   useEffect(() => { hydrate(); }, [hydrate]);
 
@@ -79,18 +79,20 @@ export default function ReviewsPage() {
     [updateVisibility, fetchStats]
   );
 
-  const handleDelete = useCallback(
-    async (id: string) => {
-      if (!confirm("Are you sure you want to delete this review? This action cannot be undone.")) return;
-      try {
-        await deleteReview(id);
-        fetchStats();
-      } catch {
-        // Error is already in store
-      }
-    },
-    [deleteReview, fetchStats]
-  );
+  const handleDeleteClick = useCallback((id: string) => {
+    setDeleteConfirmId(id);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteConfirmId) return;
+    try {
+      await deleteReview(deleteConfirmId);
+      fetchStats();
+    } catch {
+      // Error is already in store
+    }
+    setDeleteConfirmId(null);
+  }, [deleteConfirmId, deleteReview, fetchStats]);
 
   if (checking) {
     return (
@@ -184,11 +186,55 @@ export default function ReviewsPage() {
               reviews={reviews}
               loading={loading}
               onVisibilityChange={handleVisibilityChange}
-              onDelete={handleDelete}
+              onDelete={handleDeleteClick}
             />
           </div>
         </div>
       </motion.div>
+
+      {/* ─── Delete Confirmation Modal ─── */}
+      <AnimatePresence>
+        {deleteConfirmId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          >
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setDeleteConfirmId(null)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative bg-white dark:bg-dark-card rounded-2xl border border-border w-full max-w-sm p-6 space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="font-serif text-lg font-semibold text-foreground">Delete Review</h3>
+                <button onClick={() => setDeleteConfirmId(null)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer">
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete this review? This action cannot be undone.
+              </p>
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  className="px-5 py-2.5 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors cursor-pointer"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
