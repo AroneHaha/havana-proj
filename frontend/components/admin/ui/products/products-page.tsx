@@ -5,15 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Plus,
-  Edit3,
-  Trash2,
   X,
   Package,
   AlertTriangle,
   CheckCircle2,
   XCircle,
   ChevronDown,
-  Flower2,
 } from "lucide-react";
 import { ProductGrid } from "./products-table";
 import { AddProductModal } from "./add-product-modal";
@@ -111,8 +108,6 @@ export function ProductsPage() {
   const [previewProduct, setPreviewProduct] = useState<AdminProduct | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  const [stockAdjust, setStockAdjust] = useState<{ [id: string]: string }>({});
-
   // ─── Derived ───
   const totalProducts = products.length;
   const inStock = products.filter((p) => p.status === "in_stock").length;
@@ -192,26 +187,6 @@ export function ProductsPage() {
     setEditProduct(null);
   };
 
-  const handleToggleSoldOut = (id: string) => {
-    const product = storeProducts.find((p) => p.id === id);
-    if (!product) return;
-    const isCurrentlyOut = product.stock <= 0;
-    storeUpdateProduct(id, {
-      stock: isCurrentlyOut ? 10 : 0,
-      inStock: isCurrentlyOut,
-    });
-  };
-
-  const handleStockAdjust = (id: string) => {
-    const adj = parseInt(stockAdjust[id] || "0");
-    if (!adj) return;
-    const product = storeProducts.find((p) => p.id === id);
-    if (!product) return;
-    const newStock = Math.max(0, product.stock + adj);
-    storeUpdateProduct(id, { stock: newStock, inStock: newStock > 0 });
-    setStockAdjust((prev) => ({ ...prev, [id]: "" }));
-  };
-
   const handleDelete = (id: string) => {
     storeDeleteProduct(id);
     setDeleteConfirm(null);
@@ -257,9 +232,9 @@ export function ProductsPage() {
         ))}
       </div>
 
-      {/* ─── Search + Filters ─── */}
-      <div className="mb-4 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-md">
+      {/* ─── Search ─── */}
+      <div className="mb-4">
+        <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
@@ -274,22 +249,11 @@ export function ProductsPage() {
             </button>
           )}
         </div>
-        <div className="relative">
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="appearance-none pl-3 pr-8 py-2.5 rounded-lg border border-border bg-white dark:bg-dark-card text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow cursor-pointer"
-          >
-            <option value="all">All Categories</option>
-            {CATEGORIES.map((c) => (<option key={c} value={c}>{c}</option>))}
-          </select>
-          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-        </div>
       </div>
 
-      {/* ─── Status Tabs ─── */}
+      {/* ─── Status Tabs + Category ─── */}
       <div className="mb-6 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-1.5 pb-1 min-w-max">
+        <div className="flex items-center gap-1.5 pb-1 min-w-max">
           {FILTER_TABS.map((tab) => {
             const isActive = activeFilter === tab.key;
             const count = tab.key === "all" ? products.length : products.filter((p) => p.status === tab.key).length;
@@ -310,16 +274,25 @@ export function ProductsPage() {
               </button>
             );
           })}
+
+          {/* Category dropdown — far right */}
+          <div className="ml-auto relative">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="appearance-none pl-3 pr-8 py-1.5 rounded-lg border border-border bg-white dark:bg-dark-card text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow cursor-pointer"
+            >
+              <option value="all">All Categories</option>
+              {CATEGORIES.map((c) => (<option key={c} value={c}>{c}</option>))}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          </div>
         </div>
       </div>
 
       {/* ─── Product Grid ─── */}
       <ProductGrid
         products={filteredProducts}
-        stockAdjust={stockAdjust}
-        onStockAdjustChange={setStockAdjust}
-        onStockAdjust={handleStockAdjust}
-        onToggleSoldOut={handleToggleSoldOut}
         onOpenEdit={handleOpenEdit}
         onPreview={(product) => setPreviewProduct(product)}
         onDelete={handleDelete}
@@ -358,6 +331,8 @@ export function ProductsPage() {
         product={previewProduct}
         open={!!previewProduct}
         onClose={() => setPreviewProduct(null)}
+        onEdit={(product) => { setPreviewProduct(null); handleOpenEdit(product); }}
+        onDelete={(id) => { setPreviewProduct(null); handleDelete(id); }}
       />
     </motion.div>
   );
