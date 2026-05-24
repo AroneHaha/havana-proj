@@ -287,8 +287,8 @@ const ar: Translation = {
     nav: {
       dashboard: "لوحة التحكم",
       orders: "الطلبات",
-      salesReviews: "المبيعات والتقييمات",
-      products: "المنتجات",
+      productsReviews: "المنتجات والتقييمات",
+      sales: "المبيعات",
       customers: "العملاء",
       analytics: "التحليلات",
       settings: "الإعدادات",

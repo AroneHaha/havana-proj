@@ -3,8 +3,8 @@
 import {
   LayoutDashboard,
   ShoppingBag,
-  TrendingUp,
   Package,
+  DollarSign,
   LogOut,
   Menu,
   X,
@@ -28,14 +28,14 @@ const sidebarItems = [
     href: "/orders",
   },
   {
-    icon: TrendingUp,
-    labelKey: "salesReviews" as const,
-    href: "/sales-reviews",
+    icon: Package,
+    labelKey: "productsReviews" as const,
+    href: "/products",
   },
   {
-    icon: Package,
-    labelKey: "products" as const,
-    href: "/products",
+    icon: DollarSign,
+    labelKey: "sales" as const,
+    href: "/sales-reviews",
   },
 ];
 

@@ -206,8 +206,8 @@ export interface Translation {
     nav: {
       dashboard: string;
       orders: string;
-      salesReviews: string;
-      products: string;
+      productsReviews: string;
+      sales: string;
       customers: string;
       analytics: string;
       settings: string;

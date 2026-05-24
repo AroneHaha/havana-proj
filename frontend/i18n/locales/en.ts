@@ -287,8 +287,8 @@ const en: Translation = {
     nav: {
       dashboard: "Dashboard",
       orders: "Orders",
-      salesReviews: "Sales & Reviews",
-      products: "Products",
+      productsReviews: "Products & Reviews",
+      sales: "Sales",
       customers: "Customers",
       analytics: "Analytics",
       settings: "Settings",
