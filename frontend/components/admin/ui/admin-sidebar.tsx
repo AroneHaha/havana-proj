@@ -129,7 +129,7 @@ export function AdminSidebar() {
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex flex-col w-60 min-h-[calc(100vh-4rem)] border-r border-border bg-white dark:bg-dark-card p-4">
+      <aside className="hidden lg:flex flex-col w-60 h-full border-r border-border bg-white dark:bg-dark-card p-4 shrink-0">
         {sidebarContent}
       </aside>
     </>

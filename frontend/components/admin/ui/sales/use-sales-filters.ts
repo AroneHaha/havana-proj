@@ -3,22 +3,9 @@
 import { useMemo } from "react";
 import type { Order } from "@/store/orders-store";
 
-export type SalesFilterStatus = "all" | "delivered" | "confirmed" | "preparing" | "out_for_delivery";
-
-const SALES_FILTER_TABS: SalesFilterStatus[] = [
-  "all",
-  "delivered",
-  "confirmed",
-  "preparing",
-  "out_for_delivery",
-];
-
-export { SALES_FILTER_TABS };
-
 export function useSalesFilters(
   salesOrders: Order[],
   searchQuery: string,
-  activeFilter: SalesFilterStatus,
   dateFrom: string,
   dateTo: string,
   itemsPerPage: number,
@@ -26,10 +13,6 @@ export function useSalesFilters(
 ) {
   const filteredSales = useMemo(() => {
     let result = [...salesOrders];
-
-    if (activeFilter !== "all") {
-      result = result.filter((o) => o.status === activeFilter);
-    }
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -53,7 +36,7 @@ export function useSalesFilters(
     }
 
     return result;
-  }, [salesOrders, activeFilter, searchQuery, dateFrom, dateTo]);
+  }, [salesOrders, searchQuery, dateFrom, dateTo]);
 
   const totalPages = Math.max(1, Math.ceil(filteredSales.length / itemsPerPage));
   const paginatedSales = filteredSales.slice(

@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Package, Star } from "lucide-react";
-import { StatusBadge } from "@/components/admin/ui/shared";
 import { ReviewList } from "@/components/reviews";
 import { formatPrice } from "@/lib/format-price";
 import type { Order } from "@/store/orders-store";
@@ -14,14 +13,12 @@ interface SalesDetailViewProps {
   reviews: Review[];
   onBack: () => void;
   formatDate: (dateStr: string) => string;
-  getStatusLabel: (status: string) => string;
   labels: {
     backToSales: string;
     saleDetails: string;
     orderInfo: string;
     orderID: string;
     customer: string;
-    status: string;
     date: string;
     total: string;
     products: string;
@@ -35,7 +32,6 @@ export function SalesDetailView({
   reviews,
   onBack,
   formatDate,
-  getStatusLabel,
   labels,
 }: SalesDetailViewProps) {
   // Group reviews by productId for this order's items
@@ -77,7 +73,7 @@ export function SalesDetailView({
         <h2 className="font-serif text-lg font-semibold text-foreground mb-4">
           {labels.orderInfo}
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <p className="text-xs text-muted-foreground mb-1">{labels.orderID}</p>
             <p className="text-sm font-semibold text-maroon dark:text-gold">#{order.id}</p>
@@ -87,10 +83,6 @@ export function SalesDetailView({
             <p className="text-sm font-medium text-foreground">{order.customer.name}</p>
             <p className="text-xs text-muted-foreground">{order.customer.email}</p>
             <p className="text-xs text-muted-foreground">{order.customer.phone}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">{labels.status}</p>
-            <StatusBadge status={order.status} label={getStatusLabel(order.status)} />
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-1">{labels.date}</p>

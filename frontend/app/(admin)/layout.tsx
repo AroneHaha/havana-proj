@@ -37,11 +37,11 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg">
+    <div className="h-screen flex flex-col bg-light-bg dark:bg-dark-bg overflow-hidden">
       <AdminTopbar />
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         <AdminSidebar />
-        <main className="flex-1 p-6 lg:p-8">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

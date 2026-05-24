@@ -11,25 +11,15 @@ import { formatPrice } from "@/lib/format-price";
 import {
   StatsCard,
   SearchInput,
-  FilterTabs,
   DateRangeBar,
   Pagination,
 } from "@/components/admin/ui/shared";
 import { SalesTable } from "./sales-table";
 import { SalesDetailView } from "./sales-detail-view";
-import { useSalesFilters, SALES_FILTER_TABS, type SalesFilterStatus } from "./use-sales-filters";
+import { useSalesFilters } from "./use-sales-filters";
 import type { Order } from "@/store/orders-store";
 
 const ITEMS_PER_PAGE = 8;
-
-const statusDotColors: Record<string, string> = {
-  pending: "bg-yellow-500",
-  confirmed: "bg-blue-500",
-  preparing: "bg-purple-500",
-  out_for_delivery: "bg-orange-500",
-  delivered: "bg-green-500",
-  cancelled: "bg-red-500",
-};
 
 export function SalesReviewsPage() {
   const locale = useLanguageStore((s) => s.locale);
@@ -45,7 +35,6 @@ export function SalesReviewsPage() {
   const storeFetchStats = useReviewsStore((s) => s.fetchStats);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState<SalesFilterStatus>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [dateFrom, setDateFrom] = useState("");
@@ -82,15 +71,10 @@ export function SalesReviewsPage() {
 
   // Filtered & paginated
   const { filteredSales, paginatedSales, totalPages } = useSalesFilters(
-    salesOrders, searchQuery, activeFilter, dateFrom, dateTo, ITEMS_PER_PAGE, currentPage
+    salesOrders, searchQuery, dateFrom, dateTo, ITEMS_PER_PAGE, currentPage
   );
 
   // Handlers
-  const handleFilterChange = (key: string) => {
-    setActiveFilter(key as SalesFilterStatus);
-    setCurrentPage(1);
-  };
-
   const handleDatePreset = (preset: "today" | "7d" | "30d") => {
     const now = new Date();
     const today = now.toISOString().split("T")[0];
@@ -126,22 +110,6 @@ export function SalesReviewsPage() {
     return d.toLocaleDateString("en-QA", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   };
 
-  const getStatusLabel = (status: string): string => {
-    switch (status) {
-      case "delivered": return t.delivered;
-      case "confirmed": return t.confirmed;
-      case "preparing": return t.preparing;
-      case "out_for_delivery": return t.outForDelivery;
-      case "pending": return t.pending;
-      default: return status;
-    }
-  };
-
-  const getTabLabel = (filter: SalesFilterStatus): string => {
-    if (filter === "all") return t.all;
-    return getStatusLabel(filter);
-  };
-
   // Detail view
   if (selectedOrder) {
     return (
@@ -150,14 +118,12 @@ export function SalesReviewsPage() {
         reviews={reviews}
         onBack={() => setSelectedOrder(null)}
         formatDate={formatDate}
-        getStatusLabel={getStatusLabel}
         labels={{
           backToSales: t.backToSales,
           saleDetails: t.saleDetails,
           orderInfo: t.orderInfo,
           orderID: t.orderID,
           customer: t.customer,
-          status: t.status,
           date: t.date,
           total: t.total,
           products: t.products,
@@ -194,17 +160,6 @@ export function SalesReviewsPage() {
         />
       </div>
 
-      {/* Status filter tabs */}
-      <FilterTabs
-        tabs={SALES_FILTER_TABS.map((filter) => ({
-          key: filter,
-          label: getTabLabel(filter),
-          dotColor: filter !== "all" ? statusDotColors[filter] : undefined,
-        }))}
-        activeTab={activeFilter}
-        onTabChange={handleFilterChange}
-      />
-
       {/* Sales table */}
       <div className="bg-white dark:bg-dark-card rounded-2xl border border-border overflow-hidden">
         <DateRangeBar
@@ -221,7 +176,6 @@ export function SalesReviewsPage() {
         <SalesTable
           loading={loading}
           orders={paginatedSales}
-          getStatusLabel={getStatusLabel}
           formatDate={formatDate}
           onViewOrder={setSelectedOrder}
           viewLabel={t.viewReviews}
@@ -232,7 +186,6 @@ export function SalesReviewsPage() {
             customer: t.customer,
             products: t.products,
             total: t.total,
-            status: t.status,
             date: t.date,
             actions: t.actions,
           }}
