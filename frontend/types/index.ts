@@ -6,6 +6,9 @@ export interface ProductLocaleText {
   name: string;
   description: string;
 }
+export type ProductStatus = "in_stock" | "low_stock" | "sold_out";
+
+export type ProductFilterStatus = "all" | "in_stock" | "low_stock" | "sold_out";
 
 /**
  * The canonical Product shape — backend-ready.
@@ -53,4 +56,5 @@ export interface ApiResponse<T> {
     per_page: number;
     total: number;
   };
+  
 }

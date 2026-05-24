@@ -8,57 +8,23 @@ import { CATEGORIES } from "./products-page";
 
 interface AddProductModalProps {
   onClose: () => void;
-  onAdd: (product: {
-    name: string;
-    nameAr: string;
-    category: string;
-    price: string;
-    stock: string;
-    description: string;
-    sku: string;
-    images: string[];
-  }) => void;
+  onAdd: (product: { name: string; nameAr: string; category: string; price: string; stock: string; description: string; sku: string; images: string[] }) => void;
 }
 
 export function AddProductModal({ onClose, onAdd }: AddProductModalProps) {
-  const [form, setForm] = useState({
-    name: "",
-    nameAr: "",
-    category: "Rose Arrangements",
-    price: "",
-    stock: "",
-    description: "",
-    sku: "",
-    images: [] as string[],
-  });
+  const [form, setForm] = useState({ name: "", nameAr: "", category: "Rose Arrangements", price: "", stock: "", description: "", sku: "", images: [] as string[] });
 
-  // ─── Image Helpers ───
   const processFiles = (files: FileList): Promise<string[]> => {
-    return Promise.all(
-      Array.from(files).map(
-        (file) =>
-          new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.readAsDataURL(file);
-          })
-      )
-    );
+    return Promise.all(Array.from(files).map((file) => new Promise<string>((resolve) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result as string); reader.readAsDataURL(file); })));
   };
 
   const handleImageUpload = async (files: FileList) => {
     const newImages = await processFiles(files);
-    setForm((p) => ({
-      ...p,
-      images: [...p.images, ...newImages].slice(0, 5),
-    }));
+    setForm((p) => ({ ...p, images: [...p.images, ...newImages].slice(0, 5) }));
   };
 
   const handleImageRemove = (index: number) => {
-    setForm((p) => ({
-      ...p,
-      images: p.images.filter((_, i) => i !== index),
-    }));
+    setForm((p) => ({ ...p, images: p.images.filter((_, i) => i !== index) }));
   };
 
   const handleAddProduct = () => {
@@ -74,13 +40,10 @@ export function AddProductModal({ onClose, onAdd }: AddProductModalProps) {
           <h2 className="font-serif text-lg font-semibold text-foreground">Add New Product</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"><X className="w-4 h-4 text-muted-foreground" /></button>
         </div>
-
-        {/* Image Upload */}
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-2">Product Images</label>
           <ImageUploader images={form.images} onUpload={handleImageUpload} onRemove={handleImageRemove} />
         </div>
-
         <div className="space-y-3">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">Product Name (English)</label>
@@ -120,7 +83,6 @@ export function AddProductModal({ onClose, onAdd }: AddProductModalProps) {
             <textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={3} className="w-full px-3 py-2.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow resize-none" placeholder="Brief product description..." />
           </div>
         </div>
-
         <div className="flex items-center justify-end gap-2 pt-2">
           <button onClick={onClose} className="px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer">Cancel</button>
           <button onClick={handleAddProduct} className="px-5 py-2.5 rounded-lg bg-maroon text-white dark:bg-gold dark:text-dark-bg text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer inline-flex items-center gap-2"><Upload className="w-4 h-4" />Add Product</button>
