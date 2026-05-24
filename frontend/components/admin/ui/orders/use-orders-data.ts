@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   useOrdersStore,
   type OrderStatus,
@@ -36,10 +36,10 @@ export function useOrdersData() {
   const [dateTo, setDateTo] = useState("");
   const [activeDatePreset, setActiveDatePreset] = useState<"today" | "7d" | "30d" | null>(null);
 
-  useMemo(() => {
+  useEffect(() => {
     storeFetchOrders();
     storeFetchStats();
-  }, []);
+  }, [storeFetchOrders, storeFetchStats]);
 
   const statusCounts = getStatusCounts();
   const totalRevenue = getTotalRevenue();
