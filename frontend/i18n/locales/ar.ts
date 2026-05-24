@@ -408,6 +408,7 @@ const ar: Translation = {
       outForDelivery: "في الطريق",
       noSales: "لا توجد مبيعات",
       noSalesStatus: "لا توجد مبيعات {status}",
+      noTransactionsForPeriod: "لا توجد معاملات في هذه الفترة.",
       noReviews: "لا توجد تقييمات",
       noReviewsForProduct: "لا توجد تقييمات لهذا المنتج بعد",
       reviewsFor: "تقييمات",

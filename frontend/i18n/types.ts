@@ -327,6 +327,7 @@ export interface Translation {
       outForDelivery: string;
       noSales: string;
       noSalesStatus: string;
+      noTransactionsForPeriod: string;
       noReviews: string;
       noReviewsForProduct: string;
       reviewsFor: string;

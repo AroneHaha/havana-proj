@@ -408,6 +408,7 @@ const en: Translation = {
       outForDelivery: "Out for Delivery",
       noSales: "No sales found",
       noSalesStatus: "No {status} sales",
+      noTransactionsForPeriod: "No transactions found for this period.",
       noReviews: "No reviews found",
       noReviewsForProduct: "No reviews yet for this product",
       reviewsFor: "Reviews for",

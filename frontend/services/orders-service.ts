@@ -234,92 +234,212 @@ async function ordersFetch<T>(
   }
 }
 
-// ─── Mock data (Qatar-based luxury floral shop) ──────────────────────
+// ─── Mock data (Kuwait-based luxury floral shop) ──────────────────────
+
+// Helper: generate ISO date string relative to today
+function daysAgo(days: number, hour: number, min: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  d.setHours(hour, min, 0, 0);
+  return d.toISOString();
+}
+
+// Helper: generate ISO date string for a specific date (absolute)
+function dateOn(year: number, month: number, day: number, hour: number, min: number): string {
+  const d = new Date(year, month - 1, day, hour, min, 0, 0);
+  return d.toISOString();
+}
 
 const MOCK_ORDERS: Order[] = [
   {
     id: "HV-1001",
-    customer: { name: "Ahmad Al-Thani", email: "ahmad@email.com", phone: "+974 5551 0001", address: "West Bay, Tower 5, Apt 1203" },
-    items: [{ productId: "p1", productName: "Royal Rose Symphony", quantity: 2, price: 699 }],
-    subtotal: 1398, deliveryFee: 0, total: 1398, status: "pending", paymentMethod: "cash",
-    notes: "Please include a birthday card", createdAt: "2024-12-20T10:30:00", updatedAt: "2024-12-20T10:30:00",
+    customer: { name: "Ahmad Al-Sabah", email: "ahmad@email.com", phone: "+965 5551 0001", address: "Salmiya, Block 12, St 5, Bldg 3" },
+    items: [{ productId: "p1", productName: "Royal Rose Symphony", quantity: 2, price: 69.900 }],
+    subtotal: 139.800, deliveryFee: 0, total: 139.800, status: "pending", paymentMethod: "cash",
+    notes: "Please include a birthday card", createdAt: daysAgo(0, 10, 30), updatedAt: daysAgo(0, 10, 30),
   },
   {
     id: "HV-1002",
-    customer: { name: "Sara Mahmoud", email: "sara@email.com", phone: "+974 5552 0002", address: "The Pearl, Porto Arabia, Bldg 12" },
-    items: [{ productId: "p4", productName: "Golden Hour Bouquet", quantity: 1, price: 620 }, { productId: "p2", productName: "Midnight Orchid Elegance", quantity: 3, price: 999 }],
-    subtotal: 3617, deliveryFee: 0, total: 3617, status: "confirmed", paymentMethod: "cash",
-    createdAt: "2024-12-20T09:15:00", updatedAt: "2024-12-20T09:45:00",
+    customer: { name: "Sara Mahmoud", email: "sara@email.com", phone: "+965 5552 0002", address: "Kuwait City, Sharq, Ahmed Al-Jaber St" },
+    items: [{ productId: "p4", productName: "Golden Hour Bouquet", quantity: 1, price: 62.000 }, { productId: "p2", productName: "Midnight Orchid Elegance", quantity: 3, price: 99.900 }],
+    subtotal: 361.700, deliveryFee: 0, total: 361.700, status: "confirmed", paymentMethod: "cash",
+    createdAt: daysAgo(0, 9, 15), updatedAt: daysAgo(0, 9, 45),
   },
   {
     id: "HV-1003",
-    customer: { name: "Khalid bin Mohammed", email: "khalid@email.com", phone: "+974 5553 0003", address: "Lusail, Marina District, Villa 45" },
-    items: [{ productId: "p3", productName: "Pearl White Lilies", quantity: 1, price: 780 }],
-    subtotal: 780, deliveryFee: 30, total: 810, status: "preparing", paymentMethod: "cash",
-    createdAt: "2024-12-20T08:00:00", updatedAt: "2024-12-20T08:30:00",
+    customer: { name: "Khalid Al-Ali", email: "khalid@email.com", phone: "+965 5553 0003", address: "Jabriya, Block 7, St 3, Villa 45" },
+    items: [{ productId: "p3", productName: "Pearl White Lilies", quantity: 1, price: 78.000 }],
+    subtotal: 78.000, deliveryFee: 3.000, total: 81.000, status: "preparing", paymentMethod: "cash",
+    createdAt: daysAgo(0, 8, 0), updatedAt: daysAgo(0, 8, 30),
   },
   {
     id: "HV-1004",
-    customer: { name: "Fatima Al-Kuwari", email: "fatima@email.com", phone: "+974 5554 0004", address: "Al Sadd, Street 22, House 8" },
-    items: [{ productId: "p7", productName: "Classic Red Rose Box", quantity: 1, price: 550 }, { productId: "p5", productName: "Tulip Paradise", quantity: 1, price: 480 }],
-    subtotal: 1030, deliveryFee: 30, total: 1060, status: "out_for_delivery", paymentMethod: "cash",
-    createdAt: "2024-12-19T14:00:00", updatedAt: "2024-12-20T07:00:00",
+    customer: { name: "Fatima Al-Kandari", email: "fatima@email.com", phone: "+965 5554 0004", address: "Hawally, Block 4, St 22, House 8" },
+    items: [{ productId: "p7", productName: "Classic Red Rose Box", quantity: 1, price: 55.000 }, { productId: "p5", productName: "Tulip Paradise", quantity: 1, price: 48.000 }],
+    subtotal: 103.000, deliveryFee: 3.000, total: 106.000, status: "out_for_delivery", paymentMethod: "cash",
+    createdAt: daysAgo(1, 14, 0), updatedAt: daysAgo(0, 7, 0),
   },
   {
     id: "HV-1005",
-    customer: { name: "Omar Hassan", email: "omar@email.com", phone: "+974 5555 0005", address: "Al Waab, Al Furousiya St, Bldg 3" },
-    items: [{ productId: "p6", productName: "Luxury White & Gold", quantity: 2, price: 899 }],
-    subtotal: 1798, deliveryFee: 0, total: 1798, status: "delivered", paymentMethod: "cash",
-    createdAt: "2024-12-18T11:00:00", updatedAt: "2024-12-18T16:30:00",
+    customer: { name: "Omar Hassan", email: "omar@email.com", phone: "+965 5555 0005", address: "Mishref, Block 2, St 9, Bldg 3" },
+    items: [{ productId: "p6", productName: "Luxury White & Gold", quantity: 2, price: 89.900 }],
+    subtotal: 179.800, deliveryFee: 0, total: 179.800, status: "delivered", paymentMethod: "cash",
+    createdAt: daysAgo(2, 11, 0), updatedAt: daysAgo(2, 16, 30),
   },
   {
     id: "HV-1006",
-    customer: { name: "Noor Al-Emadi", email: "noor@email.com", phone: "+974 5556 0006", address: "Katara Cultural Village, Zone A" },
-    items: [{ productId: "p1", productName: "Royal Rose Symphony", quantity: 1, price: 699 }],
-    subtotal: 699, deliveryFee: 30, total: 729, status: "delivered", paymentMethod: "cash",
-    createdAt: "2024-12-17T13:20:00", updatedAt: "2024-12-17T17:00:00",
+    customer: { name: "Noor Al-Emadi", email: "noor@email.com", phone: "+965 5556 0006", address: "Bayan, Block 1, St 6, Villa 12" },
+    items: [{ productId: "p1", productName: "Royal Rose Symphony", quantity: 1, price: 69.900 }],
+    subtotal: 69.900, deliveryFee: 3.000, total: 72.900, status: "delivered", paymentMethod: "cash",
+    createdAt: daysAgo(3, 13, 20), updatedAt: daysAgo(3, 17, 0),
   },
   {
     id: "HV-1007",
-    customer: { name: "Youssef Ibrahim", email: "youssef@email.com", phone: "+974 5557 0007", address: "Downtown Doha, Al Dafna, Tower 8" },
-    items: [{ productId: "p2", productName: "Pastel Dream Arrangement", quantity: 5, price: 580 }],
-    subtotal: 2900, deliveryFee: 0, total: 2900, status: "delivered", paymentMethod: "cash",
-    createdAt: "2024-12-16T09:00:00", updatedAt: "2024-12-16T14:00:00",
+    customer: { name: "Youssef Ibrahim", email: "youssef@email.com", phone: "+965 5557 0007", address: "Salwa, Block 5, St 14, Tower 8" },
+    items: [{ productId: "p2", productName: "Pastel Dream Arrangement", quantity: 5, price: 58.000 }],
+    subtotal: 290.000, deliveryFee: 0, total: 290.000, status: "delivered", paymentMethod: "cash",
+    createdAt: daysAgo(5, 9, 0), updatedAt: daysAgo(5, 14, 0),
   },
   {
     id: "HV-1008",
-    customer: { name: "Layla Al-Thani", email: "layla@email.com", phone: "+974 5558 0008", address: "West Bay, Al Corniche St" },
-    items: [{ productId: "p8", productName: "Tulip Paradise", quantity: 1, price: 480 }, { productId: "p3", productName: "Pearl White Lilies", quantity: 1, price: 780 }],
-    subtotal: 1260, deliveryFee: 0, total: 1260, status: "cancelled", paymentMethod: "cash",
-    notes: "Customer changed mind", createdAt: "2024-12-19T16:00:00", updatedAt: "2024-12-19T18:00:00",
+    customer: { name: "Layla Al-Shammari", email: "layla@email.com", phone: "+965 5558 0008", address: "Al Nuzha, Block 3, St 8" },
+    items: [{ productId: "p8", productName: "Tulip Paradise", quantity: 1, price: 48.000 }, { productId: "p3", productName: "Pearl White Lilies", quantity: 1, price: 78.000 }],
+    subtotal: 126.000, deliveryFee: 0, total: 126.000, status: "cancelled", paymentMethod: "cash",
+    notes: "Customer changed mind", createdAt: daysAgo(1, 16, 0), updatedAt: daysAgo(1, 18, 0),
   },
   {
     id: "HV-1009",
-    customer: { name: "Hassan Mirza", email: "hassan@email.com", phone: "+974 5559 0009", address: "Al Khor, Pearl Blvd, Villa 12" },
-    items: [{ productId: "p5", productName: "Tulip Paradise", quantity: 3, price: 480 }],
-    subtotal: 1440, deliveryFee: 30, total: 1470, status: "delivered", paymentMethod: "cash",
-    createdAt: "2024-12-15T10:00:00", updatedAt: "2024-12-15T15:00:00",
+    customer: { name: "Hassan Mirza", email: "hassan@email.com", phone: "+965 5559 0009", address: "Kaifan, Block 6, St 2, Villa 12" },
+    items: [{ productId: "p5", productName: "Tulip Paradise", quantity: 3, price: 48.000 }],
+    subtotal: 144.000, deliveryFee: 3.000, total: 147.000, status: "delivered", paymentMethod: "cash",
+    createdAt: daysAgo(8, 10, 0), updatedAt: daysAgo(8, 15, 0),
   },
   {
     id: "HV-1010",
-    customer: { name: "Maryam Al-Sayed", email: "maryam@email.com", phone: "+974 5560 0010", address: "The Pearl, Viva Bahriya, Bldg 22" },
-    items: [{ productId: "p4", productName: "Golden Hour Bouquet", quantity: 1, price: 620 }],
-    subtotal: 620, deliveryFee: 30, total: 650, status: "pending", paymentMethod: "cash",
-    notes: "Wedding on Dec 25. Delivery by 8 AM.", createdAt: "2024-12-20T11:00:00", updatedAt: "2024-12-20T11:00:00",
+    customer: { name: "Maryam Al-Sayed", email: "maryam@email.com", phone: "+965 5560 0010", address: "Al Bida, Block 1, Tower 22" },
+    items: [{ productId: "p4", productName: "Golden Hour Bouquet", quantity: 1, price: 62.000 }],
+    subtotal: 62.000, deliveryFee: 3.000, total: 65.000, status: "pending", paymentMethod: "cash",
+    notes: "Wedding on Saturday. Delivery by 8 AM.", createdAt: daysAgo(0, 11, 0), updatedAt: daysAgo(0, 11, 0),
   },
   {
     id: "HV-1011",
-    customer: { name: "Aisha Al-Hamad", email: "aisha@email.com", phone: "+974 5561 0011", address: "Al Rayyan, Al Wajba St, Villa 7" },
-    items: [{ productId: "p6", productName: "Luxury White & Gold", quantity: 1, price: 899 }, { productId: "p5", productName: "Tulip Paradise", quantity: 2, price: 480 }],
-    subtotal: 1859, deliveryFee: 0, total: 1859, status: "pending", paymentMethod: "cash",
-    notes: "Surprise delivery — do not call recipient", createdAt: "2024-12-20T12:15:00", updatedAt: "2024-12-20T12:15:00",
+    customer: { name: "Aisha Al-Hamad", email: "aisha@email.com", phone: "+965 5561 0011", address: "Rumaithiya, Block 8, St 7, Villa 7" },
+    items: [{ productId: "p6", productName: "Luxury White & Gold", quantity: 1, price: 89.900 }, { productId: "p5", productName: "Tulip Paradise", quantity: 2, price: 48.000 }],
+    subtotal: 185.900, deliveryFee: 0, total: 185.900, status: "pending", paymentMethod: "cash",
+    notes: "Surprise delivery — do not call recipient", createdAt: daysAgo(0, 12, 15), updatedAt: daysAgo(0, 12, 15),
   },
   {
     id: "HV-1012",
-    customer: { name: "Mohammed Al-Attiyah", email: "mohammed@email.com", phone: "+974 5562 0012", address: "Al Wakrah, Ezdan Oasis, Bldg 9" },
-    items: [{ productId: "p1", productName: "Royal Rose Symphony", quantity: 1, price: 699 }],
-    subtotal: 699, deliveryFee: 30, total: 729, status: "confirmed", paymentMethod: "cash",
-    createdAt: "2024-12-20T13:00:00", updatedAt: "2024-12-20T13:30:00",
+    customer: { name: "Mohammed Al-Attiyah", email: "mohammed@email.com", phone: "+965 5562 0012", address: "Farwaniya, Block 9, St 11, Bldg 9" },
+    items: [{ productId: "p1", productName: "Royal Rose Symphony", quantity: 1, price: 69.900 }],
+    subtotal: 69.900, deliveryFee: 3.000, total: 72.900, status: "confirmed", paymentMethod: "cash",
+    createdAt: daysAgo(0, 13, 0), updatedAt: daysAgo(0, 13, 30),
+  },
+  // ─── Additional mock orders spanning 2024-2026 ───
+  {
+    id: "HV-1013",
+    customer: { name: "Reem Al-Fulaij", email: "reem@email.com", phone: "+965 5570 0013", address: "Jabriya, Block 3, St 12, Villa 9" },
+    items: [{ productId: "p2", productName: "Midnight Orchid Elegance", quantity: 1, price: 99.900 }],
+    subtotal: 99.900, deliveryFee: 0, total: 99.900, status: "delivered", paymentMethod: "cash",
+    notes: "Anniversary surprise", createdAt: dateOn(2024, 3, 15, 10, 0), updatedAt: dateOn(2024, 3, 15, 16, 30),
+  },
+  {
+    id: "HV-1014",
+    customer: { name: "Tariq Al-Mutairi", email: "tariq@email.com", phone: "+965 5571 0014", address: "Salmiya, Block 8, St 2, Bldg 14" },
+    items: [{ productId: "p4", productName: "Golden Hour Bouquet", quantity: 2, price: 62.000 }, { productId: "p1", productName: "Royal Rose Symphony", quantity: 1, price: 69.900 }],
+    subtotal: 193.900, deliveryFee: 3.000, total: 196.900, status: "delivered", paymentMethod: "cash",
+    createdAt: dateOn(2024, 6, 22, 14, 30), updatedAt: dateOn(2024, 6, 22, 19, 0),
+  },
+  {
+    id: "HV-1015",
+    customer: { name: "Mona Al-Otaibi", email: "mona@email.com", phone: "+965 5572 0015", address: "Hawally, Block 6, St 18, House 22" },
+    items: [{ productId: "p6", productName: "Luxury White & Gold", quantity: 1, price: 89.900 }],
+    subtotal: 89.900, deliveryFee: 0, total: 89.900, status: "delivered", paymentMethod: "cash",
+    createdAt: dateOn(2024, 9, 10, 9, 45), updatedAt: dateOn(2024, 9, 10, 14, 0),
+  },
+  {
+    id: "HV-1016",
+    customer: { name: "Faisal Al-Dosari", email: "faisal@email.com", phone: "+965 5573 0016", address: "Mishref, Block 4, St 7, Villa 3" },
+    items: [{ productId: "p3", productName: "Pearl White Lilies", quantity: 3, price: 78.000 }],
+    subtotal: 234.000, deliveryFee: 0, total: 234.000, status: "delivered", paymentMethod: "cash",
+    notes: "Graduation ceremony", createdAt: dateOn(2024, 11, 5, 11, 0), updatedAt: dateOn(2024, 11, 5, 15, 30),
+  },
+  {
+    id: "HV-1017",
+    customer: { name: "Huda Al-Sheikh", email: "huda@email.com", phone: "+965 5574 0017", address: "Bayan, Block 5, St 3, Villa 18" },
+    items: [{ productId: "p5", productName: "Tulip Paradise", quantity: 2, price: 48.000 }, { productId: "p7", productName: "Classic Red Rose Box", quantity: 1, price: 55.000 }],
+    subtotal: 151.000, deliveryFee: 3.000, total: 154.000, status: "delivered", paymentMethod: "cash",
+    createdAt: dateOn(2024, 12, 28, 16, 0), updatedAt: dateOn(2024, 12, 28, 20, 15),
+  },
+  {
+    id: "HV-1018",
+    customer: { name: "Bader Al-Rashidi", email: "bader@email.com", phone: "+965 5575 0018", address: "Salwa, Block 2, St 10, Tower 5" },
+    items: [{ productId: "p1", productName: "Royal Rose Symphony", quantity: 5, price: 69.900 }],
+    subtotal: 349.500, deliveryFee: 0, total: 349.500, status: "delivered", paymentMethod: "cash",
+    notes: "Corporate event — 5 identical arrangements", createdAt: dateOn(2025, 1, 18, 8, 30), updatedAt: dateOn(2025, 1, 18, 13, 0),
+  },
+  {
+    id: "HV-1019",
+    customer: { name: "Noura Al-Wazzan", email: "noura@email.com", phone: "+965 5576 0019", address: "Rumaithiya, Block 3, St 5, Villa 27" },
+    items: [{ productId: "p6", productName: "Luxury White & Gold", quantity: 1, price: 89.900 }, { productId: "p2", productName: "Midnight Orchid Elegance", quantity: 1, price: 99.900 }],
+    subtotal: 189.800, deliveryFee: 0, total: 189.800, status: "delivered", paymentMethod: "cash",
+    createdAt: dateOn(2025, 4, 7, 12, 15), updatedAt: dateOn(2025, 4, 7, 17, 45),
+  },
+  {
+    id: "HV-1020",
+    customer: { name: "Abdullah Al-Hajri", email: "abdullah@email.com", phone: "+965 5577 0020", address: "Al Nuzha, Block 1, St 9, Bldg 11" },
+    items: [{ productId: "p4", productName: "Golden Hour Bouquet", quantity: 1, price: 62.000 }],
+    subtotal: 62.000, deliveryFee: 3.000, total: 65.000, status: "delivered", paymentMethod: "cash",
+    createdAt: dateOn(2025, 4, 20, 10, 0), updatedAt: dateOn(2025, 4, 20, 14, 30),
+  },
+  {
+    id: "HV-1021",
+    customer: { name: "Zainab Al-Mousawi", email: "zainab@email.com", phone: "+965 5578 0021", address: "Kaifan, Block 4, St 6, Villa 31" },
+    items: [{ productId: "p3", productName: "Pearl White Lilies", quantity: 2, price: 78.000 }, { productId: "p5", productName: "Tulip Paradise", quantity: 1, price: 48.000 }],
+    subtotal: 204.000, deliveryFee: 0, total: 204.000, status: "delivered", paymentMethod: "cash",
+    notes: "Mother's Day special", createdAt: dateOn(2025, 7, 14, 9, 0), updatedAt: dateOn(2025, 7, 14, 13, 0),
+  },
+  {
+    id: "HV-1022",
+    customer: { name: "Majed Al-Enezi", email: "majed@email.com", phone: "+965 5579 0022", address: "Farwaniya, Block 2, St 8, Bldg 6" },
+    items: [{ productId: "p7", productName: "Classic Red Rose Box", quantity: 2, price: 55.000 }],
+    subtotal: 110.000, deliveryFee: 3.000, total: 113.000, status: "delivered", paymentMethod: "cash",
+    createdAt: dateOn(2025, 9, 3, 15, 30), updatedAt: dateOn(2025, 9, 3, 20, 0),
+  },
+  {
+    id: "HV-1023",
+    customer: { name: "Lulwa Al-Ghanim", email: "lulwa@email.com", phone: "+965 5580 0023", address: "Al Bida, Block 3, Tower 9, Apt 14" },
+    items: [{ productId: "p1", productName: "Royal Rose Symphony", quantity: 1, price: 69.900 }, { productId: "p6", productName: "Luxury White & Gold", quantity: 1, price: 89.900 }],
+    subtotal: 159.800, deliveryFee: 0, total: 159.800, status: "cancelled", paymentMethod: "cash",
+    notes: "Customer requested cancellation", createdAt: dateOn(2025, 11, 25, 11, 0), updatedAt: dateOn(2025, 11, 25, 14, 0),
+  },
+  {
+    id: "HV-1024",
+    customer: { name: "Sultan Al-Azmi", email: "sultan@email.com", phone: "+965 5581 0024", address: "Salmiya, Block 5, St 1, Bldg 20" },
+    items: [{ productId: "p2", productName: "Midnight Orchid Elegance", quantity: 2, price: 99.900 }],
+    subtotal: 199.800, deliveryFee: 0, total: 199.800, status: "delivered", paymentMethod: "cash",
+    createdAt: dateOn(2025, 12, 31, 10, 0), updatedAt: dateOn(2026, 1, 1, 2, 30),
+  },
+  {
+    id: "HV-1025",
+    customer: { name: "Dalal Al-Saqer", email: "dalal@email.com", phone: "+965 5582 0025", address: "Kuwait City, Sharq, Mubarak Al-Kabeer St" },
+    items: [{ productId: "p4", productName: "Golden Hour Bouquet", quantity: 3, price: 62.000 }],
+    subtotal: 186.000, deliveryFee: 0, total: 186.000, status: "delivered", paymentMethod: "cash",
+    notes: "New Year gala arrangements", createdAt: dateOn(2026, 1, 5, 8, 0), updatedAt: dateOn(2026, 1, 5, 12, 30),
+  },
+  {
+    id: "HV-1026",
+    customer: { name: "Jasem Al-Badr", email: "jasem@email.com", phone: "+965 5583 0026", address: "Jabriya, Block 9, St 4, Villa 55" },
+    items: [{ productId: "p3", productName: "Pearl White Lilies", quantity: 1, price: 78.000 }, { productId: "p1", productName: "Royal Rose Symphony", quantity: 2, price: 69.900 }],
+    subtotal: 217.800, deliveryFee: 3.000, total: 220.800, status: "delivered", paymentMethod: "cash",
+    createdAt: dateOn(2026, 2, 14, 11, 30), updatedAt: dateOn(2026, 2, 14, 16, 0),
+  },
+  {
+    id: "HV-1027",
+    customer: { name: "Wafaa Al-Hashem", email: "wafaa@email.com", phone: "+965 5584 0027", address: "Hawally, Block 10, St 15, House 4" },
+    items: [{ productId: "p6", productName: "Luxury White & Gold", quantity: 2, price: 89.900 }, { productId: "p5", productName: "Tulip Paradise", quantity: 1, price: 48.000 }],
+    subtotal: 227.800, deliveryFee: 0, total: 227.800, status: "delivered", paymentMethod: "cash",
+    createdAt: dateOn(2026, 3, 20, 13, 0), updatedAt: dateOn(2026, 3, 20, 17, 30),
   },
 ];
 

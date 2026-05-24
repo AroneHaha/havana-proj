@@ -11,7 +11,7 @@ import { formatPrice } from "@/lib/format-price";
 import { SearchInput, Pagination } from "@/components/admin/ui/shared";
 import { SalesTable } from "./sales-table";
 import { SalesDetailView } from "./sales-detail-view";
-import { useSalesFilters, type SalesFilterState } from "./use-sales-filters";
+import { useSalesFilters, getCalendarMonthsForYear, type SalesFilterState } from "./use-sales-filters";
 import type { Order } from "@/store/orders-store";
 
 const ITEMS_PER_PAGE = 8;
@@ -34,17 +34,15 @@ export function SalesReviewsPage() {
   const storeFetchReviews = useReviewsStore((s) => s.fetchReviews);
   const storeFetchStats = useReviewsStore((s) => s.fetchStats);
 
-  // Current date for defaults
-  const now = new Date();
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  // Filters — default: current month/year
+  // Filters — default: show ALL data (month=0, year=0 = no filter)
   const [filters, setFilters] = useState<SalesFilterState>({
     searchQuery: "",
     productFilter: "all",
-    month: now.getMonth() + 1,
-    year: now.getFullYear(),
+    month: 0,
+    year: 0,
     dateFrom: "",
     dateTo: "",
     activeDatePreset: null,
@@ -71,7 +69,7 @@ export function SalesReviewsPage() {
   }, [orders]);
 
   // Shared filtering + stats
-  const { filteredSales, paginatedSales, totalPages, stats, availableMonths, productOptions } =
+  const { filteredSales, paginatedSales, totalPages, stats, availableYears, productOptions } =
     useSalesFilters(salesOrders, filters, ITEMS_PER_PAGE, currentPage);
 
   // Date preset handlers
@@ -80,16 +78,15 @@ export function SalesReviewsPage() {
     const today = n.toISOString().split("T")[0];
 
     if (filters.activeDatePreset === preset) {
-      // Clear preset, revert to current month/year
-      setFilters({
-        searchQuery: filters.searchQuery,
-        productFilter: filters.productFilter,
-        month: n.getMonth() + 1,
-        year: n.getFullYear(),
+      // Toggle off → clear all date filters
+      setFilters((prev) => ({
+        ...prev,
         dateFrom: "",
         dateTo: "",
         activeDatePreset: null,
-      });
+        month: 0,
+        year: 0,
+      }));
     } else {
       let from = today;
       if (preset === "7d") {
@@ -106,44 +103,45 @@ export function SalesReviewsPage() {
         dateFrom: from,
         dateTo: today,
         activeDatePreset: preset,
-        month: 0, // clear month filter when using preset
+        month: 0,
         year: 0,
       }));
     }
     setCurrentPage(1);
-  }, [filters.activeDatePreset, filters.searchQuery, filters.productFilter]);
+  }, [filters.activeDatePreset]);
 
   const clearDateFilter = useCallback(() => {
-    const n = new Date();
     setFilters((prev) => ({
       ...prev,
       dateFrom: "",
       dateTo: "",
       activeDatePreset: null,
-      month: n.getMonth() + 1,
-      year: n.getFullYear(),
+      month: 0,
+      year: 0,
     }));
     setCurrentPage(1);
   }, []);
 
-  // Available years from the data (for the year dropdown)
-  const availableYears = useMemo(() => {
-    const years = new Set(availableMonths.map((m) => m.year));
-    return Array.from(years).sort((a, b) => b - a);
-  }, [availableMonths]);
-
-  // Available months for the selected year
+  // Calendar-based months for the selected year (independent of data)
   const availableMonthsForYear = useMemo(() => {
-    return availableMonths
-      .filter((m) => m.year === filters.year)
-      .map((m) => m.month)
-      .sort((a, b) => b - a);
-  }, [availableMonths, filters.year]);
+    if (!filters.year) return []; // "All Years" selected — no months to show
+    return getCalendarMonthsForYear(filters.year).reverse(); // Most recent month first
+  }, [filters.year]);
+
+  // When year changes, reset month to "All Months" since months list changes
+  useEffect(() => {
+    if (filters.month) {
+      setFilters((prev) => ({ ...prev, month: 0 }));
+    }
+  }, [filters.year]);
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString("en-KW", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   };
+
+  // Whether any date filtering is active (year-only counts too)
+  const hasDateFilter = filters.activeDatePreset || filters.dateFrom || filters.dateTo || filters.year > 0;
 
   // Detail view
   if (selectedOrder) {
@@ -250,8 +248,8 @@ export function SalesReviewsPage() {
             <span className="text-xs text-muted-foreground px-1">Custom</span>
           )}
 
-          {/* Clear date filter */}
-          {(filters.activeDatePreset || filters.dateFrom || filters.dateTo) && (
+          {/* Clear ALL date filters */}
+          {hasDateFilter && (
             <button
               onClick={clearDateFilter}
               className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors cursor-pointer"
@@ -261,29 +259,7 @@ export function SalesReviewsPage() {
             </button>
           )}
 
-          {/* Separator */}
-          <div className="w-px h-6 bg-border mx-1" />
-
-          {/* Month filter */}
-          <div className="relative">
-            <select
-              value={filters.month || ""}
-              onChange={(e) => {
-                const val = e.target.value;
-                updateFilter("month", val ? Number(val) : 0);
-                if (val) updateFilter("activeDatePreset", null);
-              }}
-              disabled={!!filters.activeDatePreset}
-              className="appearance-none pl-3 pr-8 py-1.5 rounded-lg border border-border bg-white dark:bg-dark-card text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {availableMonthsForYear.map((m) => (
-                <option key={m} value={m}>{MONTH_NAMES[m - 1]}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-          </div>
-
-          {/* Year filter */}
+          {/* Year filter — "All" + available years */}
           <div className="relative">
             <select
               value={filters.year || ""}
@@ -295,6 +271,7 @@ export function SalesReviewsPage() {
               disabled={!!filters.activeDatePreset}
               className="appearance-none pl-3 pr-8 py-1.5 rounded-lg border border-border bg-white dark:bg-dark-card text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
+              <option value="">All Years</option>
               {availableYears.map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
@@ -302,8 +279,27 @@ export function SalesReviewsPage() {
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
           </div>
 
-          {/* Separator */}
-          <div className="w-px h-6 bg-border mx-1" />
+          {/* Month filter — only shows when a year is selected */}
+          {filters.year > 0 && (
+            <div className="relative">
+              <select
+                value={filters.month || ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  updateFilter("month", val ? Number(val) : 0);
+                  if (val) updateFilter("activeDatePreset", null);
+                }}
+                disabled={!!filters.activeDatePreset}
+                className="appearance-none pl-3 pr-8 py-1.5 rounded-lg border border-border bg-white dark:bg-dark-card text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">All Months</option>
+                {availableMonthsForYear.map((m) => (
+                  <option key={m} value={m}>{MONTH_NAMES[m - 1]}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+            </div>
+          )}
 
           {/* Product filter — far right */}
           <div className="relative ml-auto">
@@ -331,7 +327,12 @@ export function SalesReviewsPage() {
           onViewOrder={setSelectedOrder}
           viewLabel={t.viewReviews}
           productsLabel={t.products}
-          noDataLabel={t.noSales}
+          noDataLabel={
+            // Show period-specific message when a month/year or date filter is active with empty results
+            (hasDateFilter || filters.productFilter !== "all" || filters.searchQuery.trim())
+              ? t.noTransactionsForPeriod
+              : t.noSales
+          }
           headers={{
             orderID: t.orderID,
             customer: t.customer,
@@ -342,14 +343,16 @@ export function SalesReviewsPage() {
           }}
         />
 
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          showingCount={paginatedSales.length}
-          totalCount={filteredSales.length}
-          labels={{ showing: t.showing, page: t.page }}
-        />
+        {filteredSales.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            showingCount={paginatedSales.length}
+            totalCount={filteredSales.length}
+            labels={{ showing: t.showing, page: t.page }}
+          />
+        )}
       </div>
     </motion.div>
   );

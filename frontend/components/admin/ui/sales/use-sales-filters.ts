@@ -19,21 +19,52 @@ export interface SalesStats {
   productsSold: number;   // total item qty from matched orders
 }
 
-/** Get unique months/years that exist in the order records (no future). */
-export function getAvailableMonthsYears(orders: Order[]): { month: number; year: number }[] {
+/**
+ * Get available years for the year dropdown.
+ * Rules:
+ *   - Always include the current year
+ *   - Include previous years only if they have order records
+ *   - Never include future years
+ */
+export function getAvailableYears(orders: Order[]): number[] {
   const now = new Date();
-  const set = new Set<string>();
+  const currentYear = now.getFullYear();
+  const years = new Set<number>();
+
+  // Always include current year
+  years.add(currentYear);
+
+  // Add years from data (only past/current)
   for (const o of orders) {
     const d = new Date(o.createdAt);
-    if (d > now) continue; // skip future
-    set.add(`${d.getFullYear()}-${d.getMonth() + 1}`);
+    const y = d.getFullYear();
+    if (y <= currentYear) {
+      years.add(y);
+    }
   }
-  return Array.from(set)
-    .map((key) => {
-      const [y, m] = key.split("-").map(Number);
-      return { month: m, year: y };
-    })
-    .sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
+
+  return Array.from(years).sort((a, b) => b - a);
+}
+
+/**
+ * Get months for a specific year — calendar-based, NOT data-based.
+ * Rules:
+ *   - For current year: show January through current month (no future months)
+ *   - For past years: show all 12 months (January through December)
+ *   - This is independent of whether data exists for those months
+ */
+export function getCalendarMonthsForYear(year: number): number[] {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  if (year === currentYear) {
+    // Current year: January → current month
+    const currentMonth = now.getMonth() + 1; // 1-12
+    return Array.from({ length: currentMonth }, (_, i) => i + 1);
+  }
+
+  // Past year: all 12 months
+  return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 }
 
 /** Get unique product options from orders. */
@@ -59,15 +90,20 @@ export function useSalesFilters(
   const filteredSales = useMemo(() => {
     let result = [...salesOrders];
 
-    // 1. Month/Year filter
+    // 1. Year filter (applies even without month)
+    if (filters.year) {
+      result = result.filter((o) => new Date(o.createdAt).getFullYear() === filters.year);
+    }
+
+    // 2. Month filter (requires year already applied above)
     if (filters.month && filters.year) {
       result = result.filter((o) => {
         const d = new Date(o.createdAt);
-        return d.getMonth() + 1 === filters.month && d.getFullYear() === filters.year;
+        return d.getMonth() + 1 === filters.month;
       });
     }
 
-    // 2. Custom date range (overrides month/year when preset is active or custom dates set)
+    // 3. Custom date range (overrides month/year when preset is active or custom dates set)
     if (filters.dateFrom) {
       const from = new Date(filters.dateFrom);
       from.setHours(0, 0, 0, 0);
@@ -79,14 +115,14 @@ export function useSalesFilters(
       result = result.filter((o) => new Date(o.createdAt) <= to);
     }
 
-    // 3. Product filter
+    // 4. Product filter
     if (filters.productFilter && filters.productFilter !== "all") {
       result = result.filter((o) =>
         o.items.some((item) => item.productId === filters.productFilter)
       );
     }
 
-    // 4. Search filter
+    // 5. Search filter
     if (filters.searchQuery.trim()) {
       const q = filters.searchQuery.toLowerCase().trim();
       result = result.filter(
@@ -127,8 +163,8 @@ export function useSalesFilters(
   );
 
   // Available filter options derived from the raw data
-  const availableMonths = useMemo(() => getAvailableMonthsYears(salesOrders), [salesOrders]);
+  const availableYears = useMemo(() => getAvailableYears(salesOrders), [salesOrders]);
   const productOptions = useMemo(() => getProductOptions(salesOrders), [salesOrders]);
 
-  return { filteredSales, paginatedSales, totalPages, stats, availableMonths, productOptions };
+  return { filteredSales, paginatedSales, totalPages, stats, availableYears, productOptions };
 }
