@@ -37,8 +37,10 @@ export function SalesReviewsPage() {
   const t = dict.admin.salesReviews;
 
   const orders = useOrdersStore((s) => s.orders);
+  const ordersLoading = useOrdersStore((s) => s.loading);
   const storeFetchOrders = useOrdersStore((s) => s.fetchOrders);
   const reviews = useReviewsStore((s) => s.reviews);
+  const reviewsLoading = useReviewsStore((s) => s.loading);
   const storeFetchReviews = useReviewsStore((s) => s.fetchReviews);
   const storeFetchStats = useReviewsStore((s) => s.fetchStats);
 
@@ -54,7 +56,9 @@ export function SalesReviewsPage() {
     storeFetchOrders();
     storeFetchReviews();
     storeFetchStats();
-  }, []);
+  }, [storeFetchOrders, storeFetchReviews, storeFetchStats]);
+
+  const loading = ordersLoading || reviewsLoading;
 
   // All non-cancelled orders (sales)
   const salesOrders = useMemo(() => {
@@ -215,6 +219,7 @@ export function SalesReviewsPage() {
         />
 
         <SalesTable
+          loading={loading}
           orders={paginatedSales}
           getStatusLabel={getStatusLabel}
           formatDate={formatDate}

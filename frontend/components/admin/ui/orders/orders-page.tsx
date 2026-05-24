@@ -11,6 +11,7 @@ import { OrderDetailDrawer } from "./order-detail-drawer";
 export function AdminOrders() {
   const {
     t,
+    loading,
     searchQuery, handleSearchChange, handleClearSearch,
     activeFilter, handleFilterChange,
     currentPage, setCurrentPage,
@@ -64,6 +65,7 @@ export function AdminOrders() {
 
       <OrdersTable
         t={t}
+        loading={loading}
         paginatedOrders={paginatedOrders}
         filteredOrdersCount={filteredOrders.length}
         currentPage={currentPage}

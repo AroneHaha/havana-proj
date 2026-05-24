@@ -1,4 +1,3 @@
-/** /frontend/components/reviews/review-list.tsx */
 "use client";
 
 import type { Review } from "@/types/review";
@@ -13,6 +12,42 @@ interface ReviewListProps {
   emptyMessage?: string;
 }
 
+function SkeletonCard() {
+  return (
+    <div className="rounded-2xl border border-border bg-white dark:bg-dark-card p-5 animate-pulse">
+      <div className="flex items-start gap-4">
+        <div className="hidden sm:block h-16 w-16 rounded-xl bg-muted flex-shrink-0" />
+        <div className="flex-1 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-28 rounded bg-muted" />
+              <div className="h-5 w-16 rounded-full bg-muted" />
+            </div>
+            <div className="h-3 w-24 rounded bg-muted" />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex gap-0.5">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-3.5 w-3.5 rounded bg-muted" />
+              ))}
+            </div>
+            <div className="h-3 w-32 rounded bg-muted" />
+          </div>
+          <div className="h-3.5 w-48 rounded bg-muted" />
+          <div className="space-y-1.5">
+            <div className="h-3 w-full rounded bg-muted" />
+            <div className="h-3 w-3/4 rounded bg-muted" />
+          </div>
+          <div className="flex items-center gap-2 pt-3 border-t border-border">
+            <div className="h-7 w-16 rounded-lg bg-muted" />
+            <div className="h-7 w-16 rounded-lg bg-muted" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ReviewList({
   reviews,
   loading,
@@ -22,8 +57,10 @@ export function ReviewList({
 }: ReviewListProps) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-maroon/30 border-t-maroon rounded-full animate-spin dark:border-gold/30 dark:border-t-gold" />
+      <div className="space-y-3">
+        {[...Array(5)].map((_, i) => (
+          <SkeletonCard key={i} />
+        ))}
       </div>
     );
   }

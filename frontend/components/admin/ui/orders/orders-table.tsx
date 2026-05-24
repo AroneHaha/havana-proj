@@ -6,8 +6,29 @@ import { formatPrice } from "@/lib/format-price";
 import { statusColors, statusDotColors, ITEMS_PER_PAGE } from "./constants";
 import type { OrdersT } from "./use-orders-data";
 
+function SkeletonRow() {
+  return (
+    <tr className="border-b border-border last:border-0">
+      <td className="px-6 py-4"><div className="h-4 w-20 rounded bg-muted animate-pulse" /></td>
+      <td className="px-6 py-4">
+        <div className="space-y-1.5">
+          <div className="h-4 w-32 rounded bg-muted animate-pulse" />
+          <div className="h-3 w-40 rounded bg-muted animate-pulse" />
+        </div>
+      </td>
+      <td className="px-6 py-4 hidden sm:table-cell"><div className="h-4 w-12 rounded bg-muted animate-pulse" /></td>
+      <td className="px-6 py-4"><div className="h-4 w-20 rounded bg-muted animate-pulse" /></td>
+      <td className="px-6 py-4"><div className="h-6 w-20 rounded-full bg-muted animate-pulse" /></td>
+      <td className="px-6 py-4 hidden md:table-cell"><div className="h-4 w-24 rounded bg-muted animate-pulse" /></td>
+      <td className="px-6 py-4 hidden lg:table-cell"><div className="h-3 w-28 rounded bg-muted animate-pulse" /></td>
+      <td className="px-6 py-4"><div className="h-4 w-8 rounded bg-muted animate-pulse ml-auto" /></td>
+    </tr>
+  );
+}
+
 interface OrdersTableProps {
   t: OrdersT;
+  loading?: boolean;
   paginatedOrders: Order[];
   filteredOrdersCount: number;
   currentPage: number;
@@ -31,6 +52,7 @@ interface OrdersTableProps {
 
 export function OrdersTable({
   t,
+  loading = false,
   paginatedOrders,
   filteredOrdersCount,
   currentPage,
@@ -123,7 +145,9 @@ export function OrdersTable({
             </tr>
           </thead>
           <tbody>
-            {paginatedOrders.length === 0 ? (
+            {loading ? (
+              [...Array(8)].map((_, i) => <SkeletonRow key={i} />)
+            ) : paginatedOrders.length === 0 ? (
               <tr>
                 <td colSpan={8} className="p-12 text-center">
                   <div className="flex flex-col items-center gap-2">

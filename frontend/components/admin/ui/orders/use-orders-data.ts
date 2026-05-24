@@ -18,6 +18,7 @@ export function useOrdersData() {
   const t = dict.admin.orders;
 
   const orders = useOrdersStore((s) => s.orders);
+  const loading = useOrdersStore((s) => s.loading);
   const storeFetchOrders = useOrdersStore((s) => s.fetchOrders);
   const storeFetchStats = useOrdersStore((s) => s.fetchStats);
   const updateOrderStatus = useOrdersStore((s) => s.updateOrderStatus);
@@ -124,6 +125,7 @@ export function useOrdersData() {
 
   return {
     t,
+    loading,
     searchQuery, handleSearchChange, handleClearSearch,
     activeFilter, handleFilterChange,
     currentPage, setCurrentPage,
