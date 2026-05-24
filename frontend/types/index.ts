@@ -25,6 +25,7 @@ export interface Product {
   image: string;
   images?: string[];
   category: string;
+  sku?: string;
   stock: number;          // actual inventory count from backend
   rating: number;
   reviewCount: number;

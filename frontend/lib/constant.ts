@@ -1,5 +1,5 @@
 import { OrderStatus } from "@/store/orders-store";
-import { ProductStatus, ProductFilterStatus } from "./types";
+import { ProductStatus, ProductFilterStatus } from "@/types";
 
 // ─── Order status colors ────────────────────────────────────────────────
 

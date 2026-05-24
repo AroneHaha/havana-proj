@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -20,6 +20,8 @@ import { AddProductModal } from "./add-product-modal";
 import { EditProductModal } from "./edit-product-modal";
 import { ProductHistoryDrawer } from "./product-history-drawer";
 import { useProductsFilters } from "./use-products-filters";
+import { useProductsStore, getStockStatus } from "@/store/product-store";
+import type { Product } from "@/types";
 
 // ─── Types ───
 export interface AdminProduct {
@@ -64,139 +66,41 @@ export const statusConfig = {
   sold_out: { label: "Sold Out", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400", dot: "bg-red-500" },
 };
 
-// ─── Mock Data ───
-const mockProducts: AdminProduct[] = [
-  {
-    id: "PRD-001",
-    name: "Royal Rose Symphony",
-    nameAr: "\u0633\u0645\u0641\u0648\u0646\u064a\u0629 \u0627\u0644\u0648\u0631\u062f \u0627\u0644\u0645\u0644\u0643\u064a",
-    category: "Rose Arrangements",
-    price: 699,
-    stock: 24,
-    status: "in_stock",
-    images: ["/images/royal-rose.jpg"],
-    description: "Premium red and white roses in an elegant arrangement",
-    sku: "HVF-RRS-001",
-    soldOut: false,
-    createdAt: "2025-03-15",
-  },
-  {
-    id: "PRD-002",
-    name: "Golden Hour Bouquet",
-    nameAr: "\u0628\u0627\u0642\u0629 \u0627\u0644\u0633\u0627\u0639\u0629 \u0627\u0644\u0630\u0647\u0628\u064a\u0629",
-    category: "Bouquets",
-    price: 620,
-    stock: 3,
-    status: "low_stock",
-    images: ["/images/golden-hour.jpg"],
-    description: "Sun-kissed blooms wrapped in gold tissue",
-    sku: "HVF-GHB-002",
-    soldOut: false,
-    createdAt: "2025-03-18",
-  },
-  {
-    id: "PRD-003",
-    name: "Midnight Orchid Elegance",
-    nameAr: "\u0623\u0646\u0627\u0642\u0629 \u0627\u0644\u0623\u0648\u0631\u0643\u064a\u062f \u0627\u0644\u0644\u064a\u0644\u064a\u0629",
-    category: "Orchids",
-    price: 999,
-    stock: 0,
-    status: "sold_out",
-    images: ["/images/midnight-orchid.jpg"],
-    description: "Exotic dark purple orchids in a ceramic vase",
-    sku: "HVF-MOE-003",
-    soldOut: true,
-    createdAt: "2025-04-01",
-  },
-  {
-    id: "PRD-004",
-    name: "Pearl White Lilies",
-    nameAr: "\u0632\u0646\u0627\u0628\u0642 \u0627\u0644\u0644\u0624\u0644\u0624 \u0627\u0644\u0628\u064a\u0636\u0627\u0621",
-    category: "Lilies",
-    price: 550,
-    stock: 18,
-    status: "in_stock",
-    images: ["/images/pearl-lilies.jpg"],
-    description: "Fragrant white lilies with eucalyptus accents",
-    sku: "HVF-PWL-004",
-    soldOut: false,
-    createdAt: "2025-04-05",
-  },
-  {
-    id: "PRD-005",
-    name: "Classic Red Rose Box",
-    nameAr: "\u0635\u0646\u062f\u0648\u0642 \u0627\u0644\u0648\u0631\u062f \u0627\u0644\u0623\u062d\u0645\u0631 \u0627\u0644\u0643\u0644\u0627\u0633\u064a\u0643\u064a",
-    category: "Luxury Boxes",
-    price: 410,
-    stock: 12,
-    status: "in_stock",
-    images: ["/images/classic-box.jpg"],
-    description: "Long-stem red roses in a velvet hat box",
-    sku: "HVF-CRR-005",
-    soldOut: false,
-    createdAt: "2025-04-10",
-  },
-  {
-    id: "PRD-006",
-    name: "Sunset Peony Arrangement",
-    nameAr: "\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u0628\u064a\u0648\u0646\u064a\u0627 \u0627\u0644\u063a\u0631\u0648\u0628\u064a",
-    category: "Seasonal",
-    price: 850,
-    stock: 0,
-    status: "sold_out",
-    images: ["/images/sunset-peony.jpg"],
-    description: "Seasonal peonies in warm sunset tones",
-    sku: "HVF-SPA-006",
-    soldOut: true,
-    createdAt: "2025-04-15",
-  },
-  {
-    id: "PRD-007",
-    name: "Baby Breath Accent",
-    nameAr: "\u0644\u0645\u0633\u0629 \u0646\u0628\u0627\u062a \u0627\u0644\u0648\u0631\u062f \u0627\u0644\u0628\u064a\u0628\u064a",
-    category: "Accessories",
-    price: 220,
-    stock: 5,
-    status: "low_stock",
-    images: ["/images/baby-breath.jpg"],
-    description: "Delicate baby breath for gifting accents",
-    sku: "HVF-BBA-007",
-    soldOut: false,
-    createdAt: "2025-04-20",
-  },
-  {
-    id: "PRD-008",
-    name: "Luxe Velvet Wrap",
-    nameAr: "\u0644\u0641\u0627\u0641 \u0627\u0644\u0645\u062e\u0645\u0644 \u0627\u0644\u0641\u0627\u062e\u0631",
-    category: "Accessories",
-    price: 225,
-    stock: 30,
-    status: "in_stock",
-    images: ["/images/velvet-wrap.jpg"],
-    description: "Premium velvet wrapping for bouquet upgrades",
-    sku: "HVF-LVW-008",
-    soldOut: false,
-    createdAt: "2025-04-22",
-  },
-  {
-    id: "PRD-009",
-    name: "Tropical Paradise",
-    nameAr: "\u0627\u0644\u062c\u0646\u0629 \u0627\u0644\u0627\u0633\u062a\u0648\u0627\u0626\u064a\u0629",
-    category: "Bouquets",
-    price: 780,
-    stock: 8,
-    status: "in_stock",
-    images: ["/images/tropical.jpg"],
-    description: "Vibrant tropical flowers with bird of paradise",
-    sku: "HVF-TPR-009",
-    soldOut: false,
-    createdAt: "2025-05-01",
-  },
-];
+// ─── Mapper: Product (store) → AdminProduct (UI) ───
+function toAdminProduct(p: Product): AdminProduct {
+  return {
+    id: p.id,
+    name: p.name,
+    nameAr: p.localeText?.ar?.name || p.name,
+    category: p.category,
+    price: p.salePrice ?? p.price,
+    stock: p.stock,
+    status: getStockStatus(p),
+    images: p.images && p.images.length > 0 ? p.images : [p.image],
+    description: p.description,
+    sku: p.sku || "",
+    soldOut: p.stock <= 0,
+    createdAt: p.createdAt?.split("T")[0] || "",
+  };
+}
 
 // ─── Component ───
 export function ProductsPage() {
-  const [products, setProducts] = useState<AdminProduct[]>(mockProducts);
+  const storeProducts = useProductsStore((s) => s.products);
+  const loading = useProductsStore((s) => s.loading);
+  const fetchProducts = useProductsStore((s) => s.fetchProducts);
+  const storeAddProduct = useProductsStore((s) => s.addProduct);
+  const storeUpdateProduct = useProductsStore((s) => s.updateProduct);
+  const storeDeleteProduct = useProductsStore((s) => s.deleteProduct);
+
+  // Fetch on mount
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Map store products → admin products
+  const products = useMemo(() => storeProducts.map(toAdminProduct), [storeProducts]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterStatus>("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -218,9 +122,9 @@ export function ProductsPage() {
   const { filteredProducts } = useProductsFilters(products, searchQuery, activeFilter, categoryFilter);
 
   // ─── Handlers ───
-  const getDerivedStatus = (stock: number, soldOut: boolean): AdminProduct["status"] => {
-    if (soldOut || stock === 0) return "sold_out";
-    if (stock <= 5) return "low_stock";
+  const getDerivedStatus = (stock: number): AdminProduct["status"] => {
+    if (stock <= 0) return "sold_out";
+    if (stock < 10) return "low_stock";
     return "in_stock";
   };
 
@@ -235,21 +139,22 @@ export function ProductsPage() {
     images: string[];
   }) => {
     if (!newProduct.name || !newProduct.price || !newProduct.stock) return;
-    const p: AdminProduct = {
-      id: `PRD-${String(products.length + 1).padStart(3, "0")}`,
+    storeAddProduct({
       name: newProduct.name,
-      nameAr: newProduct.nameAr || newProduct.name,
-      category: newProduct.category,
-      price: parseFloat(newProduct.price),
-      stock: parseInt(newProduct.stock),
-      status: getDerivedStatus(parseInt(newProduct.stock), false),
-      images: newProduct.images.length > 0 ? newProduct.images : ["/images/placeholder.jpg"],
       description: newProduct.description,
+      price: parseFloat(newProduct.price),
+      salePrice: parseFloat(newProduct.price),
+      image: newProduct.images[0] || "",
+      images: newProduct.images,
+      category: newProduct.category,
+      stock: parseInt(newProduct.stock),
+      inStock: parseInt(newProduct.stock) > 0,
       sku: newProduct.sku || `HVF-${Date.now().toString(36).toUpperCase()}`,
-      soldOut: false,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-    setProducts((prev) => [p, ...prev]);
+      localeText: {
+        en: { name: newProduct.name, description: newProduct.description },
+        ar: { name: newProduct.nameAr || newProduct.name, description: newProduct.description },
+      },
+    });
     setAddModalOpen(false);
   };
 
@@ -268,53 +173,47 @@ export function ProductsPage() {
     images: string[];
   }) => {
     const newStock = parseInt(editForm.stock);
-    const soldOut = editForm.soldOut;
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === product.id
-          ? {
-              ...p,
-              name: editForm.name,
-              nameAr: editForm.nameAr || editForm.name,
-              category: editForm.category,
-              price: parseFloat(editForm.price),
-              stock: newStock,
-              status: getDerivedStatus(newStock, soldOut),
-              description: editForm.description,
-              soldOut,
-              images: editForm.images.length > 0 ? editForm.images : p.images,
-            }
-          : p
-      )
-    );
+    storeUpdateProduct(product.id, {
+      name: editForm.name,
+      description: editForm.description,
+      price: parseFloat(editForm.price),
+      salePrice: parseFloat(editForm.price),
+      image: editForm.images[0] || "",
+      images: editForm.images,
+      category: editForm.category,
+      stock: editForm.soldOut ? 0 : newStock,
+      inStock: !editForm.soldOut && newStock > 0,
+      sku: product.sku,
+      localeText: {
+        en: { name: editForm.name, description: editForm.description },
+        ar: { name: editForm.nameAr || editForm.name, description: editForm.description },
+      },
+    });
     setEditProduct(null);
   };
 
   const handleToggleSoldOut = (id: string) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== id) return p;
-        const newSoldOut = !p.soldOut;
-        return { ...p, soldOut: newSoldOut, status: getDerivedStatus(p.stock, newSoldOut) };
-      })
-    );
+    const product = storeProducts.find((p) => p.id === id);
+    if (!product) return;
+    const isCurrentlyOut = product.stock <= 0;
+    storeUpdateProduct(id, {
+      stock: isCurrentlyOut ? 10 : 0,
+      inStock: isCurrentlyOut,
+    });
   };
 
   const handleStockAdjust = (id: string) => {
     const adj = parseInt(stockAdjust[id] || "0");
     if (!adj) return;
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== id) return p;
-        const newStock = Math.max(0, p.stock + adj);
-        return { ...p, stock: newStock, status: getDerivedStatus(newStock, p.soldOut) };
-      })
-    );
+    const product = storeProducts.find((p) => p.id === id);
+    if (!product) return;
+    const newStock = Math.max(0, product.stock + adj);
+    storeUpdateProduct(id, { stock: newStock, inStock: newStock > 0 });
     setStockAdjust((prev) => ({ ...prev, [id]: "" }));
   };
 
   const handleDelete = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    storeDeleteProduct(id);
     setDeleteConfirm(null);
   };
 
@@ -349,7 +248,11 @@ export function ProductsPage() {
               <span className="text-sm text-muted-foreground font-medium">{stat.label}</span>
               <div className={`p-2 rounded-xl bg-muted/50 ${stat.color}`}><stat.icon className="h-4 w-4" /></div>
             </div>
-            <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+            {loading ? (
+              <div className="h-8 w-16 bg-muted rounded-lg animate-pulse" />
+            ) : (
+              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+            )}
           </motion.div>
         ))}
       </div>
