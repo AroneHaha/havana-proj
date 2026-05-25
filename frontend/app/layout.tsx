@@ -22,9 +22,9 @@ const notoArabic = Noto_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: "Havana Flowers | Qatar's Premier Luxury Floral Boutique",
+  title: "Havana Flowers | Kuwait's Premier Luxury Floral Boutique",
   description:
-    "Experience the finest flower arrangements crafted with passion and elegance for every special moment in Qatar.",
+    "Experience the finest flower arrangements crafted with passion and elegance for every special moment in Kuwait.",
 };
 
 export default function RootLayout({

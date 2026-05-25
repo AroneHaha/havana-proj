@@ -1,4 +1,4 @@
-import { OrderStatus } from "@/store/orders-store";
+import type { OrderStatus } from "@/services/orders-service";
 import { ProductStatus, ProductFilterStatus } from "@/types";
 
 // ─── Order status colors ────────────────────────────────────────────────

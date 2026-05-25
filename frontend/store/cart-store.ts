@@ -60,30 +60,12 @@ function cartItemAPIToCartItem(api: CartItemAPI): CartItem {
   return { product, quantity: api.quantity };
 }
 
-/**
- * Extract the cart-item ID from a CartItem.
- * For API-sourced items, we stash the cart-item ID on a hidden field.
- * For locally-sourced items, we use the product ID as the cart-item ID.
- */
-function getCartItemId(item: CartItem): string {
-  // @ts-expect-error — _cartItemId is set internally but not on the Product type
-  return item.product._cartItemId ?? item.product.id;
-}
-
-/**
- * Set the cart-item ID on a CartItem (used when API returns a cart-item ID).
- */
-function withCartItemId(item: CartItem, cartItemId: string): CartItem {
-  // Stash the server-side cart item ID on the product object so we can
-  // reference it for PATCH/DELETE calls later
-  const product = { ...item.product, _cartItemId: cartItemId };
-  return { ...item, product };
-}
-
 // ─── Store interface ──────────────────────────────────────────────────
 
 interface CartStore {
   items: CartItem[];
+  /** Maps productId → server-side cart item ID (for PATCH/DELETE calls) */
+  cartItemIds: Record<string, string>;
   loading: boolean;
   error: string | null;
 
@@ -106,6 +88,7 @@ export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
+      cartItemIds: {},
       loading: false,
       error: null,
 
@@ -118,12 +101,13 @@ export const useCartStore = create<CartStore>()(
         try {
           useCartStore.persist.rehydrate();
           const apiItems = await serviceFetchCart();
-          const items = apiItems.map(cartItemAPIToCartItem).map((item, i) => {
-            // Stash the server cart-item ID for future PATCH/DELETE
-            const cartItemId = apiItems[i].id;
-            return withCartItemId(item, cartItemId);
+          const items = apiItems.map(cartItemAPIToCartItem);
+          // Build the productId → cartItemId mapping from the API response
+          const cartItemIds: Record<string, string> = {};
+          apiItems.forEach((api) => {
+            cartItemIds[api.productId] = api.id;
           });
-          set({ items, loading: false });
+          set({ items, cartItemIds, loading: false });
         } catch (err) {
           // API failed — keep the localStorage cache as-is
           set({ loading: false, error: getErrorMessage(err, "Failed to fetch cart") });
@@ -152,13 +136,9 @@ export const useCartStore = create<CartStore>()(
         if (isAuthenticated()) {
           try {
             const apiItem = await serviceAddCartItem(product.id, 1);
-            // Replace the optimistic item with the server response
-            const mapped = cartItemAPIToCartItem(apiItem);
-            const withId = withCartItemId(mapped, apiItem.id);
+            // Store the server-side cart item ID for future PATCH/DELETE
             set((state) => ({
-              items: state.items.map((item) =>
-                item.product.id === product.id ? withId : item
-              ),
+              cartItemIds: { ...state.cartItemIds, [product.id]: apiItem.id },
             }));
           } catch (err) {
             // Revert optimistic update on failure
@@ -185,7 +165,7 @@ export const useCartStore = create<CartStore>()(
 
         // ── Try API if authenticated ──
         if (isAuthenticated() && removed) {
-          const cartItemId = getCartItemId(removed);
+          const cartItemId = get().cartItemIds[productId] ?? productId;
           try {
             await serviceRemoveCartItem(cartItemId);
           } catch (err) {
@@ -195,6 +175,11 @@ export const useCartStore = create<CartStore>()(
               error: getErrorMessage(err, "Failed to remove item"),
             }));
           }
+          // Clean up the cartItemId mapping
+          set((state) => {
+            const { [productId]: _, ...rest } = state.cartItemIds;
+            return { cartItemIds: rest };
+          });
         }
       },
 
@@ -218,7 +203,7 @@ export const useCartStore = create<CartStore>()(
 
         // ── Try API if authenticated ──
         if (isAuthenticated()) {
-          const cartItemId = getCartItemId(existing);
+          const cartItemId = get().cartItemIds[productId] ?? productId;
           try {
             await serviceUpdateQuantity(cartItemId, quantity);
           } catch (err) {
@@ -239,7 +224,7 @@ export const useCartStore = create<CartStore>()(
         const prev = get().items;
 
         // ── Optimistic clear ──
-        set({ items: [] });
+        set({ items: [], cartItemIds: {} });
 
         // ── Try API if authenticated ──
         if (isAuthenticated()) {
@@ -265,7 +250,7 @@ export const useCartStore = create<CartStore>()(
     {
       name: "havana-cart",
       // Only persist items as cache — loading/error are transient
-      partialize: (state) => ({ items: state.items }),
+      partialize: (state) => ({ items: state.items, cartItemIds: state.cartItemIds }),
       skipHydration: true,
     }
   )
