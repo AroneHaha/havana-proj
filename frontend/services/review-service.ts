@@ -20,6 +20,7 @@
  */
 
 import { API_BASE, type FieldErrors } from "@/lib/api-config";
+import { AppError } from "@/lib/app-error";
 import { createServiceFetch } from "@/lib/service-fetch";
 import type {
   Review,
@@ -34,18 +35,16 @@ import type {
 // FieldErrors is imported from lib/api-config
 export type { FieldErrors };
 
-export class ReviewsError extends Error {
-  code: "NOT_FOUND" | "VALIDATION_ERROR" | "FORBIDDEN" | "NETWORK_ERROR" | "UNKNOWN";
-  fields: FieldErrors;
+export class ReviewsError extends AppError {
+  declare code: "NOT_FOUND" | "VALIDATION_ERROR" | "FORBIDDEN" | "NETWORK_ERROR" | "UNKNOWN";
 
   constructor(
     message: string,
     code: ReviewsError["code"],
     fields: FieldErrors = {}
   ) {
-    super(message);
-    this.code = code;
-    this.fields = fields;
+    super(message, code, fields);
+    this.name = "ReviewsError";
   }
 }
 

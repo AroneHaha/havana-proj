@@ -139,7 +139,7 @@ function storeUser(user: AuthUser, token?: string, refreshToken?: string) {
   if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
 
   // Also set a cookie for middleware route protection (server-side accessible)
-  // The cookie is HTTP-only for security; middleware only checks its existence
+  // Cookie exists so middleware can check it; not truly HTTP-only (see setAuthCookie docs)
   if (token) {
     setAuthCookie(token);
   }
@@ -155,8 +155,14 @@ function clearStored() {
 // ─── Cookie helpers (for middleware route protection) ──────────────────
 
 /**
- * Set an HTTP-only auth cookie so Next.js middleware can check
+ * Set an auth cookie so Next.js middleware can check
  * for authentication server-side (before the page renders).
+ *
+ * NOTE: This is NOT truly HTTP-only — `document.cookie` cannot set
+ * the HttpOnly flag. The cookie is readable by client-side JS, so
+ * it should only contain a non-sensitive session indicator, not the
+ * raw JWT. For true HTTP-only cookies, the token must be set by a
+ * server-side API route (e.g., Laravel Sets the cookie on login).
  */
 function setAuthCookie(token: string) {
   if (typeof document === "undefined") return;

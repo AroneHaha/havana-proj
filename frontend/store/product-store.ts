@@ -74,6 +74,8 @@ export const useProductsStore = create<ProductsState>()(
       fetchProducts: async () => {
         set({ loading: true, error: null });
         try {
+          // Rehydrate from localStorage first (cache), then refresh from API
+          useProductsStore.persist.rehydrate();
           const { products } = await serviceGetProducts("en", 1, 200);
           set({ products, loading: false });
         } catch (err) {

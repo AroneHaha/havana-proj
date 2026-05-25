@@ -30,6 +30,7 @@ import type {
   ReviewVisibility,
   ReviewFilters,
 } from "@/types/review";
+import { getErrorMessage } from "@/lib/get-error-message";
 
 // Re-export types so components can import from the store
 export type { Review, ReviewVisibility, ReviewFilters, ReviewStats };
@@ -72,15 +73,13 @@ export const useReviewsStore = create<ReviewsState>()(
       fetchReviews: async (filters?: ReviewFilters) => {
         set({ loading: true, error: null });
         try {
+          // Rehydrate from localStorage first (cache), then refresh from API
+          useReviewsStore.persist.rehydrate();
           const activeFilters = filters ?? get().filters;
           const result = await serviceFetchReviews(activeFilters);
           set({ reviews: result.reviews, loading: false });
         } catch (err) {
-          const msg =
-            err && typeof err === "object" && "message" in err
-              ? (err as { message: string }).message
-              : "Failed to fetch reviews";
-          set({ error: msg, loading: false });
+          set({ error: getErrorMessage(err, "Failed to fetch reviews"), loading: false });
         }
       },
 
@@ -113,11 +112,7 @@ export const useReviewsStore = create<ReviewsState>()(
           }));
           get().fetchStats();
         } catch (err) {
-          const msg =
-            err && typeof err === "object" && "message" in err
-              ? (err as { message: string }).message
-              : "Failed to update review visibility";
-          set({ error: msg });
+          set({ error: getErrorMessage(err, "Failed to update review visibility") });
           throw err;
         }
       },
@@ -130,11 +125,7 @@ export const useReviewsStore = create<ReviewsState>()(
           }));
           get().fetchStats();
         } catch (err) {
-          const msg =
-            err && typeof err === "object" && "message" in err
-              ? (err as { message: string }).message
-              : "Failed to delete review";
-          set({ error: msg });
+          set({ error: getErrorMessage(err, "Failed to delete review") });
           throw err;
         }
       },

@@ -32,6 +32,7 @@ import {
   STATUS_I18N_KEY,
   PaymentMethod,
 } from "@/services/orders-service";
+import { getErrorMessage } from "@/lib/get-error-message";
 
 // Re-export types and constants so components can import from the store
 // (same pattern as auth-store re-exports AuthUser, AuthError, etc.)
@@ -77,14 +78,13 @@ export const useOrdersStore = create<OrdersState>()(
       fetchOrders: async () => {
         set({ loading: true, error: null });
         try {
+          // Rehydrate from localStorage first (cache), then refresh from API
+          // This ensures stale cache is shown while API call is in-flight
+          useOrdersStore.persist.rehydrate();
           const result = await serviceFetchOrders();
           set({ orders: result.orders, loading: false });
         } catch (err) {
-          const msg =
-            err && typeof err === "object" && "message" in err
-              ? (err as { message: string }).message
-              : "Failed to fetch orders";
-          set({ error: msg, loading: false });
+          set({ error: getErrorMessage(err, "Failed to fetch orders"), loading: false });
         }
       },
 
@@ -108,11 +108,7 @@ export const useOrdersStore = create<OrdersState>()(
           // Refresh stats after status change
           get().fetchStats();
         } catch (err) {
-          const msg =
-            err && typeof err === "object" && "message" in err
-              ? (err as { message: string }).message
-              : "Failed to update order status";
-          set({ error: msg });
+          set({ error: getErrorMessage(err, "Failed to update order status") });
           throw err; // Re-throw so UI can handle (e.g. toast)
         }
       },
@@ -126,11 +122,7 @@ export const useOrdersStore = create<OrdersState>()(
           // Refresh stats after deletion
           get().fetchStats();
         } catch (err) {
-          const msg =
-            err && typeof err === "object" && "message" in err
-              ? (err as { message: string }).message
-              : "Failed to delete order";
-          set({ error: msg });
+          set({ error: getErrorMessage(err, "Failed to delete order") });
           throw err;
         }
       },

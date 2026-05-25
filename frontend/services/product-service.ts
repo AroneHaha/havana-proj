@@ -15,24 +15,23 @@
 
 import { publicFetch, isApiAvailable, createServiceFetch } from "@/lib/api-client";
 import { API_BASE, type FieldErrors } from "@/lib/api-config";
+import { AppError } from "@/lib/app-error";
 import { featuredProducts, bestSellerProducts } from "@/lib/data";
 import type { Product } from "@/types";
 import type { Locale } from "@/i18n";
 
 // ─── Error class ──────────────────────────────────────────────────────
 
-export class ProductsError extends Error {
-  code: "NOT_FOUND" | "VALIDATION_ERROR" | "FORBIDDEN" | "NETWORK_ERROR" | "UNKNOWN";
-  fields: FieldErrors;
+export class ProductsError extends AppError {
+  declare code: "NOT_FOUND" | "VALIDATION_ERROR" | "FORBIDDEN" | "NETWORK_ERROR" | "UNKNOWN";
 
   constructor(
     message: string,
     code: ProductsError["code"],
     fields: FieldErrors = {}
   ) {
-    super(message);
-    this.code = code;
-    this.fields = fields;
+    super(message, code, fields);
+    this.name = "ProductsError";
   }
 }
 
@@ -196,6 +195,35 @@ export async function getProducts(
     localizeProduct(p, locale)
   );
   return { products: all, total: all.length };
+}
+
+/**
+ * Fetch a single product by ID.
+ * Expected Laravel endpoint: GET /products/:id
+ */
+export async function fetchProductById(
+  id: string,
+  locale: Locale = "en"
+): Promise<Product | null> {
+  const useApi = await isApiAvailable();
+
+  if (useApi) {
+    try {
+      const res = await publicFetch<{ data: LaravelProduct }>(
+        `/products/${id}`,
+        { locale }
+      );
+      return mapLaravelProduct(res.data, locale);
+    } catch (err) {
+      console.warn("API fetch failed, falling back to seed data:", err);
+    }
+  }
+
+  // ── Mock ──
+  await new Promise((r) => setTimeout(r, 100));
+  const all = [...featuredProducts, ...bestSellerProducts];
+  const found = all.find((p) => p.id === id) ?? null;
+  return found ? localizeProduct(found, locale) : null;
 }
 
 // ─── WRITE operations (admin, authenticated) ───────────────────────────
