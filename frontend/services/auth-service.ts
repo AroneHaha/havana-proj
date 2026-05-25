@@ -27,6 +27,7 @@
  */
 
 import { API_BASE, type FieldErrors, type LaravelValidationErrorResponse } from "@/lib/api-config";
+import { AppError } from "@/lib/app-error";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -51,8 +52,8 @@ export interface AuthResponse {
 // FieldErrors is now imported from lib/api-config
 export type { FieldErrors };
 
-export class AuthError extends Error {
-  code:
+export class AuthError extends AppError {
+  declare code:
     | "INVALID_CREDENTIALS"
     | "EMAIL_NOT_FOUND"
     | "NETWORK_ERROR"
@@ -61,17 +62,14 @@ export class AuthError extends Error {
     | "WEAK_PASSWORD"
     | "TOKEN_EXPIRED"
     | "UNKNOWN";
-  /** Laravel-style per-field errors (only populated when code is VALIDATION_ERROR) */
-  fields: FieldErrors;
 
   constructor(
     message: string,
     code: AuthError["code"],
     fields: FieldErrors = {}
   ) {
-    super(message);
-    this.code = code;
-    this.fields = fields;
+    super(message, code, fields);
+    this.name = "AuthError";
   }
 }
 

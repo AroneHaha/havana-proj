@@ -55,7 +55,6 @@ export function AdminOrders() {
         t={t}
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
-        onClearSearch={handleClearSearch}
         activeFilter={activeFilter}
         onFilterChange={handleFilterChange}
         ordersLength={orders.length}

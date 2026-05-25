@@ -140,6 +140,36 @@ export interface Translation {
     checkout: string;
   };
 
+  checkout: {
+    title: string;
+    subtitle: string;
+    fullName: string;
+    fullNamePlaceholder: string;
+    email: string;
+    emailPlaceholder: string;
+    phone: string;
+    phonePlaceholder: string;
+    address: string;
+    addressPlaceholder: string;
+    notes: string;
+    notesPlaceholder: string;
+    paymentMethod: string;
+    cashOnDelivery: string;
+    placeOrder: string;
+    placing: string;
+    stockWarning: string;
+    stockUnavailable: string;
+    orderPlaced: string;
+    orderPlacedMessage: string;
+    orderNumber: string;
+    continueShopping: string;
+    loginRequired: string;
+    loginRequiredMessage: string;
+    goToLogin: string;
+    invalidPhone: string;
+    requiredField: string;
+  };
+
   mobileNav: {
     occasions: string;
     account: string;

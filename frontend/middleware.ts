@@ -11,9 +11,13 @@
  *   2. If the cookie is missing on an admin route → redirect to /login
  *   3. The client-side layout still does the full role check (admin vs customer)
  *
- * The cookie is set as HTTP-only for security, so it can't be read by
- * client-side JavaScript. Only its existence is checked here — the
- * actual token validation happens on the backend.
+ * NOTE: The cookie is NOT truly HTTP-only — it is set via `document.cookie`
+ * in auth-service.ts, which cannot set the HttpOnly flag. It is readable
+ * by client-side JS, so it only serves as a non-sensitive session indicator
+ * for middleware. For true HTTP-only cookies, the token must be set by a
+ * server-side API route (e.g., Laravel sets the cookie on login).
+ * Only the cookie's existence is checked here — actual token validation
+ * happens on the backend.
  */
 
 import { NextResponse } from "next/server";

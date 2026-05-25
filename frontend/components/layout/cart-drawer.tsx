@@ -11,6 +11,7 @@ import { getDictionary } from "@/i18n";
 export function CartDrawer() {
   const isCartOpen = useUIStore((s) => s.isCartOpen);
   const closeCart = useUIStore((s) => s.closeCart);
+  const openCheckout = useUIStore((s) => s.openCheckout);
   const items = useCartStore((s) => s.items);
   const removeItem = useCartStore((s) => s.removeItem);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
@@ -21,6 +22,10 @@ export function CartDrawer() {
   const total = subtotal + deliveryFee;
   const locale = useLanguageStore((s) => s.locale);
   const t = getDictionary(locale);
+
+  function handleCheckout() {
+    openCheckout();
+  }
 
   return (
     <AnimatePresence>
@@ -130,7 +135,11 @@ export function CartDrawer() {
                     <span className="text-maroon dark:text-gold">{formatPrice(total)}</span>
                   </div>
                 </div>
-                <Button className="w-full gap-2 text-base" size="lg">
+                <Button
+                  onClick={handleCheckout}
+                  className="w-full gap-2 text-base bg-maroon hover:bg-maroon-light text-white"
+                  size="lg"
+                >
                   {t.cart.checkout}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
