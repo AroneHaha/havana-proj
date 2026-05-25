@@ -3,9 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search,
   Plus,
-  X,
   Package,
   AlertTriangle,
   CheckCircle2,
@@ -13,55 +11,20 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { ProductGrid } from "./products-table";
-import { AddProductModal } from "./add-product-modal";
-import { EditProductModal } from "./edit-product-modal";
+import { ProductFormModal, type ProductFormData } from "./product-form-modal";
 import { ProductHistoryDrawer } from "./product-history-drawer";
 import { useProductsFilters } from "./use-products-filters";
 import { useProductsStore, getStockStatus } from "@/store/product-store";
+import { StatsCard, SearchInput, FilterTabs } from "@/components/admin/ui/shared";
+import { PRODUCT_STATUS_CONFIG, PRODUCT_FILTER_TABS, PRODUCT_CATEGORIES } from "@/lib/constant";
 import type { Product } from "@/types";
+import type { AdminProduct, FilterStatus } from "./products-types";
 
-// ─── Types ───
-export interface AdminProduct {
-  id: string;
-  name: string;
-  nameAr: string;
-  category: string;
-  price: number;
-  stock: number;
-  status: "in_stock" | "low_stock" | "sold_out";
-  images: string[];
-  description: string;
-  sku: string;
-  soldOut: boolean;
-  createdAt: string;
-}
+// ─── Re-export for convenience (types now live in products-types.ts) ───
+export type { AdminProduct, FilterStatus } from "./products-types";
 
-export type FilterStatus = "all" | "in_stock" | "low_stock" | "sold_out";
-
-// ─── Constants ───
-export const CATEGORIES = [
-  "Rose Arrangements",
-  "Bouquets",
-  "Orchids",
-  "Lilies",
-  "Luxury Boxes",
-  "Seasonal",
-  "Plants",
-  "Accessories",
-];
-
-const FILTER_TABS: { key: FilterStatus; label: string }[] = [
-  { key: "all", label: "All Products" },
-  { key: "in_stock", label: "In Stock" },
-  { key: "low_stock", label: "Low Stock" },
-  { key: "sold_out", label: "Sold Out" },
-];
-
-export const statusConfig = {
-  in_stock: { label: "In Stock", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400", dot: "bg-emerald-500" },
-  low_stock: { label: "Low Stock", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400", dot: "bg-yellow-500" },
-  sold_out: { label: "Sold Out", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400", dot: "bg-red-500" },
-};
+// CATEGORIES is now PRODUCT_CATEGORIES in @/lib/constant
+// statusConfig is now PRODUCT_STATUS_CONFIG in @/lib/constant
 
 // ─── Mapper: Product (store) → AdminProduct (UI) ───
 function toAdminProduct(p: Product): AdminProduct {
@@ -123,31 +86,22 @@ export function ProductsPage() {
     return "in_stock";
   };
 
-  const handleAddProduct = (newProduct: {
-    name: string;
-    nameAr: string;
-    category: string;
-    price: string;
-    stock: string;
-    description: string;
-    sku: string;
-    images: string[];
-  }) => {
-    if (!newProduct.name || !newProduct.price || !newProduct.stock) return;
+  const handleAddProduct = (formData: ProductFormData) => {
+    if (!formData.name || !formData.price || !formData.stock) return;
     storeAddProduct({
-      name: newProduct.name,
-      description: newProduct.description,
-      price: parseFloat(newProduct.price),
-      salePrice: parseFloat(newProduct.price),
-      image: newProduct.images[0] || "",
-      images: newProduct.images,
-      category: newProduct.category,
-      stock: parseInt(newProduct.stock),
-      inStock: parseInt(newProduct.stock) > 0,
-      sku: newProduct.sku || `HVF-${Date.now().toString(36).toUpperCase()}`,
+      name: formData.name,
+      description: formData.description,
+      price: parseFloat(formData.price),
+      salePrice: parseFloat(formData.price),
+      image: formData.images[0] || "",
+      images: formData.images,
+      category: formData.category,
+      stock: parseInt(formData.stock),
+      inStock: parseInt(formData.stock) > 0,
+      sku: formData.sku || `HVF-${Date.now().toString(36).toUpperCase()}`,
       localeText: {
-        en: { name: newProduct.name, description: newProduct.description },
-        ar: { name: newProduct.nameAr || newProduct.name, description: newProduct.description },
+        en: { name: formData.name, description: formData.description },
+        ar: { name: formData.nameAr || formData.name, description: formData.description },
       },
     });
     setAddModalOpen(false);
@@ -157,16 +111,7 @@ export function ProductsPage() {
     setEditProduct(product);
   };
 
-  const handleSaveEdit = (product: AdminProduct, editForm: {
-    name: string;
-    nameAr: string;
-    category: string;
-    price: string;
-    stock: string;
-    description: string;
-    soldOut: boolean;
-    images: string[];
-  }) => {
+  const handleSaveEdit = (product: AdminProduct, editForm: ProductFormData) => {
     const newStock = parseInt(editForm.stock);
     storeUpdateProduct(product.id, {
       name: editForm.name,
@@ -212,81 +157,45 @@ export function ProductsPage() {
 
       {/* ─── Stats ─── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {[
-          { label: "Total Products", value: totalProducts, icon: Package, color: "text-blue-500" },
-          { label: "In Stock", value: inStock, icon: CheckCircle2, color: "text-emerald-500" },
-          { label: "Low Stock", value: lowStock, icon: AlertTriangle, color: "text-yellow-500" },
-          { label: "Sold Out", value: soldOut, icon: XCircle, color: "text-red-500" },
-        ].map((stat, i) => (
-          <motion.div key={stat.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: i * 0.08 }} className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-border">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-muted-foreground font-medium">{stat.label}</span>
-              <div className={`p-2 rounded-xl bg-muted/50 ${stat.color}`}><stat.icon className="h-4 w-4" /></div>
-            </div>
-            {loading ? (
-              <div className="h-8 w-16 bg-muted rounded-lg animate-pulse" />
-            ) : (
-              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-            )}
-          </motion.div>
-        ))}
+        <StatsCard label="Total Products" value={loading ? "..." : totalProducts} icon={Package} color="text-blue-500" index={0} />
+        <StatsCard label="In Stock" value={loading ? "..." : inStock} icon={CheckCircle2} color="text-emerald-500" index={1} />
+        <StatsCard label="Low Stock" value={loading ? "..." : lowStock} icon={AlertTriangle} color="text-yellow-500" index={2} />
+        <StatsCard label="Sold Out" value={loading ? "..." : soldOut} icon={XCircle} color="text-red-500" index={3} />
       </div>
 
       {/* ─── Search ─── */}
       <div className="mb-4">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, SKU, or category..."
-            className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-border bg-white dark:bg-dark-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow"
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted transition-colors cursor-pointer">
-              <X className="w-3.5 h-3.5 text-muted-foreground" />
-            </button>
-          )}
-        </div>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search by name, SKU, or category..."
+        />
       </div>
 
       {/* ─── Status Tabs + Category ─── */}
-      <div className="mb-6 overflow-x-auto scrollbar-hide">
-        <div className="flex items-center gap-1.5 pb-1 min-w-max">
-          {FILTER_TABS.map((tab) => {
-            const isActive = activeFilter === tab.key;
-            const count = tab.key === "all" ? products.length : products.filter((p) => p.status === tab.key).length;
-            const cfg = tab.key !== "all" ? statusConfig[tab.key] : null;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveFilter(tab.key)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                  isActive ? "bg-maroon text-white dark:bg-gold dark:text-dark-bg" : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                }`}
-              >
-                {cfg && <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />}
-                {tab.label}
-                <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] ${isActive ? "bg-white/20 dark:bg-dark-bg/20" : "bg-muted text-muted-foreground"}`}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+      <div className="mb-6 flex items-center gap-3">
+        <FilterTabs
+          tabs={PRODUCT_FILTER_TABS.map((tab) => ({
+            key: tab.key,
+            label: tab.label,
+            count: tab.key === "all" ? products.length : products.filter((p) => p.status === tab.key).length,
+            dotColor: tab.key !== "all" ? PRODUCT_STATUS_CONFIG[tab.key]?.dot : undefined,
+          }))}
+          activeTab={activeFilter}
+          onTabChange={(key) => setActiveFilter(key as FilterStatus)}
+        />
 
-          {/* Category dropdown — far right */}
-          <div className="ml-auto relative">
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-1.5 rounded-lg border border-border bg-white dark:bg-dark-card text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow cursor-pointer"
-            >
-              <option value="all">All Categories</option>
-              {CATEGORIES.map((c) => (<option key={c} value={c}>{c}</option>))}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-          </div>
+        {/* Category dropdown — far right */}
+        <div className="ml-auto relative">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="appearance-none pl-3 pr-8 py-1.5 rounded-lg border border-border bg-white dark:bg-dark-card text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow cursor-pointer"
+          >
+            <option value="all">All Categories</option>
+            {PRODUCT_CATEGORIES.map((c) => (<option key={c} value={c}>{c}</option>))}
+          </select>
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
         </div>
       </div>
 
@@ -308,9 +217,10 @@ export function ProductsPage() {
       {/* ─── Add Product Modal ─── */}
       <AnimatePresence>
         {addModalOpen && (
-          <AddProductModal
+          <ProductFormModal
+            mode="add"
             onClose={() => setAddModalOpen(false)}
-            onAdd={handleAddProduct}
+            onSubmit={handleAddProduct}
           />
         )}
       </AnimatePresence>
@@ -318,10 +228,11 @@ export function ProductsPage() {
       {/* ─── Edit Product Modal ─── */}
       <AnimatePresence>
         {editProduct && (
-          <EditProductModal
+          <ProductFormModal
+            mode="edit"
             product={editProduct}
             onClose={() => setEditProduct(null)}
-            onSave={handleSaveEdit}
+            onSubmit={handleSaveEdit}
           />
         )}
       </AnimatePresence>

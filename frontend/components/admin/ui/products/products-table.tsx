@@ -2,8 +2,8 @@
 
 import { motion } from "framer-motion";
 import { Edit3, Trash2, Flower2 } from "lucide-react";
-import type { AdminProduct } from "./products-page";
-import { statusConfig } from "./products-page";
+import type { AdminProduct } from "./products-types";
+import { PRODUCT_STATUS_CONFIG } from "@/lib/constant";
 import { formatPrice } from "@/lib/utils";
 
 interface ProductGridProps {
@@ -87,9 +87,9 @@ export function ProductGrid({
 
             {/* Status badge */}
             <div className="absolute top-2 left-2 z-20">
-              <span className={`inline-flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-full ${statusConfig[product.status].color}`}>
-                <span className={`w-1 h-1 rounded-full ${statusConfig[product.status].dot}`} />
-                {statusConfig[product.status].label}
+              <span className={`inline-flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-full ${PRODUCT_STATUS_CONFIG[product.status].color}`}>
+                <span className={`w-1 h-1 rounded-full ${PRODUCT_STATUS_CONFIG[product.status].dot}`} />
+                {PRODUCT_STATUS_CONFIG[product.status].label}
               </span>
             </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { AdminProduct, FilterStatus } from "./products-page";
+import type { AdminProduct, FilterStatus } from "./products-types";
 
 export function useProductsFilters(
   products: AdminProduct[],

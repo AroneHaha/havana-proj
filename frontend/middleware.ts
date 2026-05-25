@@ -18,9 +18,7 @@
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-
-// Routes that require authentication
-const PROTECTED_ROUTE_PREFIX = "/(admin)";
+import { ADMIN_PATHS } from "@/lib/constant";
 
 // Public routes that should redirect to dashboard if already logged in
 const AUTH_ROUTES = ["/login", "/signup"];
@@ -30,16 +28,9 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("havana-auth-token")?.value;
 
   // ── Protect admin routes ────────────────────────────────────────────
-  // Check if the pathname starts with an admin path
-  const isAdminRoute =
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/orders") ||
-    pathname.startsWith("/products") ||
-    pathname.startsWith("/reviews") ||
-    pathname.startsWith("/sales") ||
-    pathname.startsWith("/customers") ||
-    pathname.startsWith("/analytics") ||
-    pathname.startsWith("/settings");
+  const isAdminRoute = (ADMIN_PATHS as readonly string[]).some((p) =>
+    pathname.startsWith(p)
+  );
 
   if (isAdminRoute && !token) {
     const loginUrl = new URL("/login", request.url);

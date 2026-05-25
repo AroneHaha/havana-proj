@@ -86,6 +86,34 @@ export const PRODUCT_CATEGORIES = [
   "Accessories",
 ] as const;
 
+// ─── Admin routes ─────────────────────────────────────────────────────
+
+/**
+ * Single source of truth for all admin route path prefixes.
+ *
+ * Used by:
+ *   - middleware.ts       (server-side auth protection)
+ *   - layout-switch.tsx   (client-side layout routing)
+ *   - site-chrome.tsx     (already guarded by LayoutSwitch, kept for safety)
+ *
+ * When adding a new admin page, add its prefix here — do NOT create
+ * a separate list in any other file.
+ */
+export const ADMIN_PATHS = [
+  "/dashboard",
+  "/orders",
+  "/products",
+  "/reviews",
+  "/sales-reviews",
+  // Future admin routes — uncomment when pages are created:
+  // "/customers",
+  // "/analytics",
+  // "/settings",
+] as const;
+
+/** Type-safe admin path prefix */
+export type AdminPath = (typeof ADMIN_PATHS)[number];
+
 // ─── Pagination ────────────────────────────────────────────────────────
 
 export const DEFAULT_ITEMS_PER_PAGE = 8;

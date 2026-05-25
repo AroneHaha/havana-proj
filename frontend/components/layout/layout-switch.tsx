@@ -2,8 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { SiteChrome } from "@/components/layout/site-chrome";
-
-const adminPaths = ["/dashboard", "/orders", "/sales-reviews", "/products"];
+import { ADMIN_PATHS } from "@/lib/constant";
 
 export default function LayoutSwitch({
   children,
@@ -11,7 +10,7 @@ export default function LayoutSwitch({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isAdmin = adminPaths.some((p) => pathname.startsWith(p));
+  const isAdmin = ADMIN_PATHS.some((p) => pathname.startsWith(p));
 
   if (isAdmin) return <>{children}</>;
   return <SiteChrome>{children}</SiteChrome>;

@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useOrdersStore } from "@/store/orders-store";
 import { useReviewsStore } from "@/store/review-store";
-import type { AdminProduct } from "./products-page";
+import type { AdminProduct } from "./products-types";
 
 interface ProductHistoryDrawerProps {
   product: AdminProduct | null;
