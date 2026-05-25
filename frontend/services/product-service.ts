@@ -13,7 +13,7 @@
  * `product.name` / `product.description` in the current language.
  */
 
-import { publicFetch, isApiAvailable, createServiceFetch } from "@/lib/api-client";
+import { publicFetch, createServiceFetch } from "@/lib/api-client";
 import { API_BASE, type FieldErrors } from "@/lib/api-config";
 import { AppError } from "@/lib/app-error";
 import { featuredProducts, bestSellerProducts } from "@/lib/data";
@@ -62,10 +62,6 @@ export function localizeProduct(product: Product, locale: Locale): Product {
     description: text?.description ?? product.description,
   };
 }
-
-// ─── Feature flags ────────────────────────────────────────────────────
-
-// Health check is now managed by lib/api-client.ts (isApiAvailable)
 
 // ─── Laravel API response shapes ──────────────────────────────────────
 
@@ -129,39 +125,38 @@ function mapLaravelProduct(raw: LaravelProduct, locale: Locale): Product {
 // ─── READ operations (public, storefront) ─────────────────────────────
 
 export async function getFeaturedProducts(locale: Locale): Promise<Product[]> {
-  const useApi = await isApiAvailable();
-
-  if (useApi) {
+  // ── Try real API first ──
+  if (API_BASE) {
     try {
       const res = await publicFetch<LaravelProductsResponse>(
         "/products?filter[is_featured]=1",
         { locale }
       );
       return (res.data ?? []).map((p) => mapLaravelProduct(p, locale));
-    } catch (err) {
-      console.warn("API fetch failed, falling back to seed data:", err);
-      // fall through to seed data
+    } catch {
+      // API unreachable — fall through to seed data
     }
   }
 
+  // ── Mock ──
   return featuredProducts.map((p) => localizeProduct(p, locale));
 }
 
 export async function getBestSellerProducts(locale: Locale): Promise<Product[]> {
-  const useApi = await isApiAvailable();
-
-  if (useApi) {
+  // ── Try real API first ──
+  if (API_BASE) {
     try {
       const res = await publicFetch<LaravelProductsResponse>(
         "/products?filter[is_best_seller]=1",
         { locale }
       );
       return (res.data ?? []).map((p) => mapLaravelProduct(p, locale));
-    } catch (err) {
-      console.warn("API fetch failed, falling back to seed data:", err);
+    } catch {
+      // API unreachable — fall through to seed data
     }
   }
 
+  // ── Mock ──
   return bestSellerProducts.map((p) => localizeProduct(p, locale));
 }
 
@@ -173,9 +168,8 @@ export async function getProducts(
   page = 1,
   perPage = 12
 ): Promise<{ products: Product[]; total: number }> {
-  const useApi = await isApiAvailable();
-
-  if (useApi) {
+  // ── Try real API first ──
+  if (API_BASE) {
     try {
       const res = await publicFetch<LaravelProductsResponse>(
         `/products?page=${page}&per_page=${perPage}`,
@@ -185,12 +179,12 @@ export async function getProducts(
         products: (res.data ?? []).map((p) => mapLaravelProduct(p, locale)),
         total: res.meta?.total ?? 0,
       };
-    } catch (err) {
-      console.warn("API fetch failed, falling back to seed data:", err);
+    } catch {
+      // API unreachable — fall through to seed data
     }
   }
 
-  // Merge all seed products for generic listing
+  // ── Mock ──
   const all = [...featuredProducts, ...bestSellerProducts].map((p) =>
     localizeProduct(p, locale)
   );
@@ -205,17 +199,16 @@ export async function fetchProductById(
   id: string,
   locale: Locale = "en"
 ): Promise<Product | null> {
-  const useApi = await isApiAvailable();
-
-  if (useApi) {
+  // ── Try real API first ──
+  if (API_BASE) {
     try {
       const res = await publicFetch<{ data: LaravelProduct }>(
         `/products/${id}`,
         { locale }
       );
       return mapLaravelProduct(res.data, locale);
-    } catch (err) {
-      console.warn("API fetch failed, falling back to seed data:", err);
+    } catch {
+      // API unreachable — fall through to seed data
     }
   }
 

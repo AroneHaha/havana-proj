@@ -61,32 +61,6 @@ export { authFetch } from "@/services/auth-service";
 export { createServiceFetch, serviceFetch } from "@/lib/service-fetch";
 export type { ServiceFetchConfig } from "@/lib/service-fetch";
 
-// ─── Health check ──────────────────────────────────────────────────────
-
-let _healthChecked = false;
-let _healthAvailable = false;
-
-/**
- * Check if the Laravel API is reachable.
- * Result is cached for 5 minutes to avoid redundant health checks.
- */
-export async function isApiAvailable(): Promise<boolean> {
-  if (!API_BASE) return false;
-
-  if (_healthChecked) return _healthAvailable;
-
-  try {
-    const res = await fetch(`${API_BASE}/health`, { method: "GET" });
-    _healthAvailable = res.ok;
-  } catch {
-    _healthAvailable = false;
-  }
-
-  _healthChecked = true;
-  // Re-check every 5 minutes in case the backend comes online / goes offline
-  setTimeout(() => {
-    _healthChecked = false;
-  }, 5 * 60 * 1000);
-
-  return _healthAvailable;
-}
+// NOTE: The old `isApiAvailable()` health-check function has been removed.
+// All services now use the consistent `if (API_BASE) { try { ... } catch { /* mock fallback */ } }`
+// pattern, which is simpler and avoids an extra network round-trip.
