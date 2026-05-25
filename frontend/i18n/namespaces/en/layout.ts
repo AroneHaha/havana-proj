@@ -10,7 +10,7 @@ const layout = {
 
   footer: {
     about:
-      "Havana Flowers is Qatar's premier luxury floral boutique, delivering exquisite arrangements crafted with passion and precision since 2018.",
+      "Havana Flowers is Kuwait's premier luxury floral boutique, delivering exquisite arrangements crafted with passion and precision since 2018.",
     quickLinks: "Quick Links",
     faq: "FAQ",
     shippingPolicy: "Shipping Policy",
@@ -22,8 +22,8 @@ const layout = {
     giftCards: "Gift Cards",
     corporateOrders: "Corporate Orders",
     contactInfo: "Contact Info",
-    address: "The Pearl-Qatar, Porto Arabia, Doha, Qatar",
-    hours: "Sat-Thu: 9AM - 10PM",
+    address: "Salmiya, Salem Al Mubarak St, Kuwait City, Kuwait",
+    hours: "Sat-Thu: 9AM - 10PM | Fri: 2PM - 10PM",
     copyright: "Havana Flowers. All rights reserved.",
   },
 

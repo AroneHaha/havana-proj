@@ -26,7 +26,7 @@
  *   - Token refresh is handled by Supabase SDK automatically
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
+import { API_BASE, type FieldErrors, type LaravelValidationErrorResponse } from "@/lib/api-config";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -48,10 +48,8 @@ export interface AuthResponse {
   refreshToken?: string;
 }
 
-/** Per-field validation errors returned by Laravel */
-export interface FieldErrors {
-  [field: string]: string[];
-}
+// FieldErrors is now imported from lib/api-config
+export type { FieldErrors };
 
 export class AuthError extends Error {
   code:
@@ -94,10 +92,7 @@ interface LaravelLoginResponse {
 
 interface LaravelRegisterResponse extends LaravelLoginResponse {}
 
-interface LaravelValidationErrorResponse {
-  message: string;
-  errors: { [field: string]: string[] };
-}
+// LaravelValidationErrorResponse is now imported from lib/api-config
 
 // ─── Storage keys ─────────────────────────────────────────────────────
 
@@ -142,12 +137,38 @@ function storeUser(user: AuthUser, token?: string, refreshToken?: string) {
   localStorage.setItem(USER_KEY, JSON.stringify(user));
   if (token) localStorage.setItem(TOKEN_KEY, token);
   if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+
+  // Also set a cookie for middleware route protection (server-side accessible)
+  // The cookie is HTTP-only for security; middleware only checks its existence
+  if (token) {
+    setAuthCookie(token);
+  }
 }
 
 function clearStored() {
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  removeAuthCookie();
+}
+
+// ─── Cookie helpers (for middleware route protection) ──────────────────
+
+/**
+ * Set an HTTP-only auth cookie so Next.js middleware can check
+ * for authentication server-side (before the page renders).
+ */
+function setAuthCookie(token: string) {
+  if (typeof document === "undefined") return;
+  document.cookie = `havana-auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+}
+
+/**
+ * Remove the auth cookie on logout.
+ */
+function removeAuthCookie() {
+  if (typeof document === "undefined") return;
+  document.cookie = "havana-auth-token=; path=/; max-age=0";
 }
 
 // ─── Auth-aware fetch ─────────────────────────────────────────────────

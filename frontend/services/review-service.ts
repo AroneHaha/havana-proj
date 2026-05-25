@@ -19,7 +19,8 @@
  *   GET    /admin/reviews/stats        → { averageRating, totalReviews, ratingDistribution }
  */
 
-import { authFetch } from "@/services/auth-service";
+import { API_BASE, type FieldErrors } from "@/lib/api-config";
+import { createServiceFetch } from "@/lib/service-fetch";
 import type {
   Review,
   ReviewStats,
@@ -28,18 +29,19 @@ import type {
   ReviewFilters,
 } from "@/types/review";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
-
 // ─── Error class ──────────────────────────────────────────────────────
+
+// FieldErrors is imported from lib/api-config
+export type { FieldErrors };
 
 export class ReviewsError extends Error {
   code: "NOT_FOUND" | "VALIDATION_ERROR" | "FORBIDDEN" | "NETWORK_ERROR" | "UNKNOWN";
-  fields: Record<string, string[]>;
+  fields: FieldErrors;
 
   constructor(
     message: string,
     code: ReviewsError["code"],
-    fields: Record<string, string[]> = {}
+    fields: FieldErrors = {}
   ) {
     super(message);
     this.code = code;
@@ -107,27 +109,12 @@ function mapLaravelReview(raw: LaravelReview): Review {
 
 // ─── Auth-aware fetch wrapper ─────────────────────────────────────────
 
-async function reviewsFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  try {
-    return await authFetch<T>(path, options);
-  } catch (err: unknown) {
-    if (err && typeof err === "object" && "code" in err) {
-      const authErr = err as { code: string; message: string; fields?: Record<string, string[]> };
-      if (authErr.code === "VALIDATION_ERROR") {
-        throw new ReviewsError(authErr.message, "VALIDATION_ERROR", authErr.fields ?? {});
-      }
-      if (authErr.code === "TOKEN_EXPIRED") {
-        throw new ReviewsError("Session expired. Please sign in again.", "FORBIDDEN");
-      }
-    }
-    throw new ReviewsError(
-      err instanceof Error ? err.message : "Request failed",
-      "UNKNOWN"
-    );
-  }
-}
+const reviewsFetch = createServiceFetch(ReviewsError, {
+  validationCode: "VALIDATION_ERROR",
+  forbiddenCode: "FORBIDDEN",
+});
 
-// ─── Mock data (Qatar-based luxury floral shop) ──────────────────────
+// ─── Mock data (Kuwait-based luxury floral shop) ──────────────────────
 
 const MOCK_REVIEWS: Review[] = [
   {

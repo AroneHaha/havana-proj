@@ -15,10 +15,10 @@ const home = {
   },
 
   hero: {
-    badge: "Qatar's Premier Floral Boutique",
+    badge: "Kuwait's Premier Floral Boutique",
     title: "Luxury Floral Artistry",
     description:
-      "Experience the finest flower arrangements crafted with passion and elegance for every special moment in Qatar.",
+      "Experience the finest flower arrangements crafted with passion and elegance for every special moment in Kuwait.",
     shopCollection: "Shop Collection",
     customOrders: "Custom Orders",
     scroll: "Scroll",
@@ -35,7 +35,7 @@ const home = {
     sameDay: {
       title: "Same-Day Delivery",
       description:
-        "Order before 2 PM and receive your flowers the very same day across Qatar.",
+        "Order before 2 PM and receive your flowers the very same day across Kuwait.",
     },
     freshness: {
       title: "7-Day Freshness",
@@ -137,7 +137,7 @@ const home = {
 
   instagram: {
     title: "Follow Us on Instagram",
-    subtitle: "@havanaflowers.qa",
+    subtitle: "@havanaflowers.kw",
     alt: "Havana Flowers Instagram",
   },
 

@@ -6,7 +6,7 @@ const nav = {
   dir: "ltr" as const,
 
   announcement: {
-    text: "Free delivery over QAR 500",
+    text: "Free delivery over KWD 50",
   },
 
   nav: {

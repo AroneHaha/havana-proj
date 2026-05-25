@@ -1,17 +1,56 @@
+/**
+ * Products Store — Zustand + persist.
+ *
+ * Architecture:
+ *   1. All product data flows through the product-service layer.
+ *      When NEXT_PUBLIC_API_URL is set → hits Laravel API.
+ *      When not set → uses mock data with simulated latency.
+ *   2. The store interface stays the same regardless of data source.
+ *      Components never import the service directly.
+ *   3. Stats (total value, stock counts) are fetched from the service,
+ *      not computed client-side — so when the backend goes live the
+ *      numbers are authoritative.
+ *   4. Persisted to localStorage under "havana-products" key as a cache.
+ *      The store refreshes from the API on mount.
+ */
+
 import { create } from "zustand";
-import { getProducts } from "@/services/product-service";
+import { persist } from "zustand/middleware";
+import {
+  getProducts as serviceGetProducts,
+  createProduct as serviceCreateProduct,
+  updateProduct as serviceUpdateProduct,
+  deleteProduct as serviceDeleteProduct,
+  fetchProductStats as serviceFetchStats,
+  type ProductsError,
+  type ProductStats,
+} from "@/services/product-service";
 import type { Product } from "@/types";
+import { getErrorMessage } from "@/lib/get-error-message";
+
+// Re-export types so components can import from the store
+export type { ProductsError, ProductStats };
 
 export type ProductStockStatus = "in_stock" | "low_stock" | "sold_out";
 
 interface ProductsState {
   products: Product[];
+  stats: ProductStats | null;
   loading: boolean;
   error: string | null;
+
+  // ─── Lifecycle ─────────────────────────────────────────────────────
+  /** Fetch products from service (API or mock). Call on mount. */
   fetchProducts: () => Promise<void>;
-  addProduct: (product: Omit<Product, "id" | "slug" | "rating" | "reviewCount" | "createdAt">) => void;
-  updateProduct: (id: string, data: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+  /** Refresh stats from service */
+  fetchStats: () => Promise<void>;
+
+  // ─── Actions ────────────────────────────────────────────────────────
+  addProduct: (product: Omit<Product, "id" | "slug" | "rating" | "reviewCount" | "createdAt">) => Promise<void>;
+  updateProduct: (id: string, data: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+
+  // ─── Derived helpers (methods to avoid re-renders) ──────────────────
   getProductsByStatus: (status: ProductStockStatus) => Product[];
   getLowStockProducts: () => Product[];
   getOutOfStockProducts: () => Product[];
@@ -24,70 +63,99 @@ export function getStockStatus(product: Product): ProductStockStatus {
   return "in_stock";
 }
 
-export const useProductsStore = create<ProductsState>()((set, get) => ({
-  products: [],
-  loading: false,
-  error: null,
+export const useProductsStore = create<ProductsState>()(
+  persist(
+    (set, get) => ({
+      products: [],
+      stats: null,
+      loading: false,
+      error: null,
 
-  fetchProducts: async () => {
-    set({ loading: true, error: null });
-    try {
-      const { products } = await getProducts("en", 1, 200);
-      set({ products, loading: false });
-    } catch (err) {
-      const msg =
-        err && typeof err === "object" && "message" in err
-          ? (err as { message: string }).message
-          : "Failed to fetch products";
-      set({ error: msg, loading: false });
+      fetchProducts: async () => {
+        set({ loading: true, error: null });
+        try {
+          const { products } = await serviceGetProducts("en", 1, 200);
+          set({ products, loading: false });
+        } catch (err) {
+          set({ error: getErrorMessage(err, "Failed to fetch products"), loading: false });
+        }
+      },
+
+      fetchStats: async () => {
+        try {
+          const stats = await serviceFetchStats();
+          set({ stats });
+        } catch {
+          // Stats are non-critical
+        }
+      },
+
+      addProduct: async (productData) => {
+        try {
+          const newProduct = await serviceCreateProduct(productData);
+          set((state) => ({
+            products: [newProduct, ...state.products],
+          }));
+          get().fetchStats();
+        } catch (err) {
+          set({ error: getErrorMessage(err, "Failed to create product") });
+          throw err;
+        }
+      },
+
+      updateProduct: async (id, data) => {
+        try {
+          const updated = await serviceUpdateProduct(id, data);
+          set((state) => ({
+            products: state.products.map((p) =>
+              p.id === id ? updated : p
+            ),
+          }));
+          get().fetchStats();
+        } catch (err) {
+          set({ error: getErrorMessage(err, "Failed to update product") });
+          throw err;
+        }
+      },
+
+      deleteProduct: async (id) => {
+        try {
+          await serviceDeleteProduct(id);
+          set((state) => ({
+            products: state.products.filter((p) => p.id !== id),
+          }));
+          get().fetchStats();
+        } catch (err) {
+          set({ error: getErrorMessage(err, "Failed to delete product") });
+          throw err;
+        }
+      },
+
+      // ─── Derived helpers (computed from current state) ────────────────
+
+      getProductsByStatus: (status) =>
+        get().products.filter((p) => getStockStatus(p) === status),
+
+      getLowStockProducts: () =>
+        get().products.filter((p) => getStockStatus(p) === "low_stock"),
+
+      getOutOfStockProducts: () =>
+        get().products.filter((p) => getStockStatus(p) === "sold_out"),
+
+      getTotalValue: () => {
+        const { stats } = get();
+        if (stats) return stats.totalValue;
+        return get().products.reduce(
+          (sum, p) => sum + (p.salePrice ?? p.price) * p.stock,
+          0
+        );
+      },
+    }),
+    {
+      name: "havana-products",
+      // Only persist products as cache — stats are always re-fetched
+      partialize: (state) => ({ products: state.products }),
+      skipHydration: true,
     }
-  },
-
-  addProduct: (productData) => {
-    const id = `prod_${Date.now()}`;
-    const name = productData.name;
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    const stock = productData.stock ?? 0;
-    const newProduct: Product = {
-      ...productData,
-      id,
-      slug,
-      inStock: stock > 0,
-      rating: 0,
-      reviewCount: 0,
-      createdAt: new Date().toISOString(),
-    };
-    set((state) => ({
-      products: [newProduct, ...state.products],
-    }));
-  },
-
-  updateProduct: (id, data) => {
-    set((state) => ({
-      products: state.products.map((p) => {
-        if (p.id !== id) return p;
-        const updated = { ...p, ...data };
-        updated.inStock = updated.stock > 0;
-        return updated;
-      }),
-    }));
-  },
-
-  deleteProduct: (id) => {
-    set((state) => ({
-      products: state.products.filter((p) => p.id !== id),
-    }));
-  },
-
-  getProductsByStatus: (status) =>
-    get().products.filter((p) => getStockStatus(p) === status),
-
-  getLowStockProducts: () =>
-    get().products.filter((p) => getStockStatus(p) === "low_stock"),
-
-  getOutOfStockProducts: () =>
-    get().products.filter((p) => getStockStatus(p) === "sold_out"),
-
-  getTotalValue: () =>
-    get().products.reduce((sum, p) => sum + (p.salePrice ?? p.price) * p.stock, 0),
-}));
+  )
+);

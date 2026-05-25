@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Edit3, Trash2, Flower2 } from "lucide-react";
 import type { AdminProduct } from "./products-page";
 import { statusConfig } from "./products-page";
+import { formatPrice } from "@/lib/utils";
 
 interface ProductGridProps {
   products: AdminProduct[];
@@ -108,7 +109,7 @@ export function ProductGrid({
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-maroon dark:text-gold">QAR {product.price.toLocaleString()}</span>
+              <span className="text-sm font-bold text-maroon dark:text-gold">{formatPrice(product.price)}</span>
               <span className={`text-[10px] font-medium ${product.stock === 0 ? "text-red-500" : product.stock <= 5 ? "text-yellow-600 dark:text-yellow-400" : "text-muted-foreground"}`}>
                 {product.stock} in stock
               </span>

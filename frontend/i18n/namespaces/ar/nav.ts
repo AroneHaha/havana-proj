@@ -6,7 +6,7 @@ const nav = {
   dir: "rtl" as const,
 
   announcement: {
-    text: "توصيل مجاني للطلبات فوق ٥٠٠ ريال",
+    text: "توصيل مجاني للطلبات فوق ٥٠ دينار",
   },
 
   nav: {

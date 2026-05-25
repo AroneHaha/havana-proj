@@ -6,7 +6,7 @@ const en: Translation = {
 
   // Announcement bar
   announcement: {
-    text: "Free delivery over QAR 500",
+    text: "Free delivery over KWD 50",
   },
 
   // Navigation
@@ -34,10 +34,10 @@ const en: Translation = {
 
   // Hero
   hero: {
-    badge: "Qatar's Premier Floral Boutique",
+    badge: "Kuwait's Premier Floral Boutique",
     title: "Luxury Floral Artistry",
     description:
-      "Experience the finest flower arrangements crafted with passion and elegance for every special moment in Qatar.",
+      "Experience the finest flower arrangements crafted with passion and elegance for every special moment in Kuwait.",
     shopCollection: "Shop Collection",
     customOrders: "Custom Orders",
     scroll: "Scroll",
@@ -56,7 +56,7 @@ const en: Translation = {
     sameDay: {
       title: "Same-Day Delivery",
       description:
-        "Order before 2 PM and receive your flowers the very same day across Qatar.",
+        "Order before 2 PM and receive your flowers the very same day across Kuwait.",
     },
     freshness: {
       title: "7-Day Freshness",
@@ -163,7 +163,7 @@ const en: Translation = {
   // Instagram Gallery
   instagram: {
     title: "Follow Us on Instagram",
-    subtitle: "@havanaflowers.qa",
+    subtitle: "@havanaflowers.kw",
     alt: "Havana Flowers Instagram",
   },
 
@@ -188,7 +188,7 @@ const en: Translation = {
   // Footer
   footer: {
     about:
-      "Havana Flowers is Qatar's premier luxury floral boutique, delivering exquisite arrangements crafted with passion and precision since 2018.",
+      "Havana Flowers is Kuwait's premier luxury floral boutique, delivering exquisite arrangements crafted with passion and precision since 2018.",
     quickLinks: "Quick Links",
     faq: "FAQ",
     shippingPolicy: "Shipping Policy",
@@ -200,8 +200,8 @@ const en: Translation = {
     giftCards: "Gift Cards",
     corporateOrders: "Corporate Orders",
     contactInfo: "Contact Info",
-    address: "The Pearl-Qatar, Porto Arabia, Doha, Qatar",
-    hours: "Sat-Thu: 9AM - 10PM",
+    address: "Salmiya, Salem Al Mubarak St, Kuwait City, Kuwait",
+    hours: "Sat-Thu: 9AM - 10PM | Fri: 2PM - 10PM",
     copyright: "Havana Flowers. All rights reserved.",
   },
 

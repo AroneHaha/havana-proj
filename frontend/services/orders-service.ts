@@ -22,9 +22,8 @@
  *   - The `Order` shape stays the same (Supabase row → our Order mapping)
  */
 
-import { authFetch } from "@/services/auth-service";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
+import { API_BASE, type FieldErrors } from "@/lib/api-config";
+import { createServiceFetch } from "@/lib/service-fetch";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -98,10 +97,8 @@ export interface OrdersListResponse {
   lastPage: number;
 }
 
-/** Per-field validation errors returned by Laravel */
-export interface FieldErrors {
-  [field: string]: string[];
-}
+// FieldErrors is now imported from lib/api-config
+export type { FieldErrors };
 
 export class OrdersError extends Error {
   code:
@@ -171,10 +168,7 @@ interface LaravelOrderStats {
   status_counts: Record<OrderStatus, number>;
 }
 
-interface LaravelValidationErrorResponse {
-  message: string;
-  errors: { [field: string]: string[] };
-}
+// LaravelValidationErrorResponse is now imported from lib/api-config
 
 // ─── Map Laravel order → Order ────────────────────────────────────────
 
@@ -206,33 +200,10 @@ function mapLaravelOrder(raw: LaravelOrder): Order {
 
 // ─── Auth-aware fetch for orders (reuses auth-service) ────────────────
 
-async function ordersFetch<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
-  try {
-    return await authFetch<T>(path, options);
-  } catch (err: unknown) {
-    // Re-throw as OrdersError for consistent handling
-    if (err && typeof err === "object" && "code" in err) {
-      const authErr = err as { code: string; message: string; fields?: FieldErrors };
-      if (authErr.code === "VALIDATION_ERROR") {
-        throw new OrdersError(
-          authErr.message,
-          "VALIDATION_ERROR",
-          authErr.fields ?? {}
-        );
-      }
-      if (authErr.code === "TOKEN_EXPIRED") {
-        throw new OrdersError("Session expired. Please sign in again.", "FORBIDDEN");
-      }
-    }
-    throw new OrdersError(
-      err instanceof Error ? err.message : "Request failed",
-      "UNKNOWN"
-    );
-  }
-}
+const ordersFetch = createServiceFetch(OrdersError, {
+  validationCode: "VALIDATION_ERROR",
+  forbiddenCode: "FORBIDDEN",
+});
 
 // ─── Mock data (Kuwait-based luxury floral shop) ──────────────────────
 

@@ -103,7 +103,7 @@ export function EditProductModal({ product, onClose, onSave }: EditProductModalP
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Price (QAR)</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Price (KWD)</label>
               <input type="number" value={editForm.price} onChange={(e) => setEditForm((p) => ({ ...p, price: e.target.value }))} className="w-full px-3 py-2.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow" />
             </div>
           </div>

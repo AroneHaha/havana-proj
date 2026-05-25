@@ -4,15 +4,46 @@
  * • If NEXT_PUBLIC_API_URL is set AND the API responds, data comes from Laravel.
  * • Otherwise, seed data from lib/data.ts is used — zero config needed.
  *
+ * Architecture (unified API client):
+ *   - READ operations (storefront): use `publicFetch` (no auth required)
+ *   - WRITE operations (admin CRUD): use `createServiceFetch` (auth required)
+ *
  * The `localizeProduct` helper resolves `name` and `description` from the
  * `localeText` record on each product, so components always get a flat
  * `product.name` / `product.description` in the current language.
  */
 
-import { productApi, isApiAvailable } from "@/lib/api";
+import { publicFetch, isApiAvailable, createServiceFetch } from "@/lib/api-client";
+import { API_BASE, type FieldErrors } from "@/lib/api-config";
 import { featuredProducts, bestSellerProducts } from "@/lib/data";
 import type { Product } from "@/types";
 import type { Locale } from "@/i18n";
+
+// ─── Error class ──────────────────────────────────────────────────────
+
+export class ProductsError extends Error {
+  code: "NOT_FOUND" | "VALIDATION_ERROR" | "FORBIDDEN" | "NETWORK_ERROR" | "UNKNOWN";
+  fields: FieldErrors;
+
+  constructor(
+    message: string,
+    code: ProductsError["code"],
+    fields: FieldErrors = {}
+  ) {
+    super(message);
+    this.code = code;
+    this.fields = fields;
+  }
+}
+
+export type { FieldErrors };
+
+// ─── Auth-aware fetch for admin operations ─────────────────────────────
+
+const productsFetch = createServiceFetch(ProductsError, {
+  validationCode: "VALIDATION_ERROR",
+  forbiddenCode: "FORBIDDEN",
+});
 
 // ─── Locale resolver ──────────────────────────────────────────────────
 
@@ -35,27 +66,79 @@ export function localizeProduct(product: Product, locale: Locale): Product {
 
 // ─── Feature flags ────────────────────────────────────────────────────
 
-let _apiChecked = false;
-let _apiAvailable = false;
+// Health check is now managed by lib/api-client.ts (isApiAvailable)
 
-async function checkApi(): Promise<boolean> {
-  if (_apiChecked) return _apiAvailable;
-  _apiAvailable = await isApiAvailable();
-  _apiChecked = true;
-  // Re-check every 5 minutes in case the backend comes online
-  setTimeout(() => { _apiChecked = false; }, 5 * 60 * 1000);
-  return _apiAvailable;
+// ─── Laravel API response shapes ──────────────────────────────────────
+
+interface LaravelProduct {
+  id: string;
+  slug: string;
+  locale_text: Record<string, { name: string; description: string }>;
+  name: string;
+  description: string;
+  price: number;
+  sale_price: number | null;
+  image: string;
+  images: string[];
+  category: string;
+  stock: number;
+  rating: number;
+  review_count: number;
+  in_stock: boolean;
+  is_featured: boolean;
+  is_best_seller: boolean;
+  is_new: boolean;
+  created_at: string;
 }
 
-// ─── Public API ───────────────────────────────────────────────────────
+interface LaravelProductsResponse {
+  data: LaravelProduct[];
+  meta?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+}
+
+function mapLaravelProduct(raw: LaravelProduct, locale: Locale): Product {
+  return localizeProduct(
+    {
+      id: raw.id,
+      slug: raw.slug,
+      localeText: raw.locale_text ?? {},
+      name: raw.name,
+      description: raw.description,
+      price: raw.price,
+      salePrice: raw.sale_price ?? undefined,
+      image: raw.image,
+      images: raw.images ?? [],
+      category: raw.category,
+      stock: raw.stock,
+      rating: raw.rating,
+      reviewCount: raw.review_count,
+      inStock: raw.in_stock,
+      isFeatured: raw.is_featured,
+      isBestSeller: raw.is_best_seller,
+      isNew: raw.is_new ?? undefined,
+      createdAt: raw.created_at,
+    },
+    locale
+  );
+}
+
+// ─── READ operations (public, storefront) ─────────────────────────────
 
 export async function getFeaturedProducts(locale: Locale): Promise<Product[]> {
-  const useApi = await checkApi();
+  const useApi = await isApiAvailable();
 
   if (useApi) {
     try {
-      const res = await productApi.getFeatured(locale);
-      return (res.data ?? []).map((p) => localizeProduct(p, locale));
+      const res = await publicFetch<LaravelProductsResponse>(
+        "/products?filter[is_featured]=1",
+        { locale }
+      );
+      return (res.data ?? []).map((p) => mapLaravelProduct(p, locale));
     } catch (err) {
       console.warn("API fetch failed, falling back to seed data:", err);
       // fall through to seed data
@@ -66,12 +149,15 @@ export async function getFeaturedProducts(locale: Locale): Promise<Product[]> {
 }
 
 export async function getBestSellerProducts(locale: Locale): Promise<Product[]> {
-  const useApi = await checkApi();
+  const useApi = await isApiAvailable();
 
   if (useApi) {
     try {
-      const res = await productApi.getBestSellers(locale);
-      return (res.data ?? []).map((p) => localizeProduct(p, locale));
+      const res = await publicFetch<LaravelProductsResponse>(
+        "/products?filter[is_best_seller]=1",
+        { locale }
+      );
+      return (res.data ?? []).map((p) => mapLaravelProduct(p, locale));
     } catch (err) {
       console.warn("API fetch failed, falling back to seed data:", err);
     }
@@ -88,13 +174,16 @@ export async function getProducts(
   page = 1,
   perPage = 12
 ): Promise<{ products: Product[]; total: number }> {
-  const useApi = await checkApi();
+  const useApi = await isApiAvailable();
 
   if (useApi) {
     try {
-      const res = await productApi.getAll(locale, page, perPage);
+      const res = await publicFetch<LaravelProductsResponse>(
+        `/products?page=${page}&per_page=${perPage}`,
+        { locale }
+      );
       return {
-        products: (res.data ?? []).map((p) => localizeProduct(p, locale)),
+        products: (res.data ?? []).map((p) => mapLaravelProduct(p, locale)),
         total: res.meta?.total ?? 0,
       };
     } catch (err) {
@@ -107,4 +196,200 @@ export async function getProducts(
     localizeProduct(p, locale)
   );
   return { products: all, total: all.length };
+}
+
+// ─── WRITE operations (admin, authenticated) ───────────────────────────
+
+/**
+ * Create a new product.
+ * Expected Laravel endpoint: POST /admin/products
+ */
+export async function createProduct(
+  data: Omit<Product, "id" | "slug" | "rating" | "reviewCount" | "createdAt">
+): Promise<Product> {
+  // ── Try real API first ──
+  if (API_BASE) {
+    try {
+      const res = await productsFetch<{ data: LaravelProduct }>("/admin/products", {
+        method: "POST",
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          locale_text: data.localeText ?? {},
+          price: data.price,
+          sale_price: data.salePrice ?? null,
+          image: data.image,
+          images: data.images ?? [],
+          category: data.category,
+          stock: data.stock,
+          in_stock: data.stock > 0,
+          is_featured: data.isFeatured ?? false,
+          is_best_seller: data.isBestSeller ?? false,
+          is_new: data.isNew ?? false,
+        }),
+      });
+      return mapLaravelProduct(res.data, "en");
+    } catch (err) {
+      if (err instanceof ProductsError) throw err;
+      // fall through to mock
+    }
+  }
+
+  // ── Mock ──
+  await new Promise((r) => setTimeout(r, 300));
+  const id = `prod_${Date.now()}`;
+  const slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return {
+    ...data,
+    id,
+    slug,
+    inStock: data.stock > 0,
+    rating: 0,
+    reviewCount: 0,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Update an existing product.
+ * Expected Laravel endpoint: PATCH /admin/products/:id
+ */
+export async function updateProduct(
+  id: string,
+  data: Partial<Product>
+): Promise<Product> {
+  // ── Try real API first ──
+  if (API_BASE) {
+    try {
+      // Map camelCase → snake_case for Laravel
+      const body: Record<string, unknown> = {};
+      if (data.name !== undefined) body.name = data.name;
+      if (data.description !== undefined) body.description = data.description;
+      if (data.localeText !== undefined) body.locale_text = data.localeText;
+      if (data.price !== undefined) body.price = data.price;
+      if (data.salePrice !== undefined) body.sale_price = data.salePrice;
+      if (data.image !== undefined) body.image = data.image;
+      if (data.images !== undefined) body.images = data.images;
+      if (data.category !== undefined) body.category = data.category;
+      if (data.stock !== undefined) {
+        body.stock = data.stock;
+        body.in_stock = data.stock > 0;
+      }
+      if (data.isFeatured !== undefined) body.is_featured = data.isFeatured;
+      if (data.isBestSeller !== undefined) body.is_best_seller = data.isBestSeller;
+      if (data.isNew !== undefined) body.is_new = data.isNew;
+
+      const res = await productsFetch<{ data: LaravelProduct }>(
+        `/admin/products/${id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        }
+      );
+      return mapLaravelProduct(res.data, "en");
+    } catch (err) {
+      if (err instanceof ProductsError) throw err;
+      // fall through to mock
+    }
+  }
+
+  // ── Mock ──
+  await new Promise((r) => setTimeout(r, 300));
+
+  // Find in seed data
+  const allProducts = [...featuredProducts, ...bestSellerProducts];
+  const existing = allProducts.find((p) => p.id === id);
+  if (!existing) {
+    throw new ProductsError("Product not found", "NOT_FOUND");
+  }
+
+  const updated = { ...existing, ...data };
+  updated.inStock = updated.stock > 0;
+  return updated;
+}
+
+/**
+ * Delete a product.
+ * Expected Laravel endpoint: DELETE /admin/products/:id
+ */
+export async function deleteProduct(id: string): Promise<boolean> {
+  // ── Try real API first ──
+  if (API_BASE) {
+    try {
+      await productsFetch<{ message: string }>(`/admin/products/${id}`, {
+        method: "DELETE",
+      });
+      return true;
+    } catch (err) {
+      if (err instanceof ProductsError) throw err;
+      // fall through to mock
+    }
+  }
+
+  // ── Mock ──
+  await new Promise((r) => setTimeout(r, 200));
+
+  const allProducts = [...featuredProducts, ...bestSellerProducts];
+  const idx = allProducts.findIndex((p) => p.id === id);
+  if (idx === -1) {
+    throw new ProductsError("Product not found", "NOT_FOUND");
+  }
+  return true;
+}
+
+/**
+ * Fetch product statistics for admin dashboard.
+ * Expected Laravel endpoint: GET /admin/products/stats
+ */
+export async function fetchProductStats(): Promise<ProductStats> {
+  // ── Try real API first ──
+  if (API_BASE) {
+    try {
+      const data = await productsFetch<LaravelProductStats>(
+        "/admin/products/stats"
+      );
+      return {
+        totalProducts: data.total_products,
+        totalValue: data.total_value,
+        lowStockCount: data.low_stock_count,
+        outOfStockCount: data.out_of_stock_count,
+      };
+    } catch {
+      // fall through to mock
+    }
+  }
+
+  // ── Mock ──
+  await new Promise((r) => setTimeout(r, 100));
+
+  const allProducts = [...featuredProducts, ...bestSellerProducts];
+  const lowStock = allProducts.filter((p) => p.stock > 0 && p.stock < 10);
+  const outOfStock = allProducts.filter((p) => p.stock <= 0);
+  const totalValue = allProducts.reduce(
+    (sum, p) => sum + (p.salePrice ?? p.price) * p.stock,
+    0
+  );
+
+  return {
+    totalProducts: allProducts.length,
+    totalValue,
+    lowStockCount: lowStock.length,
+    outOfStockCount: outOfStock.length,
+  };
+}
+
+// ─── Types ────────────────────────────────────────────────────────────
+
+export interface ProductStats {
+  totalProducts: number;
+  totalValue: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+}
+
+interface LaravelProductStats {
+  total_products: number;
+  total_value: number;
+  low_stock_count: number;
+  out_of_stock_count: number;
 }
