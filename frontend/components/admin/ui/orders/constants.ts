@@ -1,4 +1,4 @@
-import type { OrderStatus } from "@/services/orders-service";
+import type { OrderStatus } from "@/types";
 import { ORDER_STATUS_COLORS, ORDER_STATUS_DOT_COLORS, ORDER_FILTER_TABS, DEFAULT_ITEMS_PER_PAGE } from "@/lib/constant";
 
 // Re-export from canonical source

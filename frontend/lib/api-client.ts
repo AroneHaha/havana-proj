@@ -6,9 +6,10 @@
  *   2. `authFetch`    — authenticated, for admin operations (orders, reviews, CRUD)
  *      Wrapped via `createServiceFetch` for typed error mapping.
  *
- * Replaces the old dual-architecture:
- *   - lib/api.ts         (public, no auth, productApi object)  ← REMOVED
- *   - lib/service-fetch.ts (auth, via authFetch wrapper)       ← MERGED HERE
+ * Both include in-flight request deduplication: if the same URL + options
+ * is already being fetched, the pending Promise is returned instead of
+ * firing a duplicate request. This prevents React 18 StrictMode double-mount
+ * from sending duplicate network calls.
  *
  * All services import from this single module. The only exception is
  * `auth-service.ts`, which defines `authFetch` itself and therefore
@@ -18,12 +19,45 @@
 import { API_BASE } from "@/lib/api-config";
 import type { Locale } from "@/i18n";
 
+// ─── In-flight request deduplication ───────────────────────────────────
+
+const pendingRequests = new Map<string, Promise<unknown>>();
+
+/**
+ * Deduplicate in-flight GET requests by cache key.
+ * Only active for GET requests (no side effects).
+ * Non-GET requests (POST, PATCH, DELETE) always execute immediately.
+ */
+function dedupFetch<T>(cacheKey: string, factory: () => Promise<T>, method?: string): Promise<T> {
+  // Only dedup read requests — writes must always go through
+  if (method && method.toUpperCase() !== "GET") {
+    return factory();
+  }
+
+  const existing = pendingRequests.get(cacheKey);
+  if (existing) return existing as Promise<T>;
+
+  const promise = factory().finally(() => {
+    pendingRequests.delete(cacheKey);
+  });
+
+  pendingRequests.set(cacheKey, promise);
+  return promise;
+}
+
+function buildCacheKey(path: string, options?: RequestInit & { locale?: Locale }): string {
+  const method = options?.method ?? "GET";
+  const locale = (options as { locale?: Locale })?.locale ?? "";
+  return `${method}:${locale}:${path}`;
+}
+
 // ─── Public (unauthenticated) fetch ────────────────────────────────────
 
 /**
  * Fetch wrapper for public endpoints — no auth token attached.
  * Appends locale as a query param so Laravel returns the right translations.
  *
+ * Includes in-flight deduplication for GET requests.
  * Use for: storefront product browsing, public catalog pages.
  */
 export async function publicFetch<T>(
@@ -31,25 +65,28 @@ export async function publicFetch<T>(
   options?: RequestInit & { locale?: Locale }
 ): Promise<T> {
   const { locale, ...init } = options ?? {};
+  const cacheKey = buildCacheKey(path, options);
 
-  const url = new URL(path, API_BASE);
-  if (locale) url.searchParams.set("locale", locale);
+  return dedupFetch<T>(cacheKey, async () => {
+    const url = new URL(path, API_BASE);
+    if (locale) url.searchParams.set("locale", locale);
 
-  const res = await fetch(url.toString(), {
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...init.headers,
-    },
-    ...init,
-  });
+    const res = await fetch(url.toString(), {
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...init.headers,
+      },
+      ...init,
+    });
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`API ${res.status}: ${res.statusText} — ${body}`);
-  }
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`API ${res.status}: ${res.statusText} — ${body}`);
+    }
 
-  return res.json() as Promise<T>;
+    return res.json() as Promise<T>;
+  }, init.method);
 }
 
 // ─── Authenticated fetch ───────────────────────────────────────────────

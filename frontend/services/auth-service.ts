@@ -153,18 +153,22 @@ function clearStored() {
 // ─── Cookie helpers (for middleware route protection) ──────────────────
 
 /**
- * Set an auth cookie so Next.js middleware can check
- * for authentication server-side (before the page renders).
+ * Set a non-sensitive session-indicator cookie so Next.js middleware
+ * can check for authentication server-side (before the page renders).
  *
- * NOTE: This is NOT truly HTTP-only — `document.cookie` cannot set
- * the HttpOnly flag. The cookie is readable by client-side JS, so
- * it should only contain a non-sensitive session indicator, not the
- * raw JWT. For true HTTP-only cookies, the token must be set by a
- * server-side API route (e.g., Laravel Sets the cookie on login).
+ * SECURITY: We store only a truthy indicator ("1"), NOT the raw JWT.
+ * The actual JWT lives in localStorage (client-only). This prevents
+ * the token from being accessible via `document.cookie` (XSS).
+ *
+ * The middleware only checks cookie existence, not its value:
+ *   `if (isAdminRoute && !token) → redirect to /login`
+ *
+ * For true HTTP-only cookies (Phase 2), Laravel will set the cookie
+ * server-side on login, and we can remove this client-side fallback.
  */
-function setAuthCookie(token: string) {
+function setAuthCookie(_token: string) {
   if (typeof document === "undefined") return;
-  document.cookie = `havana-auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  document.cookie = `havana-auth-token=1; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 }
 
 /**
@@ -181,12 +185,42 @@ let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
 /**
+ * In-flight request deduplication for authFetch.
+ * Prevents duplicate network calls when React 18 StrictMode double-mounts.
+ * Only applies to GET requests — writes always go through.
+ */
+const authPendingRequests = new Map<string, Promise<unknown>>();
+
+/**
  * Fetch wrapper that:
  *  1. Attaches the Bearer token automatically
  *  2. On 401, tries to refresh the token once and retries
  *  3. Maps Laravel error responses to AuthError
+ *  4. Deduplicates in-flight GET requests
  */
 export async function authFetch<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const method = (options.method ?? "GET").toUpperCase();
+
+  // Only dedup GET requests — writes must always execute
+  if (method === "GET") {
+    const cacheKey = `GET:${path}`;
+    const existing = authPendingRequests.get(cacheKey);
+    if (existing) return existing as Promise<T>;
+
+    const promise = authFetchInner<T>(path, options).finally(() => {
+      authPendingRequests.delete(cacheKey);
+    });
+    authPendingRequests.set(cacheKey, promise);
+    return promise;
+  }
+
+  return authFetchInner<T>(path, options);
+}
+
+async function authFetchInner<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {

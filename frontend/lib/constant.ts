@@ -1,5 +1,4 @@
-import type { OrderStatus } from "@/services/orders-service";
-import { ProductStatus, ProductFilterStatus } from "@/types";
+import { ProductStatus, ProductFilterStatus, type OrderStatus } from "@/types";
 
 // ─── Order status colors ────────────────────────────────────────────────
 

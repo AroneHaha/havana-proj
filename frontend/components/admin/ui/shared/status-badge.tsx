@@ -1,6 +1,5 @@
-import type { OrderStatus } from "@/services/orders-service";
 import { ORDER_STATUS_COLORS, ORDER_STATUS_DOT_COLORS, PRODUCT_STATUS_CONFIG } from "@/lib/constant";
-import type { ProductStatus } from "@/types";
+import type { ProductStatus, OrderStatus } from "@/types";
 
 interface StatusBadgeProps {
   /** Status key — can be an OrderStatus or ProductStatus string */

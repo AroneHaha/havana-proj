@@ -25,16 +25,13 @@
 import { API_BASE, type FieldErrors } from "@/lib/api-config";
 import { AppError } from "@/lib/app-error";
 import { createServiceFetch } from "@/lib/service-fetch";
+import { type OrderStatus } from "@/types";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
-export type OrderStatus =
-  | "pending"
-  | "confirmed"
-  | "preparing"
-  | "out_for_delivery"
-  | "delivered"
-  | "cancelled";
+// Re-export OrderStatus from @/types for backward compatibility
+// (consumers importing from this service still work)
+export type { OrderStatus } from "@/types";
 
 export type PaymentMethod = "cash"; // Cash on Delivery only for now
 

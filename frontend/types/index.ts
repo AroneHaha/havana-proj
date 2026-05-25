@@ -57,3 +57,16 @@ export interface ApiResponse<T> {
 export type ProductStatus = "in_stock" | "low_stock" | "sold_out";
 
 export type ProductFilterStatus = "all" | "in_stock" | "low_stock" | "sold_out";
+
+/**
+ * Canonical order status flow — shared by services, stores, and UI.
+ * Defined here (types/) so low-level modules like lib/constant.ts
+ * don't need to import from the service layer.
+ */
+export type OrderStatus =
+  | "pending"
+  | "confirmed"
+  | "preparing"
+  | "out_for_delivery"
+  | "delivered"
+  | "cancelled";
