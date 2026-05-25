@@ -230,6 +230,33 @@ export interface Translation {
       delivered: string;
       inTransit: string;
       processing: string;
+      storeOverview: string;
+      averageRating: string;
+      pendingOrders: string;
+      activeCount: string;
+      inventoryAlerts: string;
+      inventorySummary: string;
+    };
+    reviews: {
+      title: string;
+      subtitle: string;
+      recentReviews: string;
+      noReviews: string;
+      customer: string;
+      product: string;
+      rating: string;
+      visibility: string;
+      averageRating: string;
+      totalReviews: string;
+      pendingReviews: string;
+      outOf5: string;
+      allTime: string;
+      awaitingModeration: string;
+      showing: string;
+      deleteReview: string;
+      deleteConfirm: string;
+      cancel: string;
+      delete: string;
     };
     orders: {
       title: string;

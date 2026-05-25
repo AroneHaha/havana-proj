@@ -1,11 +1,13 @@
 "use client";
 
 import { Flower2, Bell, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
 
-export default function AdminTopbar() {
+export function AdminTopbar() {
+  const router = useRouter();
   const locale = useLanguageStore((s) => s.locale);
   const dict = getDictionary(locale);
   const nav = dict.admin.nav;
@@ -15,7 +17,7 @@ export default function AdminTopbar() {
 
   const handleLogout = () => {
     logout();
-    window.location.href = "/login";
+    router.push("/login");
   };
 
   return (

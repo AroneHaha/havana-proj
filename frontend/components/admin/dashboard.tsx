@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -27,25 +27,25 @@ export function AdminDashboard() {
   const t = dict.admin.dashboard;
   const tOrders = dict.admin.orders;
   const tProducts = dict.admin.products;
+  const tReviews = dict.admin.reviews;
   const user = useAuthStore((s) => s.user);
 
-  // ─── Store data ──────────────────────────────────────────────────────
+  // ─── Store data — select RAW state, never call methods in selectors ──
   const ordersLoading = useOrdersStore((s) => s.loading);
   const orders = useOrdersStore((s) => s.orders);
-  const totalRevenue = useOrdersStore((s) => s.getTotalRevenue());
+  const orderStats = useOrdersStore((s) => s.stats);
   const fetchOrders = useOrdersStore((s) => s.fetchOrders);
   const fetchStats = useOrdersStore((s) => s.fetchStats);
 
   const productsLoading = useProductsStore((s) => s.loading);
   const products = useProductsStore((s) => s.products);
   const fetchProducts = useProductsStore((s) => s.fetchProducts);
-  const getLowStockProducts = useProductsStore((s) => s.getLowStockProducts);
-  const getOutOfStockProducts = useProductsStore((s) => s.getOutOfStockProducts);
 
+  const reviewsLoading = useReviewsStore((s) => s.loading);
   const reviews = useReviewsStore((s) => s.reviews);
+  const reviewStats = useReviewsStore((s) => s.stats);
   const fetchReviews = useReviewsStore((s) => s.fetchReviews);
   const fetchReviewStats = useReviewsStore((s) => s.fetchStats);
-  const averageRating = useReviewsStore((s) => s.getAverageRating());
 
   const loading = ordersLoading || productsLoading;
 
@@ -58,16 +58,56 @@ export function AdminDashboard() {
     fetchReviewStats();
   }, [fetchOrders, fetchStats, fetchProducts, fetchReviews, fetchReviewStats]);
 
-  // ─── Derived data ────────────────────────────────────────────────────
-  const recentOrders = [...orders]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
+  // ─── Derived data via useMemo (stable references, no infinite loops) ──
+  const totalRevenue = useMemo(() => {
+    if (orderStats) return orderStats.totalRevenue;
+    return orders
+      .filter((o) => o.status === "delivered")
+      .reduce((sum, o) => sum + o.total, 0);
+  }, [orders, orderStats]);
 
-  const lowStockProducts = getLowStockProducts();
-  const outOfStockProducts = getOutOfStockProducts();
-  const recentReviews = [...reviews]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
+  const avgOrderValue = useMemo(() => {
+    if (orderStats) return orderStats.averageOrderValue;
+    const delivered = orders.filter((o) => o.status === "delivered");
+    if (delivered.length === 0) return 0;
+    return delivered.reduce((sum, o) => sum + o.total, 0) / delivered.length;
+  }, [orders, orderStats]);
+
+  const activeOrders = useMemo(
+    () => orders.filter((o) => o.status !== "delivered" && o.status !== "cancelled"),
+    [orders]
+  );
+
+  const recentOrders = useMemo(
+    () => [...orders]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5),
+    [orders]
+  );
+
+  const lowStockProducts = useMemo(
+    () => products.filter((p) => getStockStatus(p) === "low_stock"),
+    [products]
+  );
+
+  const outOfStockProducts = useMemo(
+    () => products.filter((p) => getStockStatus(p) === "sold_out"),
+    [products]
+  );
+
+  const averageRating = useMemo(() => {
+    if (reviewStats) return reviewStats.averageRating;
+    const visible = reviews.filter((r) => r.visibility === "visible");
+    if (visible.length === 0) return 0;
+    return visible.reduce((sum, r) => sum + r.rating, 0) / visible.length;
+  }, [reviews, reviewStats]);
+
+  const recentReviews = useMemo(
+    () => [...reviews]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5),
+    [reviews]
+  );
 
   // ─── Status helpers ──────────────────────────────────────────────────
   const getStatusLabel = (status: string) => {
@@ -242,21 +282,21 @@ export function AdminDashboard() {
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             <div className="flex items-center gap-2">
               <Star className="h-4 w-4 text-gold" />
-              <h2 className="font-serif text-lg font-semibold text-foreground">Recent Reviews</h2>
+              <h2 className="font-serif text-lg font-semibold text-foreground">{tReviews.recentReviews}</h2>
             </div>
             <Link href="/sales-reviews" className="text-sm text-maroon dark:text-gold font-medium hover-underline">{t.viewAll}</Link>
           </div>
           <div className="overflow-x-auto">
             {recentReviews.length === 0 ? (
-              <p className="p-6 text-sm text-muted-foreground text-center">No reviews yet</p>
+              <p className="p-6 text-sm text-muted-foreground text-center">{tReviews.noReviews}</p>
             ) : (
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Customer</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Product</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Rating</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Visibility</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{tReviews.customer}</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{tReviews.product}</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{tReviews.rating}</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{tReviews.visibility}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -288,7 +328,7 @@ export function AdminDashboard() {
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             <div className="flex items-center gap-2">
               <Package className="h-4 w-4 text-blue-500" />
-              <h2 className="font-serif text-lg font-semibold text-foreground">Store Overview</h2>
+              <h2 className="font-serif text-lg font-semibold text-foreground">{t.storeOverview}</h2>
             </div>
           </div>
           <div className="p-6 space-y-4">
@@ -296,7 +336,7 @@ export function AdminDashboard() {
             <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
               <div>
                 <p className="text-sm text-muted-foreground">{tOrders.averageOrder}</p>
-                <p className="text-xl font-bold text-foreground">{formatPrice(useOrdersStore.getState().getAverageOrderValue())}</p>
+                <p className="text-xl font-bold text-foreground">{formatPrice(avgOrderValue)}</p>
               </div>
               <div className="p-3 rounded-xl bg-blue-500/10">
                 <DollarSign className="h-5 w-5 text-blue-500" />
@@ -306,7 +346,7 @@ export function AdminDashboard() {
             {/* Average Rating */}
             <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
               <div>
-                <p className="text-sm text-muted-foreground">Average Rating</p>
+                <p className="text-sm text-muted-foreground">{t.averageRating}</p>
                 <div className="flex items-center gap-2">
                   <p className="text-xl font-bold text-foreground">{averageRating.toFixed(1)}</p>
                   <div className="flex">
@@ -327,8 +367,8 @@ export function AdminDashboard() {
             {/* Pending Orders */}
             <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
               <div>
-                <p className="text-sm text-muted-foreground">{tOrders.pending} Orders</p>
-                <p className="text-xl font-bold text-foreground">{useOrdersStore.getState().getActiveOrders().length} active</p>
+                <p className="text-sm text-muted-foreground">{t.pendingOrders}</p>
+                <p className="text-xl font-bold text-foreground">{t.activeCount.replace("{count}", String(activeOrders.length))}</p>
               </div>
               <div className="p-3 rounded-xl bg-yellow-500/10">
                 <ShoppingBag className="h-5 w-5 text-yellow-500" />
@@ -338,9 +378,11 @@ export function AdminDashboard() {
             {/* Inventory Summary */}
             <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
               <div>
-                <p className="text-sm text-muted-foreground">Inventory Alerts</p>
+                <p className="text-sm text-muted-foreground">{t.inventoryAlerts}</p>
                 <p className="text-xl font-bold text-foreground">
-                  {lowStockProducts.length} low stock, {outOfStockProducts.length} out of stock
+                  {t.inventorySummary
+                    .replace("{lowCount}", String(lowStockProducts.length))
+                    .replace("{outCount}", String(outOfStockProducts.length))}
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-red-500/10">

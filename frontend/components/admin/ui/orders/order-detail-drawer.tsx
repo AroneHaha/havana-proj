@@ -20,7 +20,7 @@ import {
   STATUS_I18N_KEY,
 } from "@/store/orders-store";
 import { formatPrice } from "@/lib/format-price";
-import { statusColors } from "./constants";
+import { ORDER_STATUS_COLORS } from "@/lib/constant";
 import type { OrdersT } from "./use-orders-data";
 
 interface OrderDetailDrawerProps {
@@ -61,7 +61,7 @@ export function OrderDetailDrawer({
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
-    return d.toLocaleDateString("en-QA", {
+    return d.toLocaleDateString("en-KW", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -126,7 +126,7 @@ export function OrderDetailDrawer({
               {!isCancelled && (
                 <div className="bg-muted/50 dark:bg-[#111] rounded-xl p-4">
                   <div className="flex items-center justify-between mb-4">
-                    <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${statusColors[order.status]}`}>
+                    <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${ORDER_STATUS_COLORS[order.status]}`}>
                       {t[STATUS_I18N_KEY[order.status] as keyof typeof t] as string}
                     </span>
                     {nextStatus && (
@@ -192,7 +192,7 @@ export function OrderDetailDrawer({
                   </div>
                   <div className="bg-muted/50 dark:bg-[#111] rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">{t.status}</p>
-                    <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full mt-0.5 ${statusColors[order.status]}`}>
+                    <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full mt-0.5 ${ORDER_STATUS_COLORS[order.status]}`}>
                       {t[STATUS_I18N_KEY[order.status] as keyof typeof t] as string}
                     </span>
                   </div>

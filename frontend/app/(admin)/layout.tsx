@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
-import AdminTopbar from "@/components/admin/ui/admin-topbar";
+import { AdminTopbar } from "@/components/admin/ui/admin-topbar";
 import { AdminSidebar } from "@/components/admin/ui/admin-sidebar";
 
 export default function AdminLayout({
@@ -10,6 +11,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const hydrate = useAuthStore((s) => s.hydrate);
   const hydrated = useAuthStore((s) => s.hydrated);
@@ -22,11 +24,11 @@ export default function AdminLayout({
   useEffect(() => {
     if (!hydrated) return;
     if (!user || user.role !== "admin") {
-      window.location.href = "/login";
+      router.replace("/login");
       return;
     }
     setChecking(false);
-  }, [hydrated, user]);
+  }, [hydrated, user, router]);
 
   if (checking) {
     return (

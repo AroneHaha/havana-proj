@@ -72,8 +72,8 @@ export function LoginPage() {
     try {
       const res = await login(email, password);
       if (res.user.role === "admin") {
-        // Hard navigation — crossing route groups (site → admin)
-        window.location.href = "/dashboard";
+        // Soft navigation — crossing route groups (site → admin)
+        router.push("/dashboard");
       } else {
         router.push("/");
       }

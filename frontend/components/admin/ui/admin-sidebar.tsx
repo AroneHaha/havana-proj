@@ -10,7 +10,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
@@ -41,6 +41,7 @@ const sidebarItems = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const locale = useLanguageStore((s) => s.locale);
   const dict = getDictionary(locale);
   const nav = dict.admin.nav;
@@ -49,7 +50,7 @@ export function AdminSidebar() {
 
   const handleLogout = () => {
     logout();
-    window.location.href = "/login";
+    router.push("/login");
   };
 
   const sidebarContent = (

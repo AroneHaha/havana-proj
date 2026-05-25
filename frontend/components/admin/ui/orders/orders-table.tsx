@@ -1,9 +1,11 @@
 "use client";
 
-import { Eye, Trash2, ShoppingBag, CreditCard, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, Trash2, ShoppingBag, CreditCard } from "lucide-react";
 import { STATUS_I18N_KEY, type Order } from "@/store/orders-store";
 import { formatPrice } from "@/lib/format-price";
-import { statusColors, statusDotColors, ITEMS_PER_PAGE } from "./constants";
+import { ORDER_STATUS_COLORS, ORDER_STATUS_DOT_COLORS, DEFAULT_ITEMS_PER_PAGE } from "@/lib/constant";
+import { DateRangeBar } from "@/components/admin/ui/shared/date-range-bar";
+import { Pagination } from "@/components/admin/ui/shared/pagination";
 import type { OrdersT } from "./use-orders-data";
 
 function SkeletonRow() {
@@ -33,7 +35,7 @@ interface OrdersTableProps {
   filteredOrdersCount: number;
   currentPage: number;
   totalPages: number;
-  setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
+  setCurrentPage: (page: number) => void;
   onViewOrder: (order: Order) => void;
   deleteConfirm: string | null;
   setDeleteConfirm: (id: string | null) => void;
@@ -79,55 +81,22 @@ export function OrdersTable({
 
   return (
     <div className="bg-white dark:bg-dark-card rounded-2xl border border-border overflow-hidden">
-      {/* Date Range Bar */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-muted/30 gap-3 flex-wrap">
-        <div className="flex items-center gap-1.5">
-          {([
-            { key: "today" as const, label: t.today },
-            { key: "7d" as const, label: t.last7Days },
-            { key: "30d" as const, label: t.last30Days },
-          ]).map((preset) => (
-            <button
-              key={preset.key}
-              onClick={() => onDatePreset(preset.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                activeDatePreset === preset.key
-                  ? "bg-maroon text-white dark:bg-gold dark:text-dark-bg"
-                  : "bg-white dark:bg-dark-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
-            >
-              {preset.label}
-            </button>
-          ))}
-          {hasDateFilter && !activeDatePreset && (
-            <span className="text-xs text-muted-foreground px-1">Custom</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => onDateFromChange(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow"
-          />
-          <span className="text-xs text-muted-foreground">&rarr;</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => onDateToChange(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow"
-          />
-          {hasDateFilter && (
-            <button
-              onClick={onClearDate}
-              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors cursor-pointer"
-              title={t.clearDate}
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-      </div>
+      {/* Date Range Bar — uses shared DateRangeBar */}
+      <DateRangeBar
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        activePreset={activeDatePreset}
+        onDateFromChange={onDateFromChange}
+        onDateToChange={onDateToChange}
+        onPresetChange={onDatePreset}
+        onClear={onClearDate}
+        labels={{
+          today: t.today,
+          last7Days: t.last7Days,
+          last30Days: t.last30Days,
+          custom: t.clearDate ? "Custom" : undefined,
+        }}
+      />
 
       {/* Table */}
       <div className="overflow-x-auto">
@@ -173,8 +142,8 @@ export function OrdersTable({
                   </td>
                   <td className="px-6 py-4 text-sm font-semibold text-foreground">{formatPrice(order.total)}</td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[order.status]}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${statusDotColors[order.status]}`} />
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${ORDER_STATUS_COLORS[order.status]}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${ORDER_STATUS_DOT_COLORS[order.status]}`} />
                       {getStatusLabel(order.status)}
                     </span>
                   </td>
@@ -227,32 +196,19 @@ export function OrdersTable({
         </table>
       </div>
 
-      {/* Pagination */}
-      {filteredOrdersCount > ITEMS_PER_PAGE && (
-        <div className="flex items-center justify-between px-6 py-3 border-t border-border">
-          <p className="text-xs text-muted-foreground">
-            {t.showing.replace("{count}", String(paginatedOrders.length)).replace("{total}", String(filteredOrdersCount))}
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
-            >
-              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-            </button>
-            <span className="text-xs text-muted-foreground px-2">
-              {t.page.replace("{current}", String(currentPage)).replace("{total}", String(totalPages))}
-            </span>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
-            >
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </button>
-          </div>
-        </div>
+      {/* Pagination — uses shared Pagination */}
+      {filteredOrdersCount > DEFAULT_ITEMS_PER_PAGE && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => setCurrentPage(page)}
+          showingCount={paginatedOrders.length}
+          totalCount={filteredOrdersCount}
+          labels={{
+            showing: t.showing,
+            page: t.page,
+          }}
+        />
       )}
     </div>
   );

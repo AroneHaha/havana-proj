@@ -9,6 +9,9 @@ import {
 } from "@/store/orders-store";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
+import { useSearchFilter } from "@/components/admin/ui/shared/use-search-filter";
+import { usePagination } from "@/components/admin/ui/shared/use-pagination";
+import { useDateRangeFilter } from "@/components/admin/ui/shared/use-date-range-filter";
 import { ITEMS_PER_PAGE, type FilterStatus } from "./constants";
 import type { Translation } from "@/i18n/types";
 
@@ -27,15 +30,24 @@ export function useOrdersData() {
   const getTotalRevenue = useOrdersStore((s) => s.getTotalRevenue);
   const getAverageOrderValue = useOrdersStore((s) => s.getAverageOrderValue);
 
-  const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterStatus>("all");
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [activeDatePreset, setActiveDatePreset] = useState<"today" | "7d" | "30d" | null>(null);
+
+  // ── Shared hooks for filter state ──────────────────────────────────
+  const search = useSearchFilter({
+    onSearchChange: () => pagination.resetPage(),
+  });
+
+  const dateRange = useDateRangeFilter({
+    onChange: () => pagination.resetPage(),
+  });
+
+  const pagination = usePagination({
+    totalItems: 0, // will be overridden by filteredOrders.length
+    itemsPerPage: ITEMS_PER_PAGE,
+  });
 
   useEffect(() => {
     storeFetchOrders();
@@ -46,31 +58,39 @@ export function useOrdersData() {
   const totalRevenue = getTotalRevenue();
   const avgOrder = getAverageOrderValue();
 
+  // ── Filtered orders (search + status + date range) ─────────────────
   const filteredOrders = useMemo(() => {
     let result = [...orders];
     if (activeFilter !== "all") result = result.filter((o) => o.status === activeFilter);
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
+    if (search.searchQuery.trim()) {
+      const q = search.searchQuery.toLowerCase().trim();
       result = result.filter(
         (o) => o.id.toLowerCase().includes(q) || o.customer.name.toLowerCase().includes(q) || o.customer.email.toLowerCase().includes(q) || o.customer.phone.includes(q)
       );
     }
-    if (dateFrom) {
-      const from = new Date(dateFrom); from.setHours(0, 0, 0, 0);
+    if (dateRange.dateFrom) {
+      const from = new Date(dateRange.dateFrom); from.setHours(0, 0, 0, 0);
       result = result.filter((o) => new Date(o.createdAt) >= from);
     }
-    if (dateTo) {
-      const to = new Date(dateTo); to.setHours(23, 59, 59, 999);
+    if (dateRange.dateTo) {
+      const to = new Date(dateRange.dateTo); to.setHours(23, 59, 59, 999);
       result = result.filter((o) => new Date(o.createdAt) <= to);
     }
     result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return result;
-  }, [orders, activeFilter, searchQuery, dateFrom, dateTo]);
+  }, [orders, activeFilter, search.searchQuery, dateRange.dateFrom, dateRange.dateTo]);
 
+  const paginatedOrders = pagination.paginate(filteredOrders);
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ITEMS_PER_PAGE));
-  const paginatedOrders = filteredOrders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
-  const handleFilterChange = (filter: FilterStatus) => { setActiveFilter(filter); setCurrentPage(1); };
+  // Update pagination total when filtered orders change
+  useEffect(() => {
+    if (pagination.currentPage > totalPages) {
+      pagination.setPage(totalPages);
+    }
+  }, [totalPages, pagination.currentPage, pagination.setPage]);
+
+  const handleFilterChange = (filter: FilterStatus) => { setActiveFilter(filter); pagination.resetPage(); };
   const handleViewOrder = (order: Order) => { setSelectedOrder(order); setDrawerOpen(true); };
 
   const handleUpdateStatus = async (id: string, status: OrderStatus) => {
@@ -87,24 +107,6 @@ export function useOrdersData() {
     } catch {}
   };
 
-  const clearDateFilter = () => { setDateFrom(""); setDateTo(""); setActiveDatePreset(null); setCurrentPage(1); };
-  const hasDateFilter = !!dateFrom || !!dateTo;
-
-  const handleDatePreset = (preset: "today" | "7d" | "30d") => {
-    const now = new Date();
-    const today = now.toISOString().split("T")[0];
-    if (preset === activeDatePreset) { clearDateFilter(); return; }
-    setActiveDatePreset(preset); setDateTo(today); setCurrentPage(1);
-    if (preset === "today") setDateFrom(today);
-    else if (preset === "7d") { const d = new Date(now); d.setDate(d.getDate() - 6); setDateFrom(d.toISOString().split("T")[0]); }
-    else { const d = new Date(now); d.setDate(d.getDate() - 29); setDateFrom(d.toISOString().split("T")[0]); }
-  };
-
-  const handleSearchChange = (value: string) => { setSearchQuery(value); setCurrentPage(1); };
-  const handleClearSearch = () => { setSearchQuery(""); setCurrentPage(1); };
-  const handleDateFromChange = (value: string) => { setDateFrom(value); setActiveDatePreset(null); setCurrentPage(1); };
-  const handleDateToChange = (value: string) => { setDateTo(value); setActiveDatePreset(null); setCurrentPage(1); };
-
   const exportCSV = () => {
     const headers = ["Order ID", "Customer", "Email", "Phone", "Items", "Subtotal", "Delivery Fee", "Total", "Status", "Payment", "Notes", "Created At"];
     const rows = filteredOrders.map((o) => [o.id, o.customer.name, o.customer.email, o.customer.phone, o.items.map((i) => `${i.productName} x${i.quantity}`).join("; "), o.subtotal.toString(), o.deliveryFee.toString(), o.total.toString(), o.status, "Cash on Delivery", o.notes || "", o.createdAt]);
@@ -115,7 +117,7 @@ export function useOrdersData() {
     URL.revokeObjectURL(url);
   };
 
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString("en-QA", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString("en-KW", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   const itemCount = (items: Order["items"]) => items.reduce((sum, i) => sum + i.quantity, 0);
 
   const getTabLabel = (filter: FilterStatus): string => {
@@ -126,18 +128,18 @@ export function useOrdersData() {
   return {
     t,
     loading,
-    searchQuery, handleSearchChange, handleClearSearch,
+    searchQuery: search.searchQuery, handleSearchChange: search.setSearchQuery, handleClearSearch: search.clearSearch,
     activeFilter, handleFilterChange,
-    currentPage, setCurrentPage,
+    currentPage: pagination.currentPage, setCurrentPage: pagination.setPage,
     selectedOrder, setSelectedOrder, drawerOpen, setDrawerOpen,
     deleteConfirm, setDeleteConfirm,
-    dateFrom, handleDateFromChange,
-    dateTo, handleDateToChange,
-    activeDatePreset, hasDateFilter,
+    dateFrom: dateRange.dateFrom, handleDateFromChange: dateRange.setDateFrom,
+    dateTo: dateRange.dateTo, handleDateToChange: dateRange.setDateTo,
+    activeDatePreset: dateRange.activePreset, hasDateFilter: dateRange.hasDateFilter,
     filteredOrders, paginatedOrders, totalPages,
     orders, statusCounts, totalRevenue, avgOrder,
     handleViewOrder, handleUpdateStatus, handleDeleteOrder,
-    handleDatePreset, clearDateFilter, exportCSV,
+    handleDatePreset: dateRange.applyPreset, clearDateFilter: dateRange.clearDate, exportCSV,
     formatDate, itemCount, getTabLabel,
   };
 }
