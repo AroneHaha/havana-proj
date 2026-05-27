@@ -9,9 +9,9 @@ import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
 import { formatPrice } from "@/lib/format-price";
 import { SearchInput, Pagination } from "@/components/admin/ui/shared";
-import { SalesTable } from "./sales-table";
-import { SalesDetailView } from "./sales-detail-view";
-import { useSalesFilters, getCalendarMonthsForYear, type SalesFilterState } from "./use-sales-filters";
+import { SalesTable } from "../admin/ui/sales/sales-table"; //./sales-table
+import { SalesDetailView } from "../admin/ui/sales/sales-detail-view";
+import { useSalesFilters, getCalendarMonthsForYear, type SalesFilterState } from "../admin/ui/sales/use-sales-filters";
 import type { Order } from "@/store/orders-store";
 
 const ITEMS_PER_PAGE = 8;

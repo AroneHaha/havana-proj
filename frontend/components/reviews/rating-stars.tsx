@@ -1,13 +1,16 @@
+/** /frontend/components/reviews/rating-stars.tsx */
+
 "use client";
 
 import { Star } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface RatingStarsProps {
   rating: number;
+  maxRating?: number;
   size?: "sm" | "md" | "lg";
   showValue?: boolean;
-  interactive?: boolean;
-  onRate?: (rating: number) => void;
+  className?: string;
 }
 
 const sizeMap = {
@@ -16,41 +19,45 @@ const sizeMap = {
   lg: "h-5 w-5",
 };
 
+const textSizeMap = {
+  sm: "text-xs",
+  md: "text-sm",
+  lg: "text-base",
+};
+
 export function RatingStars({
   rating,
+  maxRating = 5,
   size = "md",
   showValue = false,
-  interactive = false,
-  onRate,
+  className,
 }: RatingStarsProps) {
-  const iconClass = sizeMap[size];
+  const stars = [];
+  const clampedRating = Math.min(Math.max(0, rating), maxRating);
+
+  for (let i = 1; i <= maxRating; i++) {
+    const filled = i <= Math.floor(clampedRating);
+    const halfFilled = !filled && i === Math.ceil(clampedRating) && clampedRating % 1 >= 0.25;
+
+    stars.push(
+      <Star
+        key={i}
+        className={cn(
+          sizeMap[size],
+          filled || halfFilled
+            ? "fill-amber-400 text-amber-400"
+            : "fill-transparent text-muted-foreground/30"
+        )}
+      />
+    );
+  }
 
   return (
-    <div className="inline-flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <button
-          key={star}
-          type="button"
-          disabled={!interactive}
-          onClick={() => interactive && onRate?.(star)}
-          className={`p-0 border-0 bg-transparent ${
-            interactive
-              ? "cursor-pointer hover:scale-110 transition-transform"
-              : "cursor-default"
-          }`}
-        >
-          <Star
-            className={`${iconClass} ${
-              star <= Math.round(rating)
-                ? "fill-amber-400 text-amber-400"
-                : "fill-gray-200 text-gray-200 dark:fill-gray-700 dark:text-gray-700"
-            }`}
-          />
-        </button>
-      ))}
+    <div className={cn("flex items-center gap-0.5", className)}>
+      <div className="flex items-center">{stars}</div>
       {showValue && (
-        <span className="ms-1 text-sm font-medium text-foreground">
-          {rating.toFixed(1)}
+        <span className={cn("ms-1.5 font-medium text-foreground", textSizeMap[size])}>
+          {clampedRating.toFixed(1)}
         </span>
       )}
     </div>

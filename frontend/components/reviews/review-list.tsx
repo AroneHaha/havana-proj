@@ -1,8 +1,11 @@
+/** /frontend/components/reviews/review-list.tsx */
 "use client";
 
 import type { Review } from "@/types/review";
 import { ReviewCard } from "./review-card";
 import { MessageSquareOff } from "lucide-react";
+import { useLanguageStore } from "@/store/language-store";
+import { getDictionary } from "@/i18n";
 
 interface ReviewListProps {
   reviews: Review[];
@@ -53,8 +56,12 @@ export function ReviewList({
   loading,
   onVisibilityChange,
   onDelete,
-  emptyMessage = "No reviews found",
+  emptyMessage,
 }: ReviewListProps) {
+  const locale = useLanguageStore((s) => s.locale);
+  const t = getDictionary(locale).admin.reviews;
+  const resolvedEmptyMessage = emptyMessage ?? t.noReviewsFound;
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -69,7 +76,7 @@ export function ReviewList({
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <MessageSquareOff className="h-12 w-12 text-muted-foreground/40 mb-4" />
-        <p className="text-muted-foreground text-sm">{emptyMessage}</p>
+        <p className="text-muted-foreground text-sm">{resolvedEmptyMessage}</p>
       </div>
     );
   }
