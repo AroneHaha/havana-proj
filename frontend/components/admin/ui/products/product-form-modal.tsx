@@ -112,12 +112,32 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
   const stockDisabled = form.soldOut;
 
   const handleImageUpload = async (files: FileList) => {
+    // Validate file type and size before accepting
+    const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const MAX_SIZE_MB = 5;
+    const validFiles: File[] = [];
+
+    for (const file of Array.from(files)) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        alert(`"${file.name}" is not a valid image. Accepted formats: JPG, PNG, WebP, GIF.`);
+        continue;
+      }
+      if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+        alert(`"${file.name}" exceeds the 5MB size limit. Please compress it first.`);
+        continue;
+      }
+      validFiles.push(file);
+    }
+
+    if (validFiles.length === 0) return;
+
     // Store raw File objects for FormData when API is live
-    const fileArray = Array.from(files);
-    setPendingFiles((prev) => [...prev, ...fileArray].slice(0, 5));
+    setPendingFiles((prev) => [...prev, ...validFiles].slice(0, 5));
 
     // Also generate base64 previews for the UI
-    const newImages = await processFiles(files);
+    const dt = new DataTransfer();
+    validFiles.forEach((f) => dt.items.add(f));
+    const newImages = await processFiles(dt.files);
     setForm((p) => ({
       ...p,
       images: [...p.images, ...newImages].slice(0, 5),

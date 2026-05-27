@@ -11,7 +11,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { useLanguageStore } from "@/store/language-store";
 import { useUIStore } from "@/store/ui-store";
 import { getDictionary } from "@/i18n";
-import { placeOrder, verifyStock, type CheckoutResult } from "@/services/checkout-service";
+import { placeOrder, verifyStock, type CheckoutResult, type StockVerification } from "@/services/checkout-service";
 import { calculateDeliveryFee } from "@/lib/constant";
 
 type Step = "form" | "success" | "login-required";
@@ -32,6 +32,7 @@ export function CheckoutModal() {
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CheckoutResult | null>(null);
+  const [unavailableItems, setUnavailableItems] = useState<StockVerification["unavailableItems"]>([]);
 
   // Form fields — pre-fill from auth user if available
   const [name, setName] = useState("");
@@ -66,6 +67,7 @@ export function CheckoutModal() {
       setStep("form");
       setError(null);
       setResult(null);
+      setUnavailableItems([]);
       setInitialized(false);
       setFieldErrors({});
     }, 300);
@@ -99,6 +101,7 @@ export function CheckoutModal() {
       );
 
       if (!stockCheck.allAvailable) {
+        setUnavailableItems(stockCheck.unavailableItems);
         setError(t.checkout.stockUnavailable);
         setPlacing(false);
         return;
@@ -312,7 +315,20 @@ export function CheckoutModal() {
                   {error && (
                     <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-3">
                       <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                      <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                      <div className="text-sm text-red-700 dark:text-red-400">
+                        <p>{error}</p>
+                        {unavailableItems.length > 0 && (
+                          <ul className="mt-1.5 space-y-0.5 text-xs">
+                            {unavailableItems.map((item) => (
+                              <li key={item.productId}>
+                                {item.productName} — {t.checkout.stockUnavailableDetail
+                                  .replace("{requested}", String(item.requested))
+                                  .replace("{available}", String(item.available))}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

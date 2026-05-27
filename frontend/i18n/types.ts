@@ -159,6 +159,7 @@ export interface Translation {
     placing: string;
     stockWarning: string;
     stockUnavailable: string;
+    stockUnavailableDetail: string;
     orderPlaced: string;
     orderPlacedMessage: string;
     orderNumber: string;
@@ -194,6 +195,11 @@ export interface Translation {
       password: string;
       passwordPlaceholder: string;
       forgotPassword: string;
+      forgotPasswordTitle: string;
+      forgotPasswordSubtitle: string;
+      forgotPasswordSend: string;
+      forgotPasswordSent: string;
+      forgotPasswordBack: string;
       signIn: string;
       orContinueWith: string;
       noAccount: string;
