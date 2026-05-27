@@ -96,6 +96,11 @@ export function ProductsPage() {
     if (isNaN(stock) || stock < 0) return;
     const salePrice = formData.salePrice ? parseFloat(formData.salePrice) : undefined;
     if (salePrice !== undefined && (isNaN(salePrice) || salePrice < 0)) return;
+    // Warn if sale price >= regular price — but still allow the save (sale price is just dropped)
+    if (salePrice !== undefined && salePrice >= price) {
+      // Don't silently discard — show a visible warning to the admin
+      console.warn(`Sale price (${salePrice}) must be less than regular price (${price}). Sale price will not be applied.`);
+    }
     try {
       await storeAddProduct({
         name: formData.name.trim(),
@@ -130,6 +135,10 @@ export function ProductsPage() {
     if (isNaN(newStock) || newStock < 0) return;
     const salePrice = editForm.salePrice ? parseFloat(editForm.salePrice) : undefined;
     if (salePrice !== undefined && (isNaN(salePrice) || salePrice < 0)) return;
+    // Warn if sale price >= regular price
+    if (salePrice !== undefined && salePrice >= newPrice) {
+      console.warn(`Sale price (${salePrice}) must be less than regular price (${newPrice}). Sale price will not be applied.`);
+    }
     try {
       await storeUpdateProduct(product.id, {
         name: editForm.name.trim(),

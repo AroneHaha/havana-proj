@@ -30,6 +30,7 @@ interface OrderDetailDrawerProps {
   onClose: () => void;
   onUpdateStatus: (id: string, status: OrderStatus) => Promise<void>;
   t: OrdersT;
+  locale: "en" | "ar";
 }
 
 export function OrderDetailDrawer({
@@ -38,6 +39,7 @@ export function OrderDetailDrawer({
   onClose,
   onUpdateStatus,
   t,
+  locale,
 }: OrderDetailDrawerProps) {
   const [showDeliveryConfirm, setShowDeliveryConfirm] = useState(false);
 
@@ -67,7 +69,7 @@ export function OrderDetailDrawer({
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
-    return d.toLocaleDateString("en-KW", {
+    return d.toLocaleDateString(locale === "ar" ? "ar-KW" : "en-KW", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -232,24 +234,24 @@ export function OrderDetailDrawer({
                     <div key={i} className="flex items-center justify-between bg-inset rounded-lg p-3 border border-border ring-1 ring-black/[0.02] dark:ring-white/[0.02]">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{item.productName}</p>
-                        <p className="text-xs text-muted-foreground">{formatPrice(item.price)} &times; {item.quantity}</p>
+                        <p className="text-xs text-muted-foreground">{formatPrice(item.price, locale)} &times; {item.quantity}</p>
                       </div>
-                      <p className="text-sm font-semibold text-foreground ml-3">{formatPrice(item.price * item.quantity)}</p>
+                      <p className="text-sm font-semibold text-foreground ms-3">{formatPrice(item.price * item.quantity, locale)}</p>
                     </div>
                   ))}
                 </div>
                 <div className="mt-3 border-t border-border pt-3 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{t.subtotal}</span>
-                    <span className="text-foreground">{formatPrice(order.subtotal)}</span>
+                    <span className="text-foreground">{formatPrice(order.subtotal, locale)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{t.deliveryFee}</span>
-                    <span className="text-foreground">{order.deliveryFee === 0 ? t.freeDelivery : formatPrice(order.deliveryFee)}</span>
+                    <span className="text-foreground">{order.deliveryFee === 0 ? t.freeDelivery : formatPrice(order.deliveryFee, locale)}</span>
                   </div>
                   <div className="flex justify-between text-sm font-bold border-t border-border pt-2">
                     <span className="text-foreground">{t.total}</span>
-                    <span className="text-maroon dark:text-gold">{formatPrice(order.total)}</span>
+                    <span className="text-maroon dark:text-gold">{formatPrice(order.total, locale)}</span>
                   </div>
                 </div>
               </div>
@@ -310,7 +312,7 @@ export function OrderDetailDrawer({
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">{t.total}</span>
-                        <span className="font-bold text-maroon dark:text-gold">{formatPrice(order.total)}</span>
+                        <span className="font-bold text-maroon dark:text-gold">{formatPrice(order.total, locale)}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">

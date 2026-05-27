@@ -132,7 +132,40 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
     setPendingFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleImageReplace = async (index: number, files: FileList) => {
+    // Replace the image at the same index — preserves position so the
+    // main image (index 0) stays as main when replaced.
+    const fileArray = Array.from(files);
+    const newImages = await processFiles(files);
+
+    setForm((p) => ({
+      ...p,
+      images: p.images.map((img, i) => i === index ? newImages[0] : img),
+    }));
+
+    setPendingFiles((prev) => {
+      // If replacing a slot that already had a pending file, swap it.
+      // Otherwise, we need to track that this pending file belongs to a
+      // specific index rather than being appended.
+      const updated = [...prev];
+      if (index < updated.length) {
+        updated[index] = fileArray[0];
+      } else {
+        updated.push(fileArray[0]);
+      }
+      return updated.slice(0, 5);
+    });
+  };
+
   const handleSubmit = () => {
+    // Validate sale price < regular price (if both provided)
+    const price = parseFloat(form.price);
+    const salePrice = form.salePrice ? parseFloat(form.salePrice) : undefined;
+    if (salePrice !== undefined && !isNaN(price) && !isNaN(salePrice) && salePrice >= price) {
+      // Block save with invalid sale price — the admin must fix it
+      // This prevents silent data loss where salePrice is dropped without notice
+      return;
+    }
     const finalForm = { ...form, rawFiles: pendingFiles };
     if (isEdit && product) {
       (props as ProductFormModalEditProps).onSubmit(product, finalForm);
@@ -187,6 +220,7 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
             images={form.images}
             onUpload={handleImageUpload}
             onRemove={handleImageRemove}
+            onReplace={handleImageReplace}
           />
         </div>
 

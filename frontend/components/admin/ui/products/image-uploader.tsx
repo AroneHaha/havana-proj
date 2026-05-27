@@ -7,11 +7,14 @@ export function ImageUploader({
   images,
   onUpload,
   onRemove,
+  onReplace,
   maxImages = 5,
 }: {
   images: string[];
   onUpload: (files: FileList) => void;
   onRemove: (index: number) => void;
+  /** Replace the image at a specific index (preserves position / main image) */
+  onReplace?: (index: number, files: FileList) => void;
   maxImages?: number;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -20,16 +23,13 @@ export function ImageUploader({
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      if (replaceIndex !== null) {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          onRemove(replaceIndex);
-          onUpload(e.target.files!);
-          setReplaceIndex(null);
-        };
-        reader.readAsDataURL(file);
+      if (replaceIndex !== null && onReplace) {
+        // Use the dedicated onReplace callback that preserves image position
+        onReplace(replaceIndex, e.target.files);
+      } else if (replaceIndex !== null) {
+        // Fallback: remove old + upload new (old behavior, image goes to end)
+        onRemove(replaceIndex);
+        onUpload(e.target.files!);
       } else {
         onUpload(e.target.files);
       }

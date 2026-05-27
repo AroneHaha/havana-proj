@@ -121,8 +121,10 @@ export const useWishlistStore = create<WishlistStore>()(
         if (isAuthenticated()) {
           try {
             await serviceAddItem(product.id);
-            // Re-fetch to get the server-assigned wishlistItemId
-            get().fetchWishlist();
+            // Re-fetch to get the server-assigned wishlistItemId.
+            // MUST await — otherwise a rapid toggle to removeItem reads a
+            // stale wishlistItemIds map and silently skips the DELETE call.
+            await get().fetchWishlist();
           } catch (err) {
             // Revert on failure
             set((state) => ({

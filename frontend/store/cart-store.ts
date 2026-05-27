@@ -158,24 +158,26 @@ export const useCartStore = create<CartStore>()(
       removeItem: async (productId: string) => {
         // ── Optimistic local remove ──
         const removed = get().items.find((item) => item.product.id === productId);
+        // Save cartItemId BEFORE the optimistic update clears it
+        const cartItemId = get().cartItemIds[productId] ?? productId;
+
         set((state) => ({
           items: state.items.filter((item) => item.product.id !== productId),
+          cartItemIds: Object.fromEntries(
+            Object.entries(state.cartItemIds).filter(([pid]) => pid !== productId)
+          ),
         }));
 
         // ── Try API if authenticated ──
         if (isAuthenticated() && removed) {
-          const cartItemId = get().cartItemIds[productId] ?? productId;
           try {
             await serviceRemoveCartItem(cartItemId);
-            // Clean up the cartItemId mapping only on success
-            set((state) => {
-              const { [productId]: _, ...rest } = state.cartItemIds;
-              return { cartItemIds: rest };
-            });
+            // cartItemId already cleaned up in optimistic update
           } catch (err) {
-            // Revert on failure — also restore the cartItemId mapping
+            // Revert on failure — restore both items AND cartItemId mapping
             set((state) => ({
               items: [...state.items, removed],
+              cartItemIds: { ...state.cartItemIds, [productId]: cartItemId },
               error: getErrorMessage(err, "Failed to remove item"),
             }));
           }
@@ -221,6 +223,7 @@ export const useCartStore = create<CartStore>()(
 
       clearCart: async () => {
         const prev = get().items;
+        const prevCartItemIds = get().cartItemIds;
 
         // ── Optimistic clear ──
         set({ items: [], cartItemIds: {} });
@@ -230,8 +233,11 @@ export const useCartStore = create<CartStore>()(
           try {
             await serviceClearCart();
           } catch (err) {
-            // Revert on failure
-            set({ items: prev, error: getErrorMessage(err, "Failed to clear cart") });
+            // DO NOT revert the cart clear on API failure after an order was placed.
+            // Restoring items would make the user think the order didn't go through,
+            // potentially leading them to place a duplicate order.
+            // Instead, just set an error message — the cart stays empty.
+            set({ error: getErrorMessage(err, "Failed to clear cart on server") });
           }
         }
       },

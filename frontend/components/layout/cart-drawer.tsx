@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useUIStore, useCartStore } from "@/store";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
+import { calculateDeliveryFee } from "@/lib/constant";
 
 export function CartDrawer() {
   const isCartOpen = useUIStore((s) => s.isCartOpen);
@@ -18,7 +19,7 @@ export function CartDrawer() {
   const subtotal = useCartStore((s) =>
     s.items.reduce((sum, item) => sum + (item.product.salePrice || item.product.price) * item.quantity, 0)
   );
-  const deliveryFee = subtotal >= 50 ? 0 : 3;
+  const deliveryFee = calculateDeliveryFee(subtotal);
   const total = subtotal + deliveryFee;
   const locale = useLanguageStore((s) => s.locale);
   const t = getDictionary(locale);

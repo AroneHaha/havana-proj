@@ -126,11 +126,7 @@ export function LoginPage() {
             </div>
 
             <h2 className="font-serif text-4xl xl:text-5xl text-white leading-tight">
-              Where Every
-              <br />
-              Petal Tells
-              <br />
-              <span className="text-gold-gradient">a Story</span>
+              {t.auth.login.loginTagline}
             </h2>
 
             <p className="text-white/60 max-w-sm leading-relaxed">
@@ -150,13 +146,13 @@ export function LoginPage() {
         </div>
 
         {/* Corner accents */}
-        <div className="absolute top-6 left-6 w-12 h-12 z-10">
-          <div className="absolute top-0 left-0 w-full h-px bg-gold/40" />
-          <div className="absolute top-0 left-0 w-px h-full bg-gold/40" />
+        <div className="absolute top-6 start-6 w-12 h-12 z-10">
+          <div className="absolute top-0 start-0 w-full h-px bg-gold/40" />
+          <div className="absolute top-0 start-0 w-px h-full bg-gold/40" />
         </div>
-        <div className="absolute bottom-6 right-6 w-12 h-12 z-10">
-          <div className="absolute bottom-0 right-0 w-full h-px bg-gold/40" />
-          <div className="absolute bottom-0 right-0 w-px h-full bg-gold/40" />
+        <div className="absolute bottom-6 end-6 w-12 h-12 z-10">
+          <div className="absolute bottom-0 end-0 w-full h-px bg-gold/40" />
+          <div className="absolute bottom-0 end-0 w-px h-full bg-gold/40" />
         </div>
       </div>
 
@@ -205,13 +201,13 @@ export function LoginPage() {
                 {t.auth.login.email}
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <Mail className="absolute start-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t.auth.login.emailPlaceholder}
-                  className={`pl-10 h-11 ${fieldErrors.email ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                  className={`ps-10 h-11 ${fieldErrors.email ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                   dir="ltr"
                 />
               </div>
@@ -234,19 +230,19 @@ export function LoginPage() {
                 </button>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <Lock className="absolute start-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <Input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={t.auth.login.passwordPlaceholder}
-                  className={`pl-10 pr-10 h-11 ${fieldErrors.password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                  className={`ps-10 pe-10 h-11 ${fieldErrors.password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                   dir="ltr"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />

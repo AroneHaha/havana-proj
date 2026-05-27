@@ -116,3 +116,21 @@ export type AdminPath = (typeof ADMIN_PATHS)[number];
 // ─── Pagination ────────────────────────────────────────────────────────
 
 export const DEFAULT_ITEMS_PER_PAGE = 8;
+
+// ─── Delivery ────────────────────────────────────────────────────────
+
+/**
+ * Delivery fee configuration — single source of truth.
+ *
+ * TODO: When the Laravel backend provides a cart summary endpoint,
+ * replace this client-side calculation with a server-side call so the
+ * displayed total always matches what the customer is charged.
+ * The backend may have location-based fees or per-item surcharges.
+ */
+export const DELIVERY_FEE = 3; // KWD
+export const FREE_DELIVERY_THRESHOLD = 50; // KWD — free delivery above this subtotal
+
+/** Calculate delivery fee based on subtotal */
+export function calculateDeliveryFee(subtotal: number): number {
+  return subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
+}

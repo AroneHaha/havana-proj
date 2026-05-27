@@ -5,30 +5,32 @@
  */
 
 import type { Review, ReviewVisibility } from "@/types/review";
+import type { Locale } from "@/i18n";
 
 /** Format a rating to one decimal place, e.g. 4.7 */
 export function formatRating(rating: number): string {
   return rating.toFixed(1);
 }
 
-/** Format an ISO date string to a readable format */
-export function formatReviewDate(isoDate: string): string {
+/** Format an ISO date string to a readable format, locale-aware */
+export function formatReviewDate(isoDate: string, locale: Locale = "en"): string {
   const date = new Date(isoDate);
-  return date.toLocaleDateString("en-KW", {
+  return date.toLocaleDateString(locale === "ar" ? "ar-KW" : "en-KW", {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
 }
 
-/** Get a human-readable label for a visibility status */
-export function getVisibilityLabel(visibility: ReviewVisibility): string {
-  const labels: Record<ReviewVisibility, string> = {
+/** Get a human-readable label for a visibility status (i18n-aware) */
+export function getVisibilityLabel(visibility: ReviewVisibility, labels?: Record<ReviewVisibility, string>): string {
+  if (labels && labels[visibility]) return labels[visibility];
+  const fallback: Record<ReviewVisibility, string> = {
     visible: "Visible",
     hidden: "Hidden",
     pending: "Pending",
   };
-  return labels[visibility] ?? visibility;
+  return fallback[visibility] ?? visibility;
 }
 
 /** Get the Tailwind color classes for a visibility badge */

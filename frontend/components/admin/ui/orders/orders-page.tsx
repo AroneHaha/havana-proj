@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Download } from "lucide-react";
 import { useOrdersData } from "./use-orders-data";
+import { useLanguageStore } from "@/store/language-store";
 import { StatsCards } from "./stats-cards";
 import { OrdersFilterBar } from "./orders-filter-bar";
 import { OrdersTable } from "./orders-table";
@@ -27,6 +28,8 @@ export function AdminOrders() {
     formatDate, itemCount, getTabLabel,
   } = useOrdersData();
 
+  const locale = useLanguageStore((s) => s.locale);
+
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       {/* Page Header */}
@@ -45,6 +48,7 @@ export function AdminOrders() {
 
       <StatsCards
         t={t}
+        locale={locale}
         ordersCount={orders.length}
         totalRevenue={totalRevenue}
         avgOrder={avgOrder}
@@ -64,6 +68,7 @@ export function AdminOrders() {
 
       <OrdersTable
         t={t}
+        locale={locale}
         loading={loading}
         paginatedOrders={paginatedOrders}
         filteredOrdersCount={filteredOrders.length}
@@ -92,6 +97,7 @@ export function AdminOrders() {
         onClose={() => { setDrawerOpen(false); setSelectedOrder(null); }}
         onUpdateStatus={handleUpdateStatus}
         t={t}
+        locale={locale}
       />
     </motion.div>
   );

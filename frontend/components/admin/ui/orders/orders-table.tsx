@@ -3,6 +3,7 @@
 import { Eye, Trash2, ShoppingBag, CreditCard } from "lucide-react";
 import { STATUS_I18N_KEY, type Order, type PaymentMethod } from "@/store/orders-store";
 import { formatPrice } from "@/lib/format-price";
+import type { Locale } from "@/i18n";
 import { ORDER_STATUS_COLORS, ORDER_STATUS_DOT_COLORS, DEFAULT_ITEMS_PER_PAGE } from "@/lib/constant";
 import { DateRangeBar } from "@/components/admin/ui/shared/date-range-bar";
 import { Pagination } from "@/components/admin/ui/shared/pagination";
@@ -30,6 +31,7 @@ function SkeletonRow() {
 
 interface OrdersTableProps {
   t: OrdersT;
+  locale: Locale;
   loading?: boolean;
   paginatedOrders: Order[];
   filteredOrdersCount: number;
@@ -54,6 +56,7 @@ interface OrdersTableProps {
 
 export function OrdersTable({
   t,
+  locale,
   loading = false,
   paginatedOrders,
   filteredOrdersCount,
@@ -145,9 +148,9 @@ export function OrdersTable({
                   </td>
                   <td className="px-6 py-4 hidden sm:table-cell">
                     <span className="text-sm text-foreground">{itemCount(order.items)}</span>
-                    <span className="text-xs text-muted-foreground ml-1">{t.items.toLowerCase()}</span>
+                    <span className="text-xs text-muted-foreground ms-1">{t.items.toLowerCase()}</span>
                   </td>
-                  <td className="px-6 py-4 text-sm font-semibold text-foreground">{formatPrice(order.total)}</td>
+                  <td className="px-6 py-4 text-sm font-semibold text-foreground">{formatPrice(order.total, locale)}</td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full shadow-xs ${ORDER_STATUS_COLORS[order.status]}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${ORDER_STATUS_DOT_COLORS[order.status]}`} />

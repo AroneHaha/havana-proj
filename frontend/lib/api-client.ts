@@ -73,7 +73,8 @@ export async function publicFetch<T>(
 
     const res = await fetch(url.toString(), {
       headers: {
-        "Content-Type": "application/json",
+        // When body is FormData, let the browser set Content-Type with boundary
+        ...(init.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
         Accept: "application/json",
         ...init.headers,
       },

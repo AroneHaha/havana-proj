@@ -75,7 +75,12 @@ export const useAuthStore = create<AuthStore>()(
 
       register: async (data) => {
         const res = await authServiceRegister(data);
-        set({ user: res.user });
+        // Only set the user if a token was returned (auto-login).
+        // If the backend requires email verification, no token is returned,
+        // and we must NOT set the user — they'd be in a ghost-authenticated state.
+        if (res.token) {
+          set({ user: res.user });
+        }
         return res;
       },
 

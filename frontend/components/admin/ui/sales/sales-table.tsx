@@ -2,6 +2,7 @@
 
 import { Eye, ShoppingBag } from "lucide-react";
 import { formatPrice } from "@/lib/format-price";
+import type { Locale } from "@/i18n";
 import type { Order } from "@/store/orders-store";
 
 function SkeletonRow() {
@@ -25,6 +26,7 @@ function SkeletonRow() {
 interface SalesTableProps {
   loading?: boolean;
   orders: Order[];
+  locale: Locale;
   formatDate: (dateStr: string) => string;
   onViewOrder: (order: Order) => void;
   viewLabel: string;
@@ -43,6 +45,7 @@ interface SalesTableProps {
 export function SalesTable({
   loading = false,
   orders,
+  locale,
   formatDate,
   onViewOrder,
   viewLabel,
@@ -91,7 +94,7 @@ export function SalesTable({
                 key={order.id}
                 className="border-b border-border last:border-0 table-row-hover group"
               >
-                <td className="px-4 py-4 text-sm font-semibold text-maroon dark:text-gold">#{order.id}</td>
+                <td className="px-4 py-4 text-sm font-semibold text-maroon dark:text-gold">#{order.orderNumber || order.id}</td>
                 <td className="px-4 py-4">
                   <p className="text-sm font-medium text-foreground">{order.customer.name}</p>
                   <p className="text-xs text-muted-foreground">{order.customer.email}</p>
@@ -100,9 +103,9 @@ export function SalesTable({
                   <span className="text-sm text-foreground">
                     {order.items.reduce((sum, i) => sum + i.quantity, 0)}
                   </span>
-                  <span className="text-xs text-muted-foreground ml-1">{productsLabel.toLowerCase()}</span>
+                  <span className="text-xs text-muted-foreground ms-1">{productsLabel.toLowerCase()}</span>
                 </td>
-                <td className="px-4 py-4 text-sm font-semibold text-foreground">{formatPrice(order.total)}</td>
+                <td className="px-4 py-4 text-sm font-semibold text-foreground">{formatPrice(order.total, locale)}</td>
                 <td className="px-4 py-4 hidden lg:table-cell text-xs text-muted-foreground">
                   {formatDate(order.createdAt)}
                 </td>

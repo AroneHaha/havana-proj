@@ -27,6 +27,7 @@ import {
 } from "@/services/product-service";
 import type { Product } from "@/types";
 import { getErrorMessage } from "@/lib/get-error-message";
+import { useLanguageStore } from "@/store/language-store";
 
 // Re-export types so components can import from the store
 export type { ProductsError, ProductStats };
@@ -76,7 +77,9 @@ export const useProductsStore = create<ProductsState>()(
         try {
           // Rehydrate from localStorage first (cache), then refresh from API
           useProductsStore.persist.rehydrate();
-          const { products } = await serviceGetProducts("en", 1, 200);
+          // Use the current locale from language store — not hardcoded "en"
+          const locale = useLanguageStore.getState().locale;
+          const { products } = await serviceGetProducts(locale, 1, 200);
           set({ products, loading: false });
         } catch (err) {
           set({ error: getErrorMessage(err, "Failed to fetch products"), loading: false });
@@ -94,7 +97,8 @@ export const useProductsStore = create<ProductsState>()(
 
       addProduct: async (productData, rawFiles) => {
         try {
-          const newProduct = await serviceCreateProduct(productData, "en", rawFiles);
+          const locale = useLanguageStore.getState().locale;
+          const newProduct = await serviceCreateProduct(productData, locale, rawFiles);
           set((state) => ({
             products: [newProduct, ...state.products],
           }));
@@ -107,7 +111,8 @@ export const useProductsStore = create<ProductsState>()(
 
       updateProduct: async (id, data, rawFiles) => {
         try {
-          const updated = await serviceUpdateProduct(id, data, "en", rawFiles);
+          const locale = useLanguageStore.getState().locale;
+          const updated = await serviceUpdateProduct(id, data, locale, rawFiles);
           set((state) => ({
             products: state.products.map((p) =>
               p.id === id ? updated : p

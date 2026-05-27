@@ -12,6 +12,7 @@ import { useLanguageStore } from "@/store/language-store";
 import { useUIStore } from "@/store/ui-store";
 import { getDictionary } from "@/i18n";
 import { placeOrder, verifyStock, type CheckoutResult } from "@/services/checkout-service";
+import { calculateDeliveryFee } from "@/lib/constant";
 
 type Step = "form" | "success" | "login-required";
 
@@ -41,7 +42,7 @@ export function CheckoutModal() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
 
   const subtotal = getSubtotal();
-  const deliveryFee = subtotal >= 50 ? 0 : 3;
+  const deliveryFee = calculateDeliveryFee(subtotal);
   const total = subtotal + deliveryFee;
 
   // Pre-fill from auth user when modal opens

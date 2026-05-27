@@ -342,6 +342,50 @@ export async function updateProduct(
   // ── Try real API first ──
   if (API_BASE) {
     try {
+      // If we have raw files, use FormData (multipart/form-data) so Laravel
+      // receives actual file uploads in $_FILES instead of base64 JSON strings.
+      if (rawFiles && rawFiles.length > 0) {
+        const fd = new FormData();
+        // Laravel method spoofing: FormData must be POST, but we add
+        // _method=PATCH so Laravel routes it to the PATCH handler.
+        fd.append("_method", "PATCH");
+        if (data.name !== undefined) fd.append("name", data.name);
+        if (data.description !== undefined) fd.append("description", data.description);
+        if (data.localeText !== undefined) fd.append("locale_text", JSON.stringify(data.localeText));
+        if (data.price !== undefined) fd.append("price", String(data.price));
+        if (data.salePrice !== undefined) fd.append("sale_price", String(data.salePrice));
+        if (data.category !== undefined) fd.append("category", data.category);
+        if (data.stock !== undefined) {
+          fd.append("stock", String(data.stock));
+          fd.append("in_stock", String(data.stock > 0));
+        }
+        if (data.isFeatured !== undefined) fd.append("is_featured", String(data.isFeatured));
+        if (data.isBestSeller !== undefined) fd.append("is_best_seller", String(data.isBestSeller));
+        if (data.isNew !== undefined) fd.append("is_new", String(data.isNew));
+        if (data.sku) fd.append("sku", data.sku);
+        // New file uploads
+        rawFiles.forEach((file, i) => {
+          fd.append(`images[${i}]`, file);
+        });
+        // Existing image URLs (not data: URIs) that should be kept
+        (data.images ?? []).forEach((img) => {
+          if (!img.startsWith("data:")) {
+            fd.append("existing_images[]", img);
+          }
+        });
+
+        const res = await productsFetch<{ data: LaravelProduct }>(
+          `/admin/products/${id}`,
+          {
+            method: "POST",
+            body: fd as unknown as BodyInit,
+            // Let the browser set Content-Type with boundary for FormData
+          }
+        );
+        return mapLaravelProduct(res.data, locale);
+      }
+
+      // No raw files — send as JSON (PATCH)
       // Map camelCase → snake_case for Laravel
       const body: Record<string, unknown> = {};
       if (data.name !== undefined) body.name = data.name;

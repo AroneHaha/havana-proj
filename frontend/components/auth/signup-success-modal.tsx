@@ -60,7 +60,7 @@ export function SignupSuccessModal({ open, onClose }: SignupSuccessModalProps) {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Decorative top accent */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-1 rounded-b-full bg-gradient-to-r from-maroon via-gold to-maroon" />
+              <div className="absolute top-0 start-1/2 -translate-x-1/2 w-16 h-1 rounded-b-full bg-gradient-to-r from-maroon via-gold to-maroon" />
 
               {/* Success icon */}
               <motion.div
@@ -76,14 +76,14 @@ export function SignupSuccessModal({ open, onClose }: SignupSuccessModalProps) {
                 <motion.div
                   animate={{ y: [-4, 4, -4], rotate: [0, 10, 0] }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute -top-1 -right-1"
+                  className="absolute -top-1 -end-1"
                 >
                   <Flower2 className="w-5 h-5 text-maroon/40 dark:text-gold/40" />
                 </motion.div>
                 <motion.div
                   animate={{ y: [4, -4, 4], rotate: [0, -15, 0] }}
                   transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                  className="absolute -bottom-1 -left-1"
+                  className="absolute -bottom-1 -start-1"
                 >
                   <Flower2 className="w-4 h-4 text-gold/30" />
                 </motion.div>
@@ -118,9 +118,7 @@ export function SignupSuccessModal({ open, onClose }: SignupSuccessModalProps) {
 
               {/* Auto-redirect notice */}
               <p className="mt-4 text-xs text-muted-foreground/60">
-                {locale === "ar"
-                  ? "سيتم تحويلك تلقائياً لتسجيل الدخول"
-                  : "You'll be redirected to login automatically"}
+                {t.auth.signup.autoRedirectNotice}
               </p>
             </div>
           </motion.div>

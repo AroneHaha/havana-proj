@@ -236,8 +236,13 @@ async function authFetchInner<T>(
 ): Promise<T> {
   const token = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
 
+  // When the body is FormData, do NOT set Content-Type — the browser must
+  // set it automatically with the correct multipart/form-data boundary.
+  // Forcing application/json breaks all file uploads (product images, etc.).
+  const isFormData = options.body instanceof FormData;
+
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     Accept: "application/json",
     ...(options.headers as Record<string, string>),
   };
@@ -532,7 +537,10 @@ export async function getCurrentUserFromAPI(): Promise<AuthUser | null> {
     const data = await authFetch<{ user: LaravelLoginResponse["user"] }>("/auth/me");
     return mapLaravelUser(data.user);
   } catch {
-    return getStoredUser();
+    // API is configured but call failed (token revoked, account suspended, etc.).
+    // Do NOT fall back to stale localStorage — that would show a ghost-authenticated
+    // state with potentially outdated role/permissions.
+    return null;
   }
 }
 

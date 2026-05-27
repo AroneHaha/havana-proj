@@ -2,22 +2,24 @@
 
 import { motion } from "framer-motion";
 import { ShoppingBag, DollarSign, TrendingUp, Clock } from "lucide-react";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice } from "@/lib/format-price";
+import type { Locale } from "@/i18n";
 import type { OrdersT } from "./use-orders-data";
 
 interface StatsCardsProps {
   t: OrdersT;
+  locale: Locale;
   ordersCount: number;
   totalRevenue: number;
   avgOrder: number;
   pendingCount: number;
 }
 
-export function StatsCards({ t, ordersCount, totalRevenue, avgOrder, pendingCount }: StatsCardsProps) {
+export function StatsCards({ t, locale, ordersCount, totalRevenue, avgOrder, pendingCount }: StatsCardsProps) {
   const stats = [
     { label: t.all, value: ordersCount, icon: ShoppingBag, color: "text-blue-500" },
-    { label: t.revenue, value: formatPrice(totalRevenue), icon: DollarSign, color: "text-emerald-500" },
-    { label: t.averageOrder, value: formatPrice(avgOrder), icon: TrendingUp, color: "text-orange-500" },
+    { label: t.revenue, value: formatPrice(totalRevenue, locale), icon: DollarSign, color: "text-emerald-500" },
+    { label: t.averageOrder, value: formatPrice(avgOrder, locale), icon: TrendingUp, color: "text-orange-500" },
     { label: t.pending, value: pendingCount, icon: Clock, color: "text-yellow-500" },
   ];
 

@@ -204,6 +204,7 @@ export interface Translation {
       welcomeBack: string;
       sessionExpired: string;
       networkError: string;
+      loginTagline: string;
     };
     signup: {
       title: string;
@@ -229,6 +230,8 @@ export interface Translation {
       emailAlreadyTaken: string;
       weakPassword: string;
       passwordTooShort: string;
+      signupTagline: string;
+      autoRedirectNotice: string;
     };
   };
 
@@ -242,6 +245,9 @@ export interface Translation {
       analytics: string;
       settings: string;
       signOut: string;
+      brandName: string;
+      mainSection: string;
+      topbarSubtitle: string;
     };
     dashboard: {
       title: string;
@@ -276,6 +282,11 @@ export interface Translation {
       product: string;
       rating: string;
       visibility: string;
+      visible: string;
+      hidden: string;
+      pending: string;
+      show: string;
+      hide: string;
       averageRating: string;
       totalReviews: string;
       pendingReviews: string;
@@ -388,6 +399,7 @@ export interface Translation {
       noReviews: string;
       noReviewsForProduct: string;
       reviewsFor: string;
+      quantity: string;
       showing: string;
       all: string;
       filterByStatus: string;
@@ -398,6 +410,9 @@ export interface Translation {
       dateTo: string;
       clearDate: string;
       page: string;
+      customDateRange: string;
+      allYears: string;
+      allMonths: string;
     };
     products: {
       title: string;
@@ -433,6 +448,38 @@ export interface Translation {
       addProduct: string;
       showing: string;
       page: string;
+      editProductTitle: string;
+      addProductTitle: string;
+      saveChanges: string;
+      cancel: string;
+      productImages: string;
+      productNameEn: string;
+      productNameAr: string;
+      priceKD: string;
+      stockQuantity: string;
+      salePriceKD: string;
+      descriptionLabel: string;
+      allCategories: string;
+      photos: string;
+      inStockLabel: string;
+      noRatings: string;
+      reviewsCount: string;
+      tags: string;
+      newTag: string;
+      bestSellerTag: string;
+      featuredTag: string;
+      localeText: string;
+      soldOutToggle: string;
+      leaveEmptyDiscount: string;
+      itemsSold: string;
+      avgRating: string;
+      reviewsLabel: string;
+      revenue: string;
+      noReviewsForProductDrawer: string;
+      deleteConfirm: string;
+      visible: string;
+      hidden: string;
+      pending: string;
     };
   };
 }

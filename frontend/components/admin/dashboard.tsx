@@ -21,7 +21,7 @@ import { useOrdersStore, STATUS_I18N_KEY } from "@/store/orders-store";
 import { useProductsStore, getStockStatus } from "@/store/product-store";
 import { useReviewsStore } from "@/store/review-store";
 import { getDictionary } from "@/i18n";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice } from "@/lib/format-price";
 import { ORDER_STATUS_COLORS } from "@/lib/constant";
 
 export function AdminDashboard() {
@@ -132,7 +132,7 @@ export function AdminDashboard() {
   };
 
   const today = new Date();
-  const dateStr = today.toLocaleDateString(locale === "ar" ? "ar-SA" : "en-US", {
+  const dateStr = today.toLocaleDateString(locale === "ar" ? "ar-KW" : "en-KW", {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -142,7 +142,7 @@ export function AdminDashboard() {
   const stats = [
     {
       labelKey: "totalRevenue",
-      value: formatPrice(totalRevenue),
+      value: formatPrice(totalRevenue, locale),
       icon: DollarSign,
       iconBg: "bg-emerald-50 dark:bg-emerald-900/20",
       iconColor: "text-emerald-600 dark:text-emerald-400",
@@ -259,12 +259,12 @@ export function AdminDashboard() {
                 <tbody>
                   {recentOrders.map((order) => (
                     <tr key={order.id} className="border-b border-border/50 last:border-0 table-row-hover">
-                      <td className="px-5 py-3 text-sm font-medium text-foreground">#{order.id}</td>
+                      <td className="px-5 py-3 text-sm font-medium text-foreground">#{order.orderNumber || order.id}</td>
                       <td className="px-5 py-3 text-sm text-muted-foreground">{order.customer.name}</td>
                       <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell truncate max-w-[140px]">
                         {order.items[0]?.productName}{order.items.length > 1 ? ` +${order.items.length - 1}` : ""}
                       </td>
-                      <td className="px-5 py-3 text-sm font-medium text-foreground">{formatPrice(order.total)}</td>
+                      <td className="px-5 py-3 text-sm font-medium text-foreground">{formatPrice(order.total, locale)}</td>
                       <td className="px-5 py-3">
                         <span className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium ${ORDER_STATUS_COLORS[order.status]}`}>
                           {getStatusLabel(order.status)}
@@ -323,7 +323,7 @@ export function AdminDashboard() {
                       <tr key={product.id} className="border-b border-border/50 last:border-0 table-row-hover">
                         <td className="px-5 py-3 text-sm font-medium text-foreground">{product.name}</td>
                         <td className="px-5 py-3 text-sm text-muted-foreground capitalize">{product.category}</td>
-                        <td className="px-5 py-3 text-sm font-medium text-foreground">{formatPrice(product.salePrice ?? product.price)}</td>
+                        <td className="px-5 py-3 text-sm font-medium text-foreground">{formatPrice(product.salePrice ?? product.price, locale)}</td>
                         <td className="px-5 py-3">
                           <span className="text-sm font-semibold text-foreground">{product.stock}</span>
                         </td>
@@ -412,7 +412,7 @@ export function AdminDashboard() {
                 </div>
                 <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{tOrders.averageOrder}</span>
               </div>
-              <p className="text-lg font-semibold text-foreground">{formatPrice(avgOrderValue)}</p>
+              <p className="text-lg font-semibold text-foreground">{formatPrice(avgOrderValue, locale)}</p>
             </div>
 
             {/* Average Rating */}

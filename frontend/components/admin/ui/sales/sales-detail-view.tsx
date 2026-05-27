@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Package, Star } from "lucide-react";
 import { ReviewList } from "@/components/reviews";
 import { formatPrice } from "@/lib/format-price";
+import type { Locale } from "@/i18n";
 import type { Order } from "@/store/orders-store";
 import type { Review } from "@/store/review-store";
 
@@ -12,6 +13,7 @@ interface SalesDetailViewProps {
   order: Order;
   reviews: Review[];
   onBack: () => void;
+  locale: Locale;
   formatDate: (dateStr: string) => string;
   labels: {
     backToSales: string;
@@ -23,6 +25,7 @@ interface SalesDetailViewProps {
     total: string;
     products: string;
     reviewsFor: string;
+    quantity: string;
     noReviewsForProduct: string;
   };
 }
@@ -31,6 +34,7 @@ export function SalesDetailView({
   order,
   reviews,
   onBack,
+  locale,
   formatDate,
   labels,
 }: SalesDetailViewProps) {
@@ -90,7 +94,7 @@ export function SalesDetailView({
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-1">{labels.total}</p>
-            <p className="text-sm font-bold text-foreground">{formatPrice(order.total)}</p>
+            <p className="text-sm font-bold text-foreground">{formatPrice(order.total, locale)}</p>
           </div>
         </div>
 
@@ -107,11 +111,11 @@ export function SalesDetailView({
                   <Package className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium text-foreground">{item.productName}</p>
-                    <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                    <p className="text-xs text-muted-foreground">{labels.quantity}: {item.quantity}</p>
                   </div>
                 </div>
                 <p className="text-sm font-semibold text-foreground">
-                  {formatPrice(item.price * item.quantity)}
+                  {formatPrice(item.price * item.quantity, locale)}
                 </p>
               </div>
             ))}
