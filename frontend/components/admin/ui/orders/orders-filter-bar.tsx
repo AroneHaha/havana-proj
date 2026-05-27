@@ -47,10 +47,10 @@ export function OrdersFilterBar({
               <button
                 key={filter}
                 onClick={() => onFilterChange(filter)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap cursor-pointer border ${
                   isActive
-                    ? "bg-maroon text-white dark:bg-gold dark:text-dark-bg"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                    ? "bg-maroon text-white dark:bg-gold dark:text-dark-bg border-maroon dark:border-gold shadow-sm shadow-maroon/20 dark:shadow-gold/20 ring-1 ring-maroon/20 dark:ring-gold/20"
+                    : "bg-white dark:bg-dark-card border-border text-muted-foreground hover:bg-muted hover:text-foreground hover:shadow-xs ring-1 ring-black/[0.03] dark:ring-white/[0.03]"
                 }`}
               >
                 {filter !== "all" && (

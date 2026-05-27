@@ -62,7 +62,7 @@ export function ProductDetailView({
       </h1>
 
       {/* Product info card */}
-      <div className="bg-white dark:bg-dark-card rounded-2xl border border-border p-6 mb-8">
+      <div className="bg-white dark:bg-dark-card rounded-2xl border border-border ring-1 ring-black/[0.03] dark:ring-white/[0.03] shadow-elevated p-6 mb-8">
         <h2 className="font-serif text-lg font-semibold text-foreground mb-4">
           {labels.productInfo}
         </h2>
@@ -71,7 +71,6 @@ export function ProductDetailView({
           {/* Left: Image */}
           <div className="space-y-4">
             <div className="aspect-square rounded-xl bg-muted/30 overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={product.image}
                 alt={product.name}
@@ -82,7 +81,6 @@ export function ProductDetailView({
               <div className="grid grid-cols-4 gap-2">
                 {product.images.map((img, idx) => (
                   <div key={idx} className="aspect-square rounded-lg bg-muted/30 overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
                   </div>
                 ))}
@@ -112,7 +110,7 @@ export function ProductDetailView({
                 <div className="flex items-center gap-2">
                   <p className="text-lg font-bold text-foreground">{formatPrice(product.price)}</p>
                   {product.salePrice != null && product.salePrice < product.price && (
-                    <span className="text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md font-medium">
+                    <span className="text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md font-medium ring-1 ring-emerald-200/50 dark:ring-emerald-800/20">
                       {formatPrice(product.salePrice)}
                     </span>
                   )}
@@ -121,7 +119,7 @@ export function ProductDetailView({
               <div>
                 <p className="text-xs text-muted-foreground mb-1">{labels.stock}</p>
                 <div className="flex items-center gap-2">
-                  <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${st.color}`}>
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full shadow-xs ${st.color}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
                     {st.label}
                   </span>
@@ -143,17 +141,17 @@ export function ProductDetailView({
                 <p className="text-xs text-muted-foreground mb-1">Tags</p>
                 <div className="flex flex-wrap gap-1.5">
                   {product.isNew && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full ring-1 ring-emerald-200/50 dark:ring-emerald-800/20">
                       <Tag className="w-3 h-3" /> New
                     </span>
                   )}
                   {product.isBestSeller && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full ring-1 ring-amber-200/50 dark:ring-amber-800/20">
                       <Tag className="w-3 h-3" /> Best Seller
                     </span>
                   )}
                   {product.isFeatured && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full ring-1 ring-blue-200/50 dark:ring-blue-800/20">
                       <Tag className="w-3 h-3" /> Featured
                     </span>
                   )}
@@ -175,7 +173,7 @@ export function ProductDetailView({
                 <p className="text-xs text-muted-foreground mb-2">Locale Text</p>
                 <div className="space-y-2">
                   {Object.entries(product.localeText).map(([locale, text]) => (
-                    <div key={locale} className="bg-muted/30 rounded-lg px-3 py-2">
+                    <div key={locale} className="bg-muted/30 rounded-lg px-3 py-2 ring-1 ring-black/[0.02] dark:ring-white/[0.02]">
                       <p className="text-[10px] font-medium text-muted-foreground uppercase mb-0.5">{locale}</p>
                       <p className="text-xs font-medium text-foreground">{text.name}</p>
                       {text.description && (

@@ -30,7 +30,7 @@ export function AdminDashboard() {
   const tReviews = dict.admin.reviews;
   const user = useAuthStore((s) => s.user);
 
-  // ─── Store data — select RAW state, never call methods in selectors ──
+  // ─── Store data ──
   const ordersLoading = useOrdersStore((s) => s.loading);
   const orders = useOrdersStore((s) => s.orders);
   const orderStats = useOrdersStore((s) => s.stats);
@@ -58,7 +58,7 @@ export function AdminDashboard() {
     fetchReviewStats();
   }, [fetchOrders, fetchStats, fetchProducts, fetchReviews, fetchReviewStats]);
 
-  // ─── Derived data via useMemo (stable references, no infinite loops) ──
+  // ─── Derived data ──
   const totalRevenue = useMemo(() => {
     if (orderStats) return orderStats.totalRevenue;
     return orders
@@ -130,10 +130,10 @@ export function AdminDashboard() {
 
   // ─── Stats config ────────────────────────────────────────────────────
   const stats = [
-    { labelKey: "totalRevenue", value: formatPrice(totalRevenue), icon: DollarSign, color: "text-emerald-500" },
-    { labelKey: "totalOrders", value: String(orders.length), icon: ShoppingBag, color: "text-blue-500" },
-    { labelKey: "activeUsers", value: "—", icon: Users, color: "text-purple-500" },
-    { labelKey: "products", value: String(products.length), icon: Flower2, color: "text-gold" },
+    { labelKey: "totalRevenue", value: formatPrice(totalRevenue), icon: DollarSign, color: "text-emerald-500", bgAccent: "bg-emerald-50 dark:bg-emerald-900/20", borderAccent: "border-l-emerald-500" },
+    { labelKey: "totalOrders", value: String(orders.length), icon: ShoppingBag, color: "text-blue-500", bgAccent: "bg-blue-50 dark:bg-blue-900/20", borderAccent: "border-l-blue-500" },
+    { labelKey: "activeUsers", value: "—", icon: Users, color: "text-purple-500", bgAccent: "bg-purple-50 dark:bg-purple-900/20", borderAccent: "border-l-purple-500" },
+    { labelKey: "products", value: String(products.length), icon: Flower2, color: "text-gold", bgAccent: "bg-gold/10 dark:bg-gold/20", borderAccent: "border-l-gold" },
   ];
 
   return (
@@ -152,11 +152,11 @@ export function AdminDashboard() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: i * 0.08 }}
-            className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-border"
+            className={`bg-white dark:bg-dark-card rounded-2xl p-5 border border-border shadow-elevated-hover border-l-[4px] ${stat.borderAccent}`}
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm text-muted-foreground font-medium">{t[stat.labelKey as keyof typeof t]}</span>
-              <div className={`p-2 rounded-xl bg-muted/50 ${stat.color}`}><stat.icon className="h-4 w-4" /></div>
+              <div className={`p-2 rounded-xl ${stat.bgAccent} ${stat.color}`}><stat.icon className="h-4 w-4" /></div>
             </div>
             {loading ? (
               <div className="h-8 w-24 bg-muted rounded-lg animate-pulse" />
@@ -171,8 +171,8 @@ export function AdminDashboard() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
 
         {/* ─── Recent Orders Table ──────────────────────────────────── */}
-        <div className="bg-white dark:bg-dark-card rounded-2xl border border-border overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="bg-white dark:bg-dark-card rounded-2xl border border-border shadow-elevated overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-inset">
             <h2 className="font-serif text-lg font-semibold text-foreground">{t.recentOrders}</h2>
             <Link href="/orders" className="text-sm text-maroon dark:text-gold font-medium hover:underline">{t.viewAll}</Link>
           </div>
@@ -188,17 +188,17 @@ export function AdminDashboard() {
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.order}</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.customer}</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">{t.product}</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.amount}</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.status}</th>
+                  <tr className="border-b border-border bg-inset">
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t.order}</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t.customer}</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">{t.product}</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t.amount}</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t.status}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentOrders.map((order) => (
-                    <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                    <tr key={order.id} className="border-b border-border last:border-0 table-row-hover">
                       <td className="px-6 py-4 text-sm font-medium text-foreground">#{order.id}</td>
                       <td className="px-6 py-4 text-sm text-muted-foreground">{order.customer.name}</td>
                       <td className="px-6 py-4 text-sm text-muted-foreground hidden sm:table-cell">{order.items[0]?.productName}{order.items.length > 1 ? ` +${order.items.length - 1}` : ""}</td>
@@ -217,13 +217,13 @@ export function AdminDashboard() {
         </div>
 
         {/* ─── Low & Out of Stock Products Table ────────────────────── */}
-        <div className="bg-white dark:bg-dark-card rounded-2xl border border-border overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="bg-white dark:bg-dark-card rounded-2xl border border-border shadow-elevated overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-inset">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-yellow-500" />
               <h2 className="font-serif text-lg font-semibold text-foreground">{tProducts.lowStockCount} & {tProducts.outOfStockCount}</h2>
             </div>
-            <Link href="/products" className="text-sm text-maroon dark:text-gold font-medium hover-underline">{t.viewAll}</Link>
+            <Link href="/products" className="text-sm text-maroon dark:text-gold font-medium hover:underline">{t.viewAll}</Link>
           </div>
           <div className="overflow-x-auto">
             {loading ? (
@@ -237,12 +237,12 @@ export function AdminDashboard() {
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{tProducts.productName}</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{tProducts.category}</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{tProducts.price}</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{tProducts.stock}</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{tProducts.status}</th>
+                  <tr className="border-b border-border bg-inset">
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tProducts.productName}</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tProducts.category}</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tProducts.price}</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tProducts.stock}</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tProducts.status}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -252,7 +252,7 @@ export function AdminDashboard() {
                       ? { label: tProducts.lowStock, color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" }
                       : { label: tProducts.soldOut, color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" };
                     return (
-                      <tr key={product.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                      <tr key={product.id} className="border-b border-border last:border-0 table-row-hover">
                         <td className="px-6 py-4 text-sm font-medium text-foreground">{product.name}</td>
                         <td className="px-6 py-4 text-sm text-muted-foreground capitalize">{product.category}</td>
                         <td className="px-6 py-4 text-sm font-medium text-foreground">{formatPrice(product.salePrice ?? product.price)}</td>
@@ -278,13 +278,13 @@ export function AdminDashboard() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
         {/* ─── Recent Reviews Table ─────────────────────────────────── */}
-        <div className="bg-white dark:bg-dark-card rounded-2xl border border-border overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="bg-white dark:bg-dark-card rounded-2xl border border-border shadow-elevated overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-inset">
             <div className="flex items-center gap-2">
               <Star className="h-4 w-4 text-gold" />
               <h2 className="font-serif text-lg font-semibold text-foreground">{tReviews.recentReviews}</h2>
             </div>
-            <Link href="/sales-reviews" className="text-sm text-maroon dark:text-gold font-medium hover-underline">{t.viewAll}</Link>
+            <Link href="/sales-reviews" className="text-sm text-maroon dark:text-gold font-medium hover:underline">{t.viewAll}</Link>
           </div>
           <div className="overflow-x-auto">
             {recentReviews.length === 0 ? (
@@ -292,16 +292,16 @@ export function AdminDashboard() {
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{tReviews.customer}</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{tReviews.product}</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{tReviews.rating}</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{tReviews.visibility}</th>
+                  <tr className="border-b border-border bg-inset">
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tReviews.customer}</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tReviews.product}</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tReviews.rating}</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tReviews.visibility}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentReviews.map((review) => (
-                    <tr key={review.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                    <tr key={review.id} className="border-b border-border last:border-0 table-row-hover">
                       <td className="px-6 py-4 text-sm font-medium text-foreground">{review.customerName}</td>
                       <td className="px-6 py-4 text-sm text-muted-foreground">{review.product.productName}</td>
                       <td className="px-6 py-4">
@@ -324,8 +324,8 @@ export function AdminDashboard() {
         </div>
 
         {/* ─── Quick Stats Summary ──────────────────────────────────── */}
-        <div className="bg-white dark:bg-dark-card rounded-2xl border border-border overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="bg-white dark:bg-dark-card rounded-2xl border border-border shadow-elevated overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-inset">
             <div className="flex items-center gap-2">
               <Package className="h-4 w-4 text-blue-500" />
               <h2 className="font-serif text-lg font-semibold text-foreground">{t.storeOverview}</h2>
@@ -333,7 +333,7 @@ export function AdminDashboard() {
           </div>
           <div className="p-6 space-y-4">
             {/* Average Order Value */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-blue-50/60 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20">
               <div>
                 <p className="text-sm text-muted-foreground">{tOrders.averageOrder}</p>
                 <p className="text-xl font-bold text-foreground">{formatPrice(avgOrderValue)}</p>
@@ -344,7 +344,7 @@ export function AdminDashboard() {
             </div>
 
             {/* Average Rating */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-amber-50/60 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20">
               <div>
                 <p className="text-sm text-muted-foreground">{t.averageRating}</p>
                 <div className="flex items-center gap-2">
@@ -365,7 +365,7 @@ export function AdminDashboard() {
             </div>
 
             {/* Pending Orders */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-yellow-50/60 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/20">
               <div>
                 <p className="text-sm text-muted-foreground">{t.pendingOrders}</p>
                 <p className="text-xl font-bold text-foreground">{t.activeCount.replace("{count}", String(activeOrders.length))}</p>
@@ -376,7 +376,7 @@ export function AdminDashboard() {
             </div>
 
             {/* Inventory Summary */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-red-50/60 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20">
               <div>
                 <p className="text-sm text-muted-foreground">{t.inventoryAlerts}</p>
                 <p className="text-xl font-bold text-foreground">

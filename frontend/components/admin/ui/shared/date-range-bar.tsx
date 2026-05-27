@@ -31,7 +31,7 @@ export function DateRangeBar({
   const hasDateFilter = dateFrom || dateTo;
 
   return (
-    <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-muted/30 gap-3 flex-wrap">
+    <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-inset gap-3 flex-wrap">
       <div className="flex items-center gap-1.5">
         {([
           { key: "today" as const, label: labels.today ?? "Today" },
@@ -41,10 +41,10 @@ export function DateRangeBar({
           <button
             key={preset.key}
             onClick={() => onPresetChange(preset.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer whitespace-nowrap border ${
               activePreset === preset.key
-                ? "bg-maroon text-white dark:bg-gold dark:text-dark-bg"
-                : "bg-white dark:bg-dark-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                ? "bg-maroon text-white dark:bg-gold dark:text-dark-bg border-maroon dark:border-gold shadow-sm"
+                : "bg-white dark:bg-dark-card border-border text-muted-foreground hover:text-foreground hover:bg-muted hover:shadow-xs"
             }`}
           >
             {preset.label}
@@ -59,14 +59,14 @@ export function DateRangeBar({
           type="date"
           value={dateFrom}
           onChange={(e) => onDateFromChange(e.target.value)}
-          className="px-2.5 py-1.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow"
+          className="px-2.5 py-1.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-maroon/20 dark:focus:ring-gold/20 focus:border-maroon dark:focus:border-gold transition-all duration-200 shadow-sm hover:shadow-none"
         />
         <span className="text-xs text-muted-foreground">&rarr;</span>
         <input
           type="date"
           value={dateTo}
           onChange={(e) => onDateToChange(e.target.value)}
-          className="px-2.5 py-1.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow"
+          className="px-2.5 py-1.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-maroon/20 dark:focus:ring-gold/20 focus:border-maroon dark:focus:border-gold transition-all duration-200 shadow-sm hover:shadow-none"
         />
         {hasDateFilter && (
           <button

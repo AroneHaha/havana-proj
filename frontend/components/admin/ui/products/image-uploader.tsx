@@ -21,15 +21,11 @@ export function ImageUploader({
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       if (replaceIndex !== null) {
-        // Replace a specific image
         const file = e.target.files[0];
         const reader = new FileReader();
         reader.onload = () => {
           const result = reader.result as string;
-          onRemove(replaceIndex); // remove old
-          // We need to insert at the same position, so we use onUpload
-          // but that appends. Instead, let's handle it via a custom approach.
-          // Actually, the simplest clean way: upload new, then the parent handles it.
+          onRemove(replaceIndex);
           onUpload(e.target.files!);
           setReplaceIndex(null);
         };
@@ -58,8 +54,10 @@ export function ImageUploader({
         {images.map((img, i) => (
           <div
             key={i}
-            className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors cursor-pointer ${
-              dragOverIndex === i ? "border-maroon dark:border-gold" : "border-border"
+            className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors cursor-pointer ring-1 ${
+              dragOverIndex === i
+                ? "border-maroon dark:border-gold ring-maroon/20 dark:ring-gold/20"
+                : "border-border ring-black/[0.03] dark:ring-white/[0.03]"
             }`}
             onClick={() => handleClickReplace(i)}
           >
@@ -79,7 +77,7 @@ export function ImageUploader({
                 e.stopPropagation();
                 onRemove(i);
               }}
-              className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/50 hover:bg-red-500 transition-colors cursor-pointer"
+              className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/50 hover:bg-red-500 transition-colors cursor-pointer ring-1 ring-white/20"
             >
               <X className="w-2.5 h-2.5 text-white" />
             </button>
@@ -94,7 +92,7 @@ export function ImageUploader({
         {images.length < maxImages && (
           <button
             onClick={handleClickAdd}
-            className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-maroon dark:hover:border-gold hover:text-maroon dark:hover:text-gold transition-colors cursor-pointer"
+            className="w-20 h-20 rounded-lg border-2 border-dashed border-border ring-1 ring-black/[0.02] dark:ring-white/[0.02] flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-maroon dark:hover:border-gold hover:text-maroon dark:hover:text-gold hover:ring-maroon/10 dark:hover:ring-gold/10 transition-all cursor-pointer"
           >
             <ImagePlus className="w-5 h-5" />
             <span className="text-[10px] font-medium">Upload</span>

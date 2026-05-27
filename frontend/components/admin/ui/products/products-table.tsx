@@ -25,22 +25,24 @@ export function ProductGrid({
 }: ProductGridProps) {
   if (products.length === 0) {
     return (
-      <div className="bg-white dark:bg-dark-card rounded-2xl border border-border p-16 text-center">
-        <Flower2 className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+      <div className="bg-white dark:bg-dark-card rounded-2xl border border-border ring-1 ring-black/[0.03] dark:ring-white/[0.03] shadow-elevated p-16 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
+          <Flower2 className="w-8 h-8 text-muted-foreground/40" />
+        </div>
         <p className="text-sm text-muted-foreground">No products found</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {products.map((product, i) => (
         <motion.div
           key={product.id}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: i * 0.05 }}
-          className="bg-white dark:bg-dark-card rounded-xl border border-border overflow-hidden group cursor-pointer hover:shadow-md transition-shadow"
+          className="bg-white dark:bg-dark-card rounded-xl border border-border ring-1 ring-black/[0.03] dark:ring-white/[0.03] shadow-elevated-hover overflow-hidden group cursor-pointer"
           onClick={() => onPreview(product)}
         >
           {/* ── Image ── */}
@@ -53,7 +55,7 @@ export function ProductGrid({
             {product.images[0] && product.images[0].startsWith("data:") ? (
               <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
+              <div className="w-full h-full flex items-center justify-center bg-inset">
                 <Flower2 className="w-10 h-10 text-maroon/20 dark:text-gold/20" />
               </div>
             )}
@@ -63,20 +65,20 @@ export function ProductGrid({
               <div className="absolute bottom-2 right-2 flex items-end gap-2">
                 <button
                   onClick={(e) => { e.stopPropagation(); onOpenEdit(product); }}
-                  className="p-2 rounded-lg bg-white/90 dark:bg-dark-card/90 hover:bg-white dark:hover:bg-dark-card transition-colors cursor-pointer"
+                  className="p-2 rounded-lg bg-white/90 dark:bg-dark-card/90 hover:bg-white dark:hover:bg-dark-card transition-colors cursor-pointer shadow-sm ring-1 ring-black/5"
                   title="Edit"
                 >
                   <Edit3 className="w-4 h-4 text-foreground" />
                 </button>
                 {deleteConfirm === product.id ? (
                   <div className="flex gap-1">
-                    <button onClick={(e) => { e.stopPropagation(); onDelete(product.id); }} className="px-2.5 py-1.5 rounded-lg text-[10px] font-medium bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer">Delete</button>
-                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }} className="px-2.5 py-1.5 rounded-lg text-[10px] font-medium bg-white/90 dark:bg-dark-card/90 text-foreground hover:bg-white transition-colors cursor-pointer">Cancel</button>
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(product.id); }} className="px-2.5 py-1.5 rounded-lg text-[10px] font-medium bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer shadow-sm ring-1 ring-red-400/30">Delete</button>
+                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }} className="px-2.5 py-1.5 rounded-lg text-[10px] font-medium bg-white/90 dark:bg-dark-card/90 text-foreground hover:bg-white transition-colors cursor-pointer shadow-sm ring-1 ring-black/5">Cancel</button>
                   </div>
                 ) : (
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeleteConfirm(product.id); }}
-                    className="p-2 rounded-lg bg-red-500/90 hover:bg-red-500 transition-colors cursor-pointer"
+                    className="p-2 rounded-lg bg-red-500/90 hover:bg-red-500 transition-colors cursor-pointer shadow-sm ring-1 ring-red-400/20"
                     title="Delete"
                   >
                     <Trash2 className="w-4 h-4 text-white" />
@@ -87,7 +89,7 @@ export function ProductGrid({
 
             {/* Status badge */}
             <div className="absolute top-2 left-2 z-20">
-              <span className={`inline-flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-full ${PRODUCT_STATUS_CONFIG[product.status].color}`}>
+              <span className={`inline-flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-full shadow-xs ${PRODUCT_STATUS_CONFIG[product.status].color}`}>
                 <span className={`w-1 h-1 rounded-full ${PRODUCT_STATUS_CONFIG[product.status].dot}`} />
                 {PRODUCT_STATUS_CONFIG[product.status].label}
               </span>

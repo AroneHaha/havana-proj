@@ -21,10 +21,10 @@ export function FilterTabs({ tabs, activeTab, onTabChange }: FilterTabsProps) {
             <button
               key={tab.key}
               onClick={() => onTabChange(tab.key)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap cursor-pointer border ${
                 isActive
-                  ? "bg-maroon text-white dark:bg-gold dark:text-dark-bg"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                  ? "bg-maroon text-white dark:bg-gold dark:text-dark-bg border-maroon dark:border-gold shadow-sm"
+                  : "bg-white dark:bg-dark-card border-border text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border hover:shadow-xs"
               }`}
             >
               {tab.dotColor && (

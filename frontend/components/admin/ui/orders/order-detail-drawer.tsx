@@ -108,15 +108,15 @@ export function OrderDetailDrawer({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 z-50 h-full w-full max-w-lg bg-white dark:bg-dark-card shadow-2xl overflow-y-auto"
+            className="fixed right-0 top-0 z-50 h-full w-full max-w-lg bg-white dark:bg-dark-card shadow-drawer overflow-y-auto"
           >
-            <div className="sticky top-0 z-10 bg-white dark:bg-dark-card border-b border-border">
+            <div className="sticky top-0 z-10 bg-white dark:bg-dark-card border-b border-border shadow-topbar">
               <div className="flex items-center justify-between p-5">
                 <div>
                   <h2 className="text-lg font-bold text-foreground">{t.orderDetails}</h2>
                   <p className="text-sm text-muted-foreground mt-0.5">#{order.id}</p>
                 </div>
-                <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer">
+                <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-all duration-200 cursor-pointer hover:shadow-xs">
                   <X className="w-5 h-5 text-muted-foreground" />
                 </button>
               </div>
@@ -124,18 +124,18 @@ export function OrderDetailDrawer({
 
             <div className="p-5 space-y-6">
               {!isCancelled && (
-                <div className="bg-muted/50 dark:bg-[#111] rounded-xl p-4">
+                <div className="bg-inset rounded-xl p-4 border border-border">
                   <div className="flex items-center justify-between mb-4">
-                    <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${ORDER_STATUS_COLORS[order.status]}`}>
+                    <span className={`text-xs font-semibold px-3 py-1.5 rounded-full shadow-xs ${ORDER_STATUS_COLORS[order.status]}`}>
                       {t[STATUS_I18N_KEY[order.status] as keyof typeof t] as string}
                     </span>
                     {nextStatus && (
                       <button
                         onClick={handleAdvanceStatus}
-                        className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                        className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer shadow-sm ring-1 ${
                           isNextDelivered
-                            ? "bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:text-white dark:hover:bg-emerald-600"
-                            : "bg-maroon text-white hover:bg-maroon-light dark:bg-gold dark:text-dark-bg dark:hover:bg-gold-dark"
+                            ? "bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:text-white dark:hover:bg-emerald-600 ring-emerald-500/20"
+                            : "bg-maroon text-white hover:bg-maroon-light dark:bg-gold dark:text-dark-bg dark:hover:bg-gold-dark ring-maroon/20 dark:ring-gold/20"
                         }`}
                       >
                         {t[nextStatusBtnKey[nextStatus] as keyof typeof t] as string}
@@ -160,7 +160,7 @@ export function OrderDetailDrawer({
               )}
 
               {isCancelled && (
-                <div className="bg-red-50 dark:bg-red-900/10 rounded-xl p-4 flex items-center gap-3">
+                <div className="bg-red-50 dark:bg-red-900/10 rounded-xl p-4 flex items-center gap-3 border border-red-100 dark:border-red-900/20">
                   <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
                     <X className="w-5 h-5 text-red-500" />
                   </div>
@@ -176,23 +176,23 @@ export function OrderDetailDrawer({
                   <Package className="w-4 h-4 text-maroon dark:text-gold" />{t.orderInfo}
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-muted/50 dark:bg-[#111] rounded-lg p-3">
+                  <div className="bg-inset rounded-lg p-3 border border-border ring-1 ring-black/[0.02] dark:ring-white/[0.02]">
                     <p className="text-xs text-muted-foreground">{t.createdAt}</p>
                     <p className="text-sm font-medium text-foreground mt-0.5">{formatDate(order.createdAt)}</p>
                   </div>
-                  <div className="bg-muted/50 dark:bg-[#111] rounded-lg p-3">
+                  <div className="bg-inset rounded-lg p-3 border border-border ring-1 ring-black/[0.02] dark:ring-white/[0.02]">
                     <p className="text-xs text-muted-foreground">{t.updatedAt}</p>
                     <p className="text-sm font-medium text-foreground mt-0.5">{formatDate(order.updatedAt)}</p>
                   </div>
-                  <div className="bg-muted/50 dark:bg-[#111] rounded-lg p-3">
+                  <div className="bg-inset rounded-lg p-3 border border-border ring-1 ring-black/[0.02] dark:ring-white/[0.02]">
                     <p className="text-xs text-muted-foreground">{t.paymentMethod}</p>
                     <p className="text-sm font-medium text-foreground mt-0.5 flex items-center gap-1.5">
                       <CreditCard className="w-3.5 h-3.5 text-maroon dark:text-gold" />{t.cash}
                     </p>
                   </div>
-                  <div className="bg-muted/50 dark:bg-[#111] rounded-lg p-3">
+                  <div className="bg-inset rounded-lg p-3 border border-border ring-1 ring-black/[0.02] dark:ring-white/[0.02]">
                     <p className="text-xs text-muted-foreground">{t.status}</p>
-                    <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full mt-0.5 ${ORDER_STATUS_COLORS[order.status]}`}>
+                    <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full mt-0.5 shadow-xs ${ORDER_STATUS_COLORS[order.status]}`}>
                       {t[STATUS_I18N_KEY[order.status] as keyof typeof t] as string}
                     </span>
                   </div>
@@ -203,7 +203,7 @@ export function OrderDetailDrawer({
                 <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                   <Mail className="w-4 h-4 text-maroon dark:text-gold" />{t.customerInfo}
                 </h3>
-                <div className="bg-muted/50 dark:bg-[#111] rounded-lg p-4 space-y-3">
+                <div className="bg-inset rounded-lg p-4 space-y-3 border border-border ring-1 ring-black/[0.02] dark:ring-white/[0.02]">
                   <p className="text-sm font-semibold text-foreground">{order.customer.name}</p>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Mail className="w-3.5 h-3.5 shrink-0" /><span>{order.customer.email}</span>
@@ -223,7 +223,7 @@ export function OrderDetailDrawer({
                 </h3>
                 <div className="space-y-2">
                   {order.items.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between bg-muted/50 dark:bg-[#111] rounded-lg p-3">
+                    <div key={i} className="flex items-center justify-between bg-inset rounded-lg p-3 border border-border ring-1 ring-black/[0.02] dark:ring-white/[0.02]">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{item.productName}</p>
                         <p className="text-xs text-muted-foreground">{formatPrice(item.price)} &times; {item.quantity}</p>
@@ -252,7 +252,7 @@ export function OrderDetailDrawer({
                 <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                   <StickyNote className="w-4 h-4 text-maroon dark:text-gold" />{t.notes}
                 </h3>
-                <div className="bg-muted/50 dark:bg-[#111] rounded-lg p-3">
+                <div className="bg-inset rounded-lg p-3 border border-border ring-1 ring-black/[0.02] dark:ring-white/[0.02]">
                   <p className="text-sm text-muted-foreground">{order.notes || t.noNotes}</p>
                 </div>
               </div>
@@ -279,7 +279,7 @@ export function OrderDetailDrawer({
                   transition={{ duration: 0.2 }}
                   className="fixed inset-0 z-[60] flex items-center justify-center p-4"
                 >
-                  <div className="bg-white dark:bg-dark-card rounded-2xl shadow-2xl border border-border max-w-md w-full p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+                  <div className="bg-white dark:bg-dark-card rounded-2xl shadow-xl border border-border ring-1 ring-black/[0.03] dark:ring-white/[0.03] max-w-md w-full p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center shrink-0">
                         <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
@@ -289,11 +289,11 @@ export function OrderDetailDrawer({
                         <p className="text-sm text-muted-foreground mt-0.5">{t.confirmDeliveryMessage.replace("{id}", order.id)}</p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg p-3">
+                    <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg p-3 border border-amber-100 dark:border-amber-900/20">
                       <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                       <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">{t.confirmDeliveryWarning}</p>
                     </div>
-                    <div className="bg-muted/50 dark:bg-[#111] rounded-lg p-3 space-y-2">
+                    <div className="bg-inset rounded-lg p-3 space-y-2 border border-border">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">{t.orderID}</span>
                         <span className="font-semibold text-foreground">#{order.id}</span>
@@ -308,8 +308,8 @@ export function OrderDetailDrawer({
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <button onClick={() => setShowDeliveryConfirm(false)} className="flex-1 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer">{t.cancelBtn}</button>
-                      <button onClick={handleConfirmDelivery} className="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white text-sm font-medium transition-colors cursor-pointer">{t.confirmDeliveryBtn}</button>
+                      <button onClick={() => setShowDeliveryConfirm(false)} className="flex-1 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer ring-1 ring-black/[0.02] dark:ring-white/[0.02]">{t.cancelBtn}</button>
+                      <button onClick={handleConfirmDelivery} className="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white text-sm font-medium transition-colors cursor-pointer shadow-sm ring-1 ring-emerald-500/20">{t.confirmDeliveryBtn}</button>
                     </div>
                   </div>
                 </motion.div>

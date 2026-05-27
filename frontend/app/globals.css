@@ -36,20 +36,38 @@
   --radius: 0.75rem;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   LIGHT MODE — Enhanced Havana Theme
+   Stronger visual hierarchy, depth, contrast, and separation.
+   ═══════════════════════════════════════════════════════════════════════ */
 :root {
-  --background: #F8F5F2;
+  --background: #F2EDE8;
   --foreground: #1a1a1a;
   --card: #FFFFFF;
   --card-foreground: #1a1a1a;
-  --muted: #f4f1ed;
-  --muted-foreground: #737373;
-  --border-color: #E5E5E5;
+  --muted: #E8E3DC;
+  --muted-foreground: #6b6560;
+  --border-color: #D4CFC7;
   --ring: #6D0F1B;
-  --input: #E5E5E5;
+  --input: #D4CFC7;
   --sidebar: #FFFFFF;
   --sidebar-foreground: #1a1a1a;
+  /* Enhanced light mode shadow system — warm-toned depth */
+  --shadow-xs: 0 1px 2px rgba(109,15,27,0.03), 0 1px 3px rgba(0,0,0,0.03);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 2px 6px rgba(109,15,27,0.03);
+  --shadow-md: 0 3px 10px rgba(0,0,0,0.05), 0 2px 6px rgba(109,15,27,0.03);
+  --shadow-lg: 0 6px 20px rgba(0,0,0,0.06), 0 3px 10px rgba(109,15,27,0.03);
+  --shadow-xl: 0 10px 40px rgba(0,0,0,0.08), 0 4px 14px rgba(109,15,27,0.04);
+  /* Light mode surface colors — stronger differentiation */
+  --surface-1: #FFFFFF;
+  --surface-2: #F9F6F3;
+  --surface-3: #F2EDE8;
+  --surface-elevated: #FFFFFF;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   DARK MODE — Existing theme (unchanged)
+   ═══════════════════════════════════════════════════════════════════════ */
 .dark {
   --background: #0B0B0B;
   --foreground: #ededed;
@@ -62,6 +80,15 @@
   --input: #252525;
   --sidebar: #141414;
   --sidebar-foreground: #ededed;
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.3);
+  --shadow-xl: 0 8px 32px rgba(0,0,0,0.4);
+  --surface-1: #141414;
+  --surface-2: #1a1a1a;
+  --surface-3: #222222;
+  --surface-elevated: #1a1a1a;
 }
 
 @layer base {
@@ -94,6 +121,52 @@
   [dir="rtl"] .rtl-flip {
     transform: scaleX(-1);
   }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LIGHT MODE — Base layer improvements
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  .dark .shadow-card {
+    box-shadow: none;
+  }
+
+  /* Better focus ring in light mode — stronger visibility */
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(109,15,27,0.1), 0 0 0 5px #FFFFFF, 0 0 0 7px #6D0F1B;
+    border-color: #6D0F1B;
+  }
+
+  .dark input:focus-visible,
+  .dark select:focus-visible,
+  .dark textarea:focus-visible {
+    box-shadow: 0 0 0 2px #0B0B0B, 0 0 0 4px #C9A227;
+    border-color: #C9A227;
+  }
+
+  /* Light mode scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #c4bfb7;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #a9a49c;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #333;
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #444;
+  }
 }
 
 @layer utilities {
@@ -114,5 +187,98 @@
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LIGHT MODE — Shadow & Elevation Utilities
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  .shadow-card {
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease;
+  }
+
+  .shadow-card-hover {
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+  }
+  .shadow-card-hover:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+
+  .shadow-elevated {
+    box-shadow: var(--shadow-md);
+    transition: box-shadow 0.2s ease;
+  }
+
+  .shadow-elevated-hover {
+    box-shadow: var(--shadow-md);
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+  }
+  .shadow-elevated-hover:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+  }
+
+  /* Topbar shadow — more visible separation */
+  .shadow-topbar {
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 2px 8px rgba(109,15,27,0.03);
+  }
+  .dark .shadow-topbar {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  /* Sidebar shadow — more defined edge */
+  .shadow-sidebar {
+    box-shadow: 2px 0 8px rgba(0,0,0,0.05), 1px 0 4px rgba(109,15,27,0.02);
+  }
+  .dark .shadow-sidebar {
+    box-shadow: 1px 0 4px rgba(0,0,0,0.2);
+  }
+
+  /* Drawer/modal shadow — dramatic overlay depth */
+  .shadow-drawer {
+    box-shadow: -8px 0 40px rgba(0,0,0,0.1), -2px 0 12px rgba(109,15,27,0.04);
+  }
+  .dark .shadow-drawer {
+    box-shadow: -4px 0 24px rgba(0,0,0,0.5);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LIGHT MODE — Surface & Background Utilities
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  .bg-inset {
+    background: var(--surface-2);
+  }
+
+  .dark .bg-inset {
+    background: #111;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LIGHT MODE — Table Improvements
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  .table-row-hover {
+    transition: background-color 0.15s ease;
+  }
+  .table-row-hover:hover {
+    background-color: rgba(109, 15, 27, 0.04);
+  }
+  .dark .table-row-hover:hover {
+    background-color: rgba(201, 162, 39, 0.05);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LIGHT MODE — Border Accent Utilities
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  .border-t-accent {
+    border-top: 2px solid #6D0F1B;
+  }
+  .dark .border-t-accent {
+    border-top: 2px solid #C9A227;
   }
 }

@@ -12,13 +12,13 @@ interface SearchInputProps {
 export function SearchInput({ value, onChange, placeholder = "Search...", className = "" }: SearchInputProps) {
   return (
     <div className={`relative max-w-md ${className}`}>
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-border bg-white dark:bg-dark-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow"
+        className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-white dark:bg-dark-card text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-maroon/20 dark:focus:ring-gold/20 focus:border-maroon dark:focus:border-gold transition-all duration-200 shadow-sm hover:shadow-none"
       />
       {value && (
         <button

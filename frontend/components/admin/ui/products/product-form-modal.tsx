@@ -7,13 +7,6 @@ import { ImageUploader } from "./image-uploader";
 import { PRODUCT_CATEGORIES } from "@/lib/constant";
 import type { AdminProduct } from "./products-types";
 
-// ─── Shared utility ──────────────────────────────────────────────────
-
-/**
- * Convert a FileList to an array of base64 data URLs.
- * Extracted from the previously-duplicated processFiles functions
- * in add-product-modal and edit-product-modal.
- */
 export function processFiles(files: FileList): Promise<string[]> {
   return Promise.all(
     Array.from(files).map(
@@ -26,8 +19,6 @@ export function processFiles(files: FileList): Promise<string[]> {
     )
   );
 }
-
-// ─── Types ───────────────────────────────────────────────────────────
 
 export type ProductFormMode = "add" | "edit";
 
@@ -58,8 +49,6 @@ interface ProductFormModalEditProps {
 
 type ProductFormModalPropsUnion = ProductFormModalProps | ProductFormModalEditProps;
 
-// ─── Component ───────────────────────────────────────────────────────
-
 export function ProductFormModal(props: ProductFormModalPropsUnion) {
   const { mode, onClose } = props;
   const isEdit = mode === "edit";
@@ -76,8 +65,6 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
     soldOut: product?.soldOut ?? false,
     images: product ? [...product.images] : [],
   });
-
-  // ─── Handlers ───
 
   const handleImageUpload = async (files: FileList) => {
     const newImages = await processFiles(files);
@@ -102,11 +89,12 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
     }
   };
 
-  // ─── Render ───
-
   const title = isEdit ? "Edit Product" : "Add New Product";
   const SubmitIcon = isEdit ? Save : Upload;
   const submitLabel = isEdit ? "Save Changes" : "Add Product";
+
+  const inputClass = "w-full px-3 py-2.5 rounded-xl border border-border bg-white dark:bg-dark-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-maroon/15 dark:focus:ring-gold/15 focus:border-maroon dark:focus:border-gold transition-all duration-200 shadow-sm hover:shadow-none ring-1 ring-black/[0.03] dark:ring-white/[0.03]";
+  const labelClass = "block text-xs font-medium text-muted-foreground mb-1";
 
   return (
     <motion.div
@@ -123,7 +111,7 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="relative bg-white dark:bg-dark-card rounded-2xl border border-border w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+        className="relative bg-white dark:bg-dark-card rounded-2xl border border-border ring-1 ring-black/[0.05] dark:ring-white/[0.05] shadow-xl w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto"
       >
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -132,7 +120,7 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
           </h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg hover:bg-muted/60 hover:shadow-xs transition-all cursor-pointer"
           >
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
@@ -140,7 +128,7 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
 
         {/* Images */}
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-2">
+          <label className={labelClass}>
             Product Images
           </label>
           <ImageUploader
@@ -153,27 +141,27 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
         {/* Form Fields */}
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
+            <label className={labelClass}>
               Product Name (English)
             </label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-              className="w-full px-3 py-2.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow"
+              className={inputClass}
               placeholder="e.g. Royal Rose Symphony"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
+            <label className={labelClass}>
               Product Name (Arabic)
             </label>
             <input
               type="text"
               value={form.nameAr}
               onChange={(e) => setForm((p) => ({ ...p, nameAr: e.target.value }))}
-              className="w-full px-3 py-2.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow"
+              className={inputClass}
               placeholder="e.g. سمفونية الورد الملكي"
               dir="rtl"
             />
@@ -182,44 +170,44 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
           {/* Row: Category + (Add: SKU | Edit: Price) */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
+              <label className={labelClass}>
                 Category
               </label>
               <div className="relative">
                 <select
                   value={form.category}
                   onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
-                  className="w-full appearance-none px-3 py-2.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow cursor-pointer"
+                  className={`${inputClass} appearance-none cursor-pointer pr-8`}
                 >
                   {PRODUCT_CATEGORIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               </div>
             </div>
             {isEdit ? (
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                <label className={labelClass}>
                   Price (KD)
                 </label>
                 <input
                   type="number"
                   value={form.price}
                   onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow"
+                  className={inputClass}
                 />
               </div>
             ) : (
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                <label className={labelClass}>
                   SKU
                 </label>
                 <input
                   type="text"
                   value={form.sku}
                   onChange={(e) => setForm((p) => ({ ...p, sku: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow"
+                  className={inputClass}
                   placeholder="HVF-XXX-000"
                 />
               </div>
@@ -231,18 +219,18 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
             {isEdit ? (
               <>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  <label className={labelClass}>
                     Stock Quantity
                   </label>
                   <input
                     type="number"
                     value={form.stock}
                     onChange={(e) => setForm((p) => ({ ...p, stock: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow"
+                    className={inputClass}
                   />
                 </div>
                 <div className="flex items-end">
-                  <label className="flex items-center gap-2 cursor-pointer px-3 py-2.5 rounded-lg border border-border bg-white dark:bg-dark-bg w-full">
+                  <label className="flex items-center gap-2 cursor-pointer px-3 py-2.5 rounded-xl border border-border bg-white dark:bg-dark-bg w-full shadow-sm ring-1 ring-black/[0.03] dark:ring-white/[0.03]">
                     <input
                       type="checkbox"
                       checked={form.soldOut}
@@ -256,26 +244,26 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
             ) : (
               <>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  <label className={labelClass}>
                     Price (KD)
                   </label>
                   <input
                     type="number"
                     value={form.price}
                     onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow"
+                    className={inputClass}
                     placeholder="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  <label className={labelClass}>
                     Stock Quantity
                   </label>
                   <input
                     type="number"
                     value={form.stock}
                     onChange={(e) => setForm((p) => ({ ...p, stock: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow"
+                    className={inputClass}
                     placeholder="0"
                   />
                 </div>
@@ -284,14 +272,14 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
+            <label className={labelClass}>
               Description
             </label>
             <textarea
               value={form.description}
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
               rows={3}
-              className="w-full px-3 py-2.5 rounded-lg border border-border bg-white dark:bg-dark-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow resize-none"
+              className={`${inputClass} resize-none`}
               placeholder="Brief product description..."
             />
           </div>
@@ -301,13 +289,13 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
         <div className="flex items-center justify-end gap-2 pt-2">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
+            className="px-4 py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-xs transition-all duration-200 cursor-pointer ring-1 ring-black/[0.02] dark:ring-white/[0.02]"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            className="px-5 py-2.5 rounded-lg bg-maroon text-white dark:bg-gold dark:text-dark-bg text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer inline-flex items-center gap-2"
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-maroon to-maroon-light text-white dark:from-gold dark:to-gold-light dark:text-dark-bg text-sm font-medium hover:opacity-90 transition-all duration-200 cursor-pointer inline-flex items-center gap-2 shadow-md hover:shadow-lg active:scale-[0.98] ring-1 ring-maroon/20 dark:ring-gold/20"
           >
             <SubmitIcon className="w-4 h-4" />
             {submitLabel}
