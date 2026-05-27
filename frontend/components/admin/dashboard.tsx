@@ -11,6 +11,9 @@ import {
   Star,
   AlertTriangle,
   Package,
+  ArrowUpRight,
+  TrendingUp,
+  Clock,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { useLanguageStore } from "@/store/language-store";
@@ -49,7 +52,7 @@ export function AdminDashboard() {
 
   const loading = ordersLoading || productsLoading;
 
-  // ─── Fetch on mount ──────────────────────────────────────────────────
+  // ─── Fetch on mount ──
   useEffect(() => {
     fetchOrders();
     fetchStats();
@@ -109,7 +112,7 @@ export function AdminDashboard() {
     [reviews]
   );
 
-  // ─── Status helpers ──────────────────────────────────────────────────
+  // ─── Helpers ──
   const getStatusLabel = (status: string) => {
     const key = STATUS_I18N_KEY[status as keyof typeof STATUS_I18N_KEY];
     return key ? tOrders[key as keyof typeof tOrders] : status;
@@ -118,30 +121,75 @@ export function AdminDashboard() {
   const getVisibilityColor = (visibility: string) => {
     switch (visibility) {
       case "visible":
-        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";
+        return "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";
       case "hidden":
-        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+        return "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400";
       case "pending":
-        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
+        return "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
       default:
         return "bg-muted text-muted-foreground";
     }
   };
 
-  // ─── Stats config ────────────────────────────────────────────────────
+  const today = new Date();
+  const dateStr = today.toLocaleDateString(locale === "ar" ? "ar-SA" : "en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
+  // ─── Stats config ──
   const stats = [
-    { labelKey: "totalRevenue", value: formatPrice(totalRevenue), icon: DollarSign, color: "text-emerald-500", bgAccent: "bg-emerald-50 dark:bg-emerald-900/20", borderAccent: "border-l-emerald-500" },
-    { labelKey: "totalOrders", value: String(orders.length), icon: ShoppingBag, color: "text-blue-500", bgAccent: "bg-blue-50 dark:bg-blue-900/20", borderAccent: "border-l-blue-500" },
-    { labelKey: "activeUsers", value: "—", icon: Users, color: "text-purple-500", bgAccent: "bg-purple-50 dark:bg-purple-900/20", borderAccent: "border-l-purple-500" },
-    { labelKey: "products", value: String(products.length), icon: Flower2, color: "text-gold", bgAccent: "bg-gold/10 dark:bg-gold/20", borderAccent: "border-l-gold" },
+    {
+      labelKey: "totalRevenue",
+      value: formatPrice(totalRevenue),
+      icon: DollarSign,
+      iconBg: "bg-emerald-50 dark:bg-emerald-900/20",
+      iconColor: "text-emerald-600 dark:text-emerald-400",
+    },
+    {
+      labelKey: "totalOrders",
+      value: String(orders.length),
+      icon: ShoppingBag,
+      iconBg: "bg-blue-50 dark:bg-blue-900/20",
+      iconColor: "text-blue-600 dark:text-blue-400",
+    },
+    {
+      labelKey: "activeUsers",
+      value: "—",
+      icon: Users,
+      iconBg: "bg-violet-50 dark:bg-violet-900/20",
+      iconColor: "text-violet-600 dark:text-violet-400",
+    },
+    {
+      labelKey: "products",
+      value: String(products.length),
+      icon: Flower2,
+      iconBg: "bg-maroon/8 dark:bg-gold/15",
+      iconColor: "text-maroon dark:text-gold",
+    },
   ];
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
       {/* ─── Header ──────────────────────────────────────────────────── */}
-      <div className="mb-8">
-        <h1 className="font-serif text-2xl lg:text-3xl font-bold text-foreground">{t.title}</h1>
-        <p className="text-muted-foreground text-sm mt-1">{t.subtitle.replace("{name}", user?.firstName ?? "")}</p>
+      <div className="flex items-end justify-between mb-8">
+        <div>
+          <h1 className="font-serif text-2xl lg:text-[28px] font-bold text-foreground tracking-tight">
+            {t.title}
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1.5">
+            {t.subtitle.replace("{name}", user?.firstName ?? "")}
+          </p>
+        </div>
+        <div className="hidden sm:flex items-center gap-1.5 text-muted-foreground">
+          <Clock className="h-3.5 w-3.5" />
+          <span className="text-xs font-medium">{dateStr}</span>
+        </div>
       </div>
 
       {/* ─── Stats Cards ─────────────────────────────────────────────── */}
@@ -149,62 +197,76 @@ export function AdminDashboard() {
         {stats.map((stat, i) => (
           <motion.div
             key={stat.labelKey}
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: i * 0.08 }}
-            className={`bg-white dark:bg-dark-card rounded-2xl p-5 border border-border shadow-elevated-hover border-l-[4px] ${stat.borderAccent}`}
+            transition={{ duration: 0.35, delay: i * 0.06, ease: "easeOut" }}
+            className="group bg-white dark:bg-dark-card rounded-xl p-5 border border-border shadow-card-hover"
           >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-muted-foreground font-medium">{t[stat.labelKey as keyof typeof t]}</span>
-              <div className={`p-2 rounded-xl ${stat.bgAccent} ${stat.color}`}><stat.icon className="h-4 w-4" /></div>
+            <div className="flex items-start justify-between mb-4">
+              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                {t[stat.labelKey as keyof typeof t]}
+              </span>
+              <div className={`p-[7px] rounded-lg ${stat.iconBg} transition-transform duration-200 group-hover:scale-110`}>
+                <stat.icon className={`h-4 w-4 ${stat.iconColor}`} />
+              </div>
             </div>
             {loading ? (
-              <div className="h-8 w-24 bg-muted rounded-lg animate-pulse" />
+              <div className="h-7 w-20 bg-muted rounded-md animate-pulse" />
             ) : (
-              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+              <p className="text-[22px] font-semibold text-foreground tracking-tight leading-none">
+                {stat.value}
+              </p>
             )}
           </motion.div>
         ))}
       </div>
 
       {/* ─── Two-column grid: tables ─────────────────────────────────── */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-5">
 
         {/* ─── Recent Orders Table ──────────────────────────────────── */}
-        <div className="bg-white dark:bg-dark-card rounded-2xl border border-border shadow-elevated overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-inset">
-            <h2 className="font-serif text-lg font-semibold text-foreground">{t.recentOrders}</h2>
-            <Link href="/orders" className="text-sm text-maroon dark:text-gold font-medium hover:underline">{t.viewAll}</Link>
+        <div className="bg-white dark:bg-dark-card rounded-xl border border-border shadow-card overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+            <h2 className="text-sm font-semibold text-foreground">{t.recentOrders}</h2>
+            <Link
+              href="/orders"
+              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-maroon dark:hover:text-gold transition-colors"
+            >
+              {t.viewAll}
+              <ArrowUpRight className="h-3 w-3" />
+            </Link>
           </div>
           <div className="overflow-x-auto">
             {loading ? (
-              <div className="p-6 space-y-3">
+              <div className="p-5 space-y-2.5">
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className="h-10 bg-muted rounded-lg animate-pulse" />
                 ))}
               </div>
             ) : recentOrders.length === 0 ? (
-              <p className="p-6 text-sm text-muted-foreground text-center">{tOrders.noOrders}</p>
+              <p className="p-8 text-sm text-muted-foreground text-center">{tOrders.noOrders}</p>
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border bg-inset">
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t.order}</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t.customer}</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">{t.product}</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t.amount}</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t.status}</th>
+                  <tr className="border-b border-border">
+                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{t.order}</th>
+                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{t.customer}</th>
+                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider hidden sm:table-cell">{t.product}</th>
+                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{t.amount}</th>
+                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{t.status}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentOrders.map((order) => (
-                    <tr key={order.id} className="border-b border-border last:border-0 table-row-hover">
-                      <td className="px-6 py-4 text-sm font-medium text-foreground">#{order.id}</td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">{order.customer.name}</td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground hidden sm:table-cell">{order.items[0]?.productName}{order.items.length > 1 ? ` +${order.items.length - 1}` : ""}</td>
-                      <td className="px-6 py-4 text-sm font-medium text-foreground">{formatPrice(order.total)}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${ORDER_STATUS_COLORS[order.status]}`}>
+                    <tr key={order.id} className="border-b border-border/50 last:border-0 table-row-hover">
+                      <td className="px-5 py-3 text-sm font-medium text-foreground">#{order.id}</td>
+                      <td className="px-5 py-3 text-sm text-muted-foreground">{order.customer.name}</td>
+                      <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell truncate max-w-[140px]">
+                        {order.items[0]?.productName}{order.items.length > 1 ? ` +${order.items.length - 1}` : ""}
+                      </td>
+                      <td className="px-5 py-3 text-sm font-medium text-foreground">{formatPrice(order.total)}</td>
+                      <td className="px-5 py-3">
+                        <span className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium ${ORDER_STATUS_COLORS[order.status]}`}>
                           {getStatusLabel(order.status)}
                         </span>
                       </td>
@@ -216,51 +278,57 @@ export function AdminDashboard() {
           </div>
         </div>
 
-        {/* ─── Low & Out of Stock Products Table ────────────────────── */}
-        <div className="bg-white dark:bg-dark-card rounded-2xl border border-border shadow-elevated overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-inset">
+        {/* ─── Low & Out of Stock ────────────────────────────────────── */}
+        <div className="bg-white dark:bg-dark-card rounded-xl border border-border shadow-card overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              <h2 className="font-serif text-lg font-semibold text-foreground">{tProducts.lowStockCount} & {tProducts.outOfStockCount}</h2>
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+              <h2 className="text-sm font-semibold text-foreground">{tProducts.lowStockCount} & {tProducts.outOfStockCount}</h2>
             </div>
-            <Link href="/products" className="text-sm text-maroon dark:text-gold font-medium hover:underline">{t.viewAll}</Link>
+            <Link
+              href="/products"
+              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-maroon dark:hover:text-gold transition-colors"
+            >
+              {t.viewAll}
+              <ArrowUpRight className="h-3 w-3" />
+            </Link>
           </div>
           <div className="overflow-x-auto">
             {loading ? (
-              <div className="p-6 space-y-3">
+              <div className="p-5 space-y-2.5">
                 {[...Array(4)].map((_, i) => (
                   <div key={i} className="h-10 bg-muted rounded-lg animate-pulse" />
                 ))}
               </div>
             ) : [...lowStockProducts, ...outOfStockProducts].length === 0 ? (
-              <p className="p-6 text-sm text-muted-foreground text-center">{tProducts.noProducts}</p>
+              <p className="p-8 text-sm text-muted-foreground text-center">{tProducts.noProducts}</p>
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border bg-inset">
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tProducts.productName}</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tProducts.category}</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tProducts.price}</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tProducts.stock}</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tProducts.status}</th>
+                  <tr className="border-b border-border">
+                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tProducts.productName}</th>
+                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tProducts.category}</th>
+                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tProducts.price}</th>
+                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tProducts.stock}</th>
+                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tProducts.status}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[...lowStockProducts, ...outOfStockProducts].slice(0, 5).map((product) => {
                     const status = getStockStatus(product);
                     const statusConfig = status === "low_stock"
-                      ? { label: tProducts.lowStock, color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" }
-                      : { label: tProducts.soldOut, color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" };
+                      ? { label: tProducts.lowStock, color: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" }
+                      : { label: tProducts.soldOut, color: "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400" };
                     return (
-                      <tr key={product.id} className="border-b border-border last:border-0 table-row-hover">
-                        <td className="px-6 py-4 text-sm font-medium text-foreground">{product.name}</td>
-                        <td className="px-6 py-4 text-sm text-muted-foreground capitalize">{product.category}</td>
-                        <td className="px-6 py-4 text-sm font-medium text-foreground">{formatPrice(product.salePrice ?? product.price)}</td>
-                        <td className="px-6 py-4">
+                      <tr key={product.id} className="border-b border-border/50 last:border-0 table-row-hover">
+                        <td className="px-5 py-3 text-sm font-medium text-foreground">{product.name}</td>
+                        <td className="px-5 py-3 text-sm text-muted-foreground capitalize">{product.category}</td>
+                        <td className="px-5 py-3 text-sm font-medium text-foreground">{formatPrice(product.salePrice ?? product.price)}</td>
+                        <td className="px-5 py-3">
                           <span className="text-sm font-semibold text-foreground">{product.stock}</span>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium ${statusConfig.color}`}>
                             {statusConfig.label}
                           </span>
                         </td>
@@ -274,44 +342,50 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* ─── Two-column grid: reviews + stats ────────────────────────── */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      {/* ─── Two-column grid: reviews + overview ─────────────────────── */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
 
-        {/* ─── Recent Reviews Table ─────────────────────────────────── */}
-        <div className="bg-white dark:bg-dark-card rounded-2xl border border-border shadow-elevated overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-inset">
+        {/* ─── Recent Reviews ───────────────────────────────────────── */}
+        <div className="bg-white dark:bg-dark-card rounded-xl border border-border shadow-card overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
             <div className="flex items-center gap-2">
-              <Star className="h-4 w-4 text-gold" />
-              <h2 className="font-serif text-lg font-semibold text-foreground">{tReviews.recentReviews}</h2>
+              <Star className="h-3.5 w-3.5 text-gold" />
+              <h2 className="text-sm font-semibold text-foreground">{tReviews.recentReviews}</h2>
             </div>
-            <Link href="/sales-reviews" className="text-sm text-maroon dark:text-gold font-medium hover:underline">{t.viewAll}</Link>
+            <Link
+              href="/sales-reviews"
+              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-maroon dark:hover:text-gold transition-colors"
+            >
+              {t.viewAll}
+              <ArrowUpRight className="h-3 w-3" />
+            </Link>
           </div>
           <div className="overflow-x-auto">
             {recentReviews.length === 0 ? (
-              <p className="p-6 text-sm text-muted-foreground text-center">{tReviews.noReviews}</p>
+              <p className="p-8 text-sm text-muted-foreground text-center">{tReviews.noReviews}</p>
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border bg-inset">
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tReviews.customer}</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tReviews.product}</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tReviews.rating}</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tReviews.visibility}</th>
+                  <tr className="border-b border-border">
+                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tReviews.customer}</th>
+                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tReviews.product}</th>
+                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tReviews.rating}</th>
+                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tReviews.visibility}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentReviews.map((review) => (
-                    <tr key={review.id} className="border-b border-border last:border-0 table-row-hover">
-                      <td className="px-6 py-4 text-sm font-medium text-foreground">{review.customerName}</td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">{review.product.productName}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1">
-                          <Star className="h-3.5 w-3.5 fill-gold text-gold" />
+                    <tr key={review.id} className="border-b border-border/50 last:border-0 table-row-hover">
+                      <td className="px-5 py-3 text-sm font-medium text-foreground">{review.customerName}</td>
+                      <td className="px-5 py-3 text-sm text-muted-foreground truncate max-w-[120px]">{review.product.productName}</td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <Star className="h-3 w-3 fill-gold text-gold" />
                           <span className="text-sm font-medium text-foreground">{review.rating}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium capitalize ${getVisibilityColor(review.visibility)}`}>
+                      <td className="px-5 py-3">
+                        <span className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium capitalize ${getVisibilityColor(review.visibility)}`}>
                           {review.visibility}
                         </span>
                       </td>
@@ -323,71 +397,71 @@ export function AdminDashboard() {
           </div>
         </div>
 
-        {/* ─── Quick Stats Summary ──────────────────────────────────── */}
-        <div className="bg-white dark:bg-dark-card rounded-2xl border border-border shadow-elevated overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-inset">
-            <div className="flex items-center gap-2">
-              <Package className="h-4 w-4 text-blue-500" />
-              <h2 className="font-serif text-lg font-semibold text-foreground">{t.storeOverview}</h2>
-            </div>
+        {/* ─── Store Overview ───────────────────────────────────────── */}
+        <div className="bg-white dark:bg-dark-card rounded-xl border border-border shadow-card overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
+            <Package className="h-3.5 w-3.5 text-blue-500" />
+            <h2 className="text-sm font-semibold text-foreground">{t.storeOverview}</h2>
           </div>
-          <div className="p-6 space-y-4">
+          <div className="p-5 grid grid-cols-2 gap-3">
             {/* Average Order Value */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-blue-50/60 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20">
-              <div>
-                <p className="text-sm text-muted-foreground">{tOrders.averageOrder}</p>
-                <p className="text-xl font-bold text-foreground">{formatPrice(avgOrderValue)}</p>
+            <div className="p-4 rounded-lg bg-surface-2 dark:bg-surface-1 border border-border/50">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20">
+                  <DollarSign className="h-3.5 w-3.5 text-blue-500" />
+                </div>
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{tOrders.averageOrder}</span>
               </div>
-              <div className="p-3 rounded-xl bg-blue-500/10">
-                <DollarSign className="h-5 w-5 text-blue-500" />
-              </div>
+              <p className="text-lg font-semibold text-foreground">{formatPrice(avgOrderValue)}</p>
             </div>
 
             {/* Average Rating */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-amber-50/60 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20">
-              <div>
-                <p className="text-sm text-muted-foreground">{t.averageRating}</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-xl font-bold text-foreground">{averageRating.toFixed(1)}</p>
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-4 w-4 ${i < Math.round(averageRating) ? "fill-gold text-gold" : "text-muted"}`}
-                      />
-                    ))}
-                  </div>
+            <div className="p-4 rounded-lg bg-surface-2 dark:bg-surface-1 border border-border/50">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 rounded-md bg-amber-50 dark:bg-amber-900/20">
+                  <Star className="h-3.5 w-3.5 text-amber-500" />
+                </div>
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{t.averageRating}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <p className="text-lg font-semibold text-foreground">{averageRating.toFixed(1)}</p>
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-3 w-3 ${i < Math.round(averageRating) ? "fill-gold text-gold" : "text-border"}`}
+                    />
+                  ))}
                 </div>
               </div>
-              <div className="p-3 rounded-xl bg-gold/10">
-                <Star className="h-5 w-5 text-gold" />
-              </div>
             </div>
 
-            {/* Pending Orders */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-yellow-50/60 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/20">
-              <div>
-                <p className="text-sm text-muted-foreground">{t.pendingOrders}</p>
-                <p className="text-xl font-bold text-foreground">{t.activeCount.replace("{count}", String(activeOrders.length))}</p>
+            {/* Active Orders */}
+            <div className="p-4 rounded-lg bg-surface-2 dark:bg-surface-1 border border-border/50">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 rounded-md bg-violet-50 dark:bg-violet-900/20">
+                  <ShoppingBag className="h-3.5 w-3.5 text-violet-500" />
+                </div>
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{t.pendingOrders}</span>
               </div>
-              <div className="p-3 rounded-xl bg-yellow-500/10">
-                <ShoppingBag className="h-5 w-5 text-yellow-500" />
-              </div>
+              <p className="text-lg font-semibold text-foreground">
+                {t.activeCount.replace("{count}", String(activeOrders.length))}
+              </p>
             </div>
 
-            {/* Inventory Summary */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-red-50/60 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20">
-              <div>
-                <p className="text-sm text-muted-foreground">{t.inventoryAlerts}</p>
-                <p className="text-xl font-bold text-foreground">
-                  {t.inventorySummary
-                    .replace("{lowCount}", String(lowStockProducts.length))
-                    .replace("{outCount}", String(outOfStockProducts.length))}
-                </p>
+            {/* Inventory Alerts */}
+            <div className="p-4 rounded-lg bg-surface-2 dark:bg-surface-1 border border-border/50">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 rounded-md bg-red-50 dark:bg-red-900/20">
+                  <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+                </div>
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{t.inventoryAlerts}</span>
               </div>
-              <div className="p-3 rounded-xl bg-red-500/10">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
-              </div>
+              <p className="text-[13px] font-medium text-foreground leading-snug">
+                {t.inventorySummary
+                  .replace("{lowCount}", String(lowStockProducts.length))
+                  .replace("{outCount}", String(outOfStockProducts.length))}
+              </p>
             </div>
           </div>
         </div>
