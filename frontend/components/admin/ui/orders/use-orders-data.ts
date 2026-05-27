@@ -48,7 +48,7 @@ export function useOrdersData() {
     if (search.searchQuery.trim()) {
       const q = search.searchQuery.toLowerCase().trim();
       result = result.filter(
-        (o) => o.id.toLowerCase().includes(q) || o.customer.name.toLowerCase().includes(q) || o.customer.email.toLowerCase().includes(q) || o.customer.phone.includes(q)
+        (o) => (o.orderNumber || o.id).toLowerCase().includes(q) || o.customer.name.toLowerCase().includes(q) || o.customer.email.toLowerCase().includes(q) || o.customer.phone.includes(q)
       );
     }
     if (dateRange.dateFrom) {
@@ -138,7 +138,7 @@ export function useOrdersData() {
 
   const exportCSV = () => {
     const headers = ["Order ID", "Customer", "Email", "Phone", "Items", "Subtotal", "Delivery Fee", "Total", "Status", "Payment", "Notes", "Created At"];
-    const rows = filteredOrders.map((o) => [o.id, o.customer.name, o.customer.email, o.customer.phone, o.items.map((i) => `${i.productName} x${i.quantity}`).join("; "), o.subtotal.toString(), o.deliveryFee.toString(), o.total.toString(), o.status, getPaymentLabel(o.paymentMethod), o.notes || "", o.createdAt]);
+    const rows = filteredOrders.map((o) => [o.orderNumber || o.id, o.customer.name, o.customer.email, o.customer.phone, o.items.map((i) => `${i.productName} x${i.quantity}`).join("; "), o.subtotal.toString(), o.deliveryFee.toString(), o.total.toString(), o.status, getPaymentLabel(o.paymentMethod), o.notes || "", o.createdAt]);
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);

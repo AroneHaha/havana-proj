@@ -22,11 +22,11 @@ export function processFiles(files: FileList): Promise<string[]> {
 
 /**
  * Build a FormData object from the product form data + raw files.
- * When the backend is live, use this instead of processFiles() to send
- * multipart/form-data (Laravel expects file uploads via FormData, not base64).
+ * Used when the API is live — Laravel expects file uploads via FormData,
+ * not base64 strings in JSON.
  *
- * For now, this is provided as a ready-to-use alternative. The product service
- * layer can switch to this by accepting FormData instead of JSON.
+ * Existing images (URLs from the server) are sent as `existing_images[]`.
+ * New file uploads are sent as `images[]`.
  */
 export function buildProductFormData(
   formData: ProductFormData,
@@ -39,12 +39,13 @@ export function buildProductFormData(
   fd.append("price", formData.price);
   fd.append("stock", formData.stock);
   fd.append("description", formData.description);
+  if (formData.salePrice) fd.append("sale_price", formData.salePrice);
   if (formData.sku) fd.append("sku", formData.sku);
   if (formData.soldOut) fd.append("sold_out", "1");
   files.forEach((file, i) => {
     fd.append(`images[${i}]`, file);
   });
-  // Keep existing base64 images that weren't replaced
+  // Keep existing URL images that weren't replaced
   formData.images.forEach((img, i) => {
     if (!img.startsWith("data:")) {
       fd.append(`existing_images[${i}]`, img);
@@ -64,7 +65,10 @@ export interface ProductFormData {
   description: string;
   sku: string;
   soldOut: boolean;
+  salePrice: string;
   images: string[];
+  /** Raw File objects for new uploads — sent via FormData when API is live */
+  rawFiles: File[];
 }
 
 interface ProductFormModalProps {
@@ -96,13 +100,23 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
     description: product?.description ?? "",
     sku: product?.sku ?? "",
     soldOut: product?.soldOut ?? false,
+    salePrice: product?.salePrice?.toString() ?? "",
     images: product ? [...product.images] : [],
+    rawFiles: [],
   });
+
+  // Track raw File objects alongside preview URLs
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   // When soldOut is checked, disable and visually indicate the stock field
   const stockDisabled = form.soldOut;
 
   const handleImageUpload = async (files: FileList) => {
+    // Store raw File objects for FormData when API is live
+    const fileArray = Array.from(files);
+    setPendingFiles((prev) => [...prev, ...fileArray].slice(0, 5));
+
+    // Also generate base64 previews for the UI
     const newImages = await processFiles(files);
     setForm((p) => ({
       ...p,
@@ -115,13 +129,15 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
       ...p,
       images: p.images.filter((_, i) => i !== index),
     }));
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = () => {
+    const finalForm = { ...form, rawFiles: pendingFiles };
     if (isEdit && product) {
-      (props as ProductFormModalEditProps).onSubmit(product, form);
+      (props as ProductFormModalEditProps).onSubmit(product, finalForm);
     } else {
-      (props as ProductFormModalProps).onSubmit(form);
+      (props as ProductFormModalProps).onSubmit(finalForm);
     }
   };
 
@@ -305,6 +321,20 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
                 </div>
               </>
             )}
+          </div>
+
+          {/* Sale Price (optional — leave empty for no discount) */}
+          <div>
+            <label className={labelClass}>
+              Sale Price (KD) — optional
+            </label>
+            <input
+              type="number"
+              value={form.salePrice}
+              onChange={(e) => setForm((p) => ({ ...p, salePrice: e.target.value }))}
+              className={inputClass}
+              placeholder="Leave empty for no discount"
+            />
           </div>
 
           <div>

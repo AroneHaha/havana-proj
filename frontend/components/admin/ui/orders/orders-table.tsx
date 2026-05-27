@@ -138,7 +138,7 @@ export function OrdersTable({
                   key={order.id}
                   className="border-b border-border last:border-0 table-row-hover group"
                 >
-                  <td className="px-6 py-4 text-sm font-semibold text-maroon dark:text-gold">#{order.id}</td>
+                  <td className="px-6 py-4 text-sm font-semibold text-maroon dark:text-gold">#{order.orderNumber || order.id}</td>
                   <td className="px-6 py-4">
                     <p className="text-sm font-medium text-foreground">{order.customer.name}</p>
                     <p className="text-xs text-muted-foreground">{order.customer.email}</p>

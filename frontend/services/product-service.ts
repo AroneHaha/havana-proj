@@ -244,11 +244,48 @@ export async function fetchProductById(
  */
 export async function createProduct(
   data: Omit<Product, "id" | "slug" | "rating" | "reviewCount" | "createdAt">,
-  locale: Locale = "en"
+  locale: Locale = "en",
+  rawFiles?: File[]
 ): Promise<Product> {
   // ── Try real API first ──
   if (API_BASE) {
     try {
+      // If we have raw files, use FormData (multipart/form-data) so Laravel
+      // receives actual file uploads in $_FILES instead of base64 JSON strings.
+      if (rawFiles && rawFiles.length > 0) {
+        const fd = new FormData();
+        fd.append("name", data.name);
+        fd.append("description", data.description);
+        if (data.localeText) fd.append("locale_text", JSON.stringify(data.localeText));
+        fd.append("price", String(data.price));
+        if (data.salePrice != null) fd.append("sale_price", String(data.salePrice));
+        fd.append("category", data.category);
+        fd.append("stock", String(data.stock));
+        fd.append("in_stock", String(data.stock > 0));
+        fd.append("is_featured", String(data.isFeatured ?? false));
+        fd.append("is_best_seller", String(data.isBestSeller ?? false));
+        fd.append("is_new", String(data.isNew ?? false));
+        if (data.sku) fd.append("sku", data.sku);
+        // New file uploads
+        rawFiles.forEach((file, i) => {
+          fd.append(`images[${i}]`, file);
+        });
+        // Existing image URLs (not data: URIs)
+        (data.images ?? []).forEach((img) => {
+          if (!img.startsWith("data:")) {
+            fd.append("existing_images[]", img);
+          }
+        });
+
+        const res = await productsFetch<{ data: LaravelProduct }>("/admin/products", {
+          method: "POST",
+          body: fd as unknown as BodyInit,
+          // Let the browser set Content-Type with boundary for FormData
+        });
+        return mapLaravelProduct(res.data, locale);
+      }
+
+      // No raw files — send as JSON
       const res = await productsFetch<{ data: LaravelProduct }>("/admin/products", {
         method: "POST",
         body: JSON.stringify({
@@ -299,7 +336,8 @@ export async function createProduct(
 export async function updateProduct(
   id: string,
   data: Partial<Product>,
-  locale: Locale = "en"
+  locale: Locale = "en",
+  rawFiles?: File[]
 ): Promise<Product> {
   // ── Try real API first ──
   if (API_BASE) {

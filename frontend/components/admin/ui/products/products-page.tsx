@@ -94,12 +94,14 @@ export function ProductsPage() {
     const stock = parseInt(formData.stock, 10);
     if (isNaN(price) || price < 0) return;
     if (isNaN(stock) || stock < 0) return;
+    const salePrice = formData.salePrice ? parseFloat(formData.salePrice) : undefined;
+    if (salePrice !== undefined && (isNaN(salePrice) || salePrice < 0)) return;
     try {
       await storeAddProduct({
         name: formData.name.trim(),
         description: formData.description,
         price,
-        salePrice: undefined,
+        salePrice: salePrice && salePrice < price ? salePrice : undefined,
         image: formData.images[0] || "",
         images: formData.images,
         category: formData.category,
@@ -110,7 +112,7 @@ export function ProductsPage() {
           en: { name: formData.name.trim(), description: formData.description },
           ar: { name: formData.nameAr.trim() || formData.name.trim(), description: formData.description },
         },
-      });
+      }, formData.rawFiles);
       setAddModalOpen(false);
     } catch {
       // Error is stored in product store — UI can display via store error state
@@ -126,12 +128,14 @@ export function ProductsPage() {
     const newPrice = parseFloat(editForm.price);
     if (isNaN(newPrice) || newPrice < 0) return;
     if (isNaN(newStock) || newStock < 0) return;
+    const salePrice = editForm.salePrice ? parseFloat(editForm.salePrice) : undefined;
+    if (salePrice !== undefined && (isNaN(salePrice) || salePrice < 0)) return;
     try {
       await storeUpdateProduct(product.id, {
         name: editForm.name.trim(),
         description: editForm.description,
         price: newPrice,
-        salePrice: undefined,
+        salePrice: salePrice && salePrice < newPrice ? salePrice : undefined,
         image: editForm.images[0] || "",
         images: editForm.images,
         category: editForm.category,
@@ -142,7 +146,7 @@ export function ProductsPage() {
           en: { name: editForm.name.trim(), description: editForm.description },
           ar: { name: editForm.nameAr.trim() || editForm.name.trim(), description: editForm.description },
         },
-      });
+      }, editForm.rawFiles);
       setEditProduct(null);
     } catch {
       // Error is stored in product store — UI can display via store error state

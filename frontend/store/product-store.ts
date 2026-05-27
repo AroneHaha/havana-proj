@@ -46,8 +46,8 @@ interface ProductsState {
   fetchStats: () => Promise<void>;
 
   // ─── Actions ────────────────────────────────────────────────────────
-  addProduct: (product: Omit<Product, "id" | "slug" | "rating" | "reviewCount" | "createdAt">) => Promise<void>;
-  updateProduct: (id: string, data: Partial<Product>) => Promise<void>;
+  addProduct: (product: Omit<Product, "id" | "slug" | "rating" | "reviewCount" | "createdAt">, rawFiles?: File[]) => Promise<void>;
+  updateProduct: (id: string, data: Partial<Product>, rawFiles?: File[]) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
 
   // ─── Derived helpers (methods to avoid re-renders) ──────────────────
@@ -92,9 +92,9 @@ export const useProductsStore = create<ProductsState>()(
         }
       },
 
-      addProduct: async (productData) => {
+      addProduct: async (productData, rawFiles) => {
         try {
-          const newProduct = await serviceCreateProduct(productData);
+          const newProduct = await serviceCreateProduct(productData, "en", rawFiles);
           set((state) => ({
             products: [newProduct, ...state.products],
           }));
@@ -105,9 +105,9 @@ export const useProductsStore = create<ProductsState>()(
         }
       },
 
-      updateProduct: async (id, data) => {
+      updateProduct: async (id, data, rawFiles) => {
         try {
-          const updated = await serviceUpdateProduct(id, data);
+          const updated = await serviceUpdateProduct(id, data, "en", rawFiles);
           set((state) => ({
             products: state.products.map((p) =>
               p.id === id ? updated : p

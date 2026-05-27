@@ -129,7 +129,7 @@ export function ProductHistoryDrawer({
               {/* Product Info */}
               <div className="flex gap-4">
                 <div className="w-24 h-24 rounded-xl bg-muted/30 flex-shrink-0 overflow-hidden flex items-center justify-center">
-                  {product.images[0] && product.images[0].startsWith("data:") ? (
+                  {product.images[0] ? (
                     <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
                   ) : (
                     <Package className="w-10 h-10 text-maroon/20 dark:text-gold/20" />

@@ -52,7 +52,7 @@ export function ProductGrid({
                 <span className="text-white font-bold text-xs tracking-wide uppercase">Sold Out</span>
               </div>
             )}
-            {product.images[0] && product.images[0].startsWith("data:") ? (
+            {product.images[0] ? (
               <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-inset">

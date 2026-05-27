@@ -9,9 +9,11 @@
  *      Components never import the service directly.
  *   3. `items` stores full `Product` objects for component convenience
  *      (product cards, header badge count, etc.).
- *   4. Persisted to localStorage under "havana-wishlist" key as a cache.
+ *   4. `wishlistItemIds` maps productId → wishlistItemId so that
+ *      DELETE /wishlist/items/:id sends the correct pivot row ID.
+ *   5. Persisted to localStorage under "havana-wishlist" key as a cache.
  *      On mount, `fetchWishlist()` tries the API first, then falls back to the cache.
- *   5. Guest users: wishlist works purely in localStorage. When they log in,
+ *   6. Guest users: wishlist works purely in localStorage. When they log in,
  *      `fetchWishlist()` syncs from the server, and future mutations hit the API.
  */
 
@@ -22,6 +24,7 @@ import {
   addWishlistItem as serviceAddItem,
   removeWishlistItem as serviceRemoveItem,
   type WishlistError,
+  type WishlistItem,
 } from "@/services/wishlist-service";
 import { isAuthenticated } from "@/services/auth-service";
 import type { Product } from "@/types";
@@ -34,6 +37,8 @@ export type { WishlistError };
 
 interface WishlistStore {
   items: Product[];
+  /** Map: productId → wishlistItemId (pivot row ID for DELETE) */
+  wishlistItemIds: Record<string, string>;
   loading: boolean;
   error: string | null;
 
@@ -55,6 +60,7 @@ export const useWishlistStore = create<WishlistStore>()(
   persist(
     (set, get) => ({
       items: [],
+      wishlistItemIds: {},
       loading: false,
       error: null,
 
@@ -65,20 +71,26 @@ export const useWishlistStore = create<WishlistStore>()(
 
         set({ loading: true });
         try {
-          const productIds = await serviceFetchWishlist();
+          const wishlistItems: WishlistItem[] = await serviceFetchWishlist();
+
+          // Build the wishlistItemId mapping
+          const idMap: Record<string, string> = {};
+          wishlistItems.forEach((wi) => {
+            idMap[wi.productId] = wi.wishlistItemId;
+          });
 
           // The API returns only product IDs. We keep existing Product
           // objects from cache and add/remove to match the server list.
           // Products not in cache are represented as minimal stubs.
           const cachedItems = get().items;
-          const merged: Product[] = productIds.map((id) => {
-            const cached = cachedItems.find((p) => p.id === id);
+          const merged: Product[] = wishlistItems.map((wi) => {
+            const cached = cachedItems.find((p) => p.id === wi.productId);
             if (cached) return cached;
             // Stub product — will be populated when product data is loaded
             return {
-              id,
+              id: wi.productId,
               slug: "",
-              name: `Product ${id}`,
+              name: `Product ${wi.productId}`,
               description: "",
               localeText: {},
               price: 0,
@@ -92,7 +104,7 @@ export const useWishlistStore = create<WishlistStore>()(
             } as Product;
           });
 
-          set({ items: merged, loading: false });
+          set({ items: merged, wishlistItemIds: idMap, loading: false });
         } catch (err) {
           set({ loading: false, error: getErrorMessage(err, "Failed to fetch wishlist") });
         }
@@ -109,6 +121,8 @@ export const useWishlistStore = create<WishlistStore>()(
         if (isAuthenticated()) {
           try {
             await serviceAddItem(product.id);
+            // Re-fetch to get the server-assigned wishlistItemId
+            get().fetchWishlist();
           } catch (err) {
             // Revert on failure
             set((state) => ({
@@ -121,20 +135,26 @@ export const useWishlistStore = create<WishlistStore>()(
 
       removeItem: async (productId: string) => {
         const removed = get().items.find((item) => item.id === productId);
+        const wishlistItemId = get().wishlistItemIds[productId];
 
         // ── Optimistic local remove ──
         set((state) => ({
           items: state.items.filter((item) => item.id !== productId),
+          wishlistItemIds: Object.fromEntries(
+            Object.entries(state.wishlistItemIds).filter(([pid]) => pid !== productId)
+          ),
         }));
 
         // ── Try API if authenticated ──
-        if (isAuthenticated() && removed) {
+        if (isAuthenticated() && wishlistItemId) {
           try {
-            await serviceRemoveItem(productId);
+            // Use the wishlist pivot row ID, not the product ID
+            await serviceRemoveItem(wishlistItemId);
           } catch (err) {
             // Revert on failure
             set((state) => ({
-              items: [...state.items, removed],
+              items: removed ? [...state.items, removed] : state.items,
+              wishlistItemIds: { ...state.wishlistItemIds, [productId]: wishlistItemId },
               error: getErrorMessage(err, "Failed to remove from wishlist"),
             }));
           }

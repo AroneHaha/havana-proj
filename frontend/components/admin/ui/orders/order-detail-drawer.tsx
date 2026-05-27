@@ -120,7 +120,7 @@ export function OrderDetailDrawer({
               <div className="flex items-center justify-between p-5">
                 <div>
                   <h2 className="text-lg font-bold text-foreground">{t.orderDetails}</h2>
-                  <p className="text-sm text-muted-foreground mt-0.5">#{order.id}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">#{order.orderNumber || order.id}</p>
                 </div>
                 <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-all duration-200 cursor-pointer hover:shadow-xs">
                   <X className="w-5 h-5 text-muted-foreground" />
@@ -292,7 +292,7 @@ export function OrderDetailDrawer({
                       </div>
                       <div>
                         <h3 className="text-lg font-bold text-foreground">{t.confirmDeliveryTitle}</h3>
-                        <p className="text-sm text-muted-foreground mt-0.5">{t.confirmDeliveryMessage.replace("{id}", order.id)}</p>
+                        <p className="text-sm text-muted-foreground mt-0.5">{t.confirmDeliveryMessage.replace("{id}", order.orderNumber || order.id)}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg p-3 border border-amber-100 dark:border-amber-900/20">
@@ -302,7 +302,7 @@ export function OrderDetailDrawer({
                     <div className="bg-inset rounded-lg p-3 space-y-2 border border-border">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">{t.orderID}</span>
-                        <span className="font-semibold text-foreground">#{order.id}</span>
+                        <span className="font-semibold text-foreground">#{order.orderNumber || order.id}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">{t.customer}</span>

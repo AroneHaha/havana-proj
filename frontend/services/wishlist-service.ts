@@ -54,6 +54,14 @@ interface LaravelWishlistResponse {
   data: LaravelWishlistItem[];
 }
 
+/** Returned by fetchWishlist — preserves both IDs for correct API usage */
+export interface WishlistItem {
+  /** Wishlist pivot row ID — used for DELETE /wishlist/items/:id */
+  wishlistItemId: string;
+  /** Product ID — used for lookup and UI */
+  productId: string;
+}
+
 // ─── Auth-aware fetch for wishlist ────────────────────────────────────
 
 const wishlistFetch = createServiceFetch(WishlistError, {
@@ -74,21 +82,30 @@ let MOCK_WISHLIST_ITEMS: string[] = []; // product IDs
  * When API is live, this hits GET /wishlist.
  * Otherwise returns mock wishlist (starts empty).
  */
-export async function fetchWishlist(): Promise<string[]> {
+export async function fetchWishlist(): Promise<WishlistItem[]> {
   // ── Try real API first ──
   if (API_BASE) {
     try {
       const data = await wishlistFetch<LaravelWishlistResponse>("/wishlist");
-      return data.data.map((item) => String(item.product_id));
+      return data.data.map((item) => ({
+        wishlistItemId: String(item.id),
+        productId: String(item.product_id),
+      }));
     } catch (err) {
-      if (err instanceof WishlistError && err.code === "FORBIDDEN") throw err;
-      // API unreachable — fall through to mock
+      if (err instanceof WishlistError) throw err;
+      throw new WishlistError(
+        err instanceof Error ? err.message : "Failed to fetch wishlist",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 150));
-  return [...MOCK_WISHLIST_ITEMS];
+  return MOCK_WISHLIST_ITEMS.map((pid, idx) => ({
+    wishlistItemId: `wi-${idx}`,
+    productId: pid,
+  }));
 }
 
 /**
@@ -107,11 +124,14 @@ export async function addWishlistItem(productId: string): Promise<boolean> {
       return true;
     } catch (err) {
       if (err instanceof WishlistError) throw err;
-      // fall through to mock
+      throw new WishlistError(
+        err instanceof Error ? err.message : "Failed to add wishlist item",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 150));
 
   if (!MOCK_WISHLIST_ITEMS.includes(productId)) {
@@ -125,24 +145,27 @@ export async function addWishlistItem(productId: string): Promise<boolean> {
  * When API is live, this hits DELETE /wishlist/items/:id.
  * Otherwise simulates removing from mock wishlist.
  */
-export async function removeWishlistItem(productId: string): Promise<boolean> {
+export async function removeWishlistItem(wishlistItemId: string): Promise<boolean> {
   // ── Try real API first ──
   if (API_BASE) {
     try {
-      await wishlistFetch<{ message: string }>(`/wishlist/items/${productId}`, {
+      await wishlistFetch<{ message: string }>(`/wishlist/items/${wishlistItemId}`, {
         method: "DELETE",
       });
       return true;
     } catch (err) {
       if (err instanceof WishlistError) throw err;
-      // fall through to mock
+      throw new WishlistError(
+        err instanceof Error ? err.message : "Failed to remove wishlist item",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 150));
 
-  const idx = MOCK_WISHLIST_ITEMS.indexOf(productId);
+  const idx = MOCK_WISHLIST_ITEMS.indexOf(wishlistItemId);
   if (idx === -1) {
     throw new WishlistError("Wishlist item not found", "NOT_FOUND");
   }

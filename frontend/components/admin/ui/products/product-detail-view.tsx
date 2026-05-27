@@ -99,7 +99,7 @@ export function ProductDetailView({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">{labels.sku}</p>
-                <p className="text-sm font-mono font-medium text-foreground">{product.id}</p>
+                <p className="text-sm font-mono font-medium text-foreground">{product.sku || product.id}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">{labels.category}</p>

@@ -48,7 +48,7 @@ interface AuthStore {
     passwordConfirmation: string;
   }) => Promise<AuthResponse>;
   /** Logout and clear state */
-  logout: () => void;
+  logout: () => Promise<void>;
   /** Manually set user (e.g. after profile update) */
   setUser: (user: AuthUser) => void;
 }
@@ -79,8 +79,8 @@ export const useAuthStore = create<AuthStore>()(
         return res;
       },
 
-      logout: () => {
-        authServiceLogout();
+      logout: async () => {
+        await authServiceLogout();
         set({ user: null });
       },
 

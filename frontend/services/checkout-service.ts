@@ -151,12 +151,17 @@ export async function verifyStock(
       );
       return mapLaravelStockVerification(data);
     } catch (err) {
-      if (err instanceof CheckoutError && err.code === "FORBIDDEN") throw err;
-      // API unreachable — fall through to mock
+      if (err instanceof CheckoutError) throw err;
+      // API is configured but call failed — do NOT silently fall back to mock.
+      // Conservative: assume stock check failed → treat as unavailable.
+      throw new CheckoutError(
+        err instanceof Error ? err.message : "Failed to verify stock",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 200));
 
   // In mock mode, assume everything is in stock
@@ -195,11 +200,15 @@ export async function placeOrder(payload: CheckoutPayload): Promise<CheckoutResu
       return mapLaravelCheckoutResult(data.data);
     } catch (err) {
       if (err instanceof CheckoutError) throw err;
-      // fall through to mock
+      // API is configured but call failed — do NOT silently create a fake order.
+      throw new CheckoutError(
+        err instanceof Error ? err.message : "Failed to place order",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 500));
 
   const orderNumber = "HV-" + Date.now();
