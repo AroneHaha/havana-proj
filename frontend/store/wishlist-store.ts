@@ -65,7 +65,6 @@ export const useWishlistStore = create<WishlistStore>()(
 
         set({ loading: true });
         try {
-          useWishlistStore.persist.rehydrate();
           const productIds = await serviceFetchWishlist();
 
           // The API returns only product IDs. We keep existing Product
@@ -89,7 +88,7 @@ export const useWishlistStore = create<WishlistStore>()(
               stock: 0,
               rating: 0,
               reviewCount: 0,
-              inStock: true,
+              inStock: false, // Stub — real value comes from product API
             } as Product;
           });
 

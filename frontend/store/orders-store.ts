@@ -99,7 +99,10 @@ export const useOrdersStore = create<OrdersState>()(
 
       updateOrderStatus: async (id, status) => {
         try {
-          const updated = await serviceUpdateStatus(id, status);
+          // Use dedicated cancel endpoint for audit logging on backend
+          const updated = status === "cancelled"
+            ? await serviceCancelOrder(id)
+            : await serviceUpdateStatus(id, status);
           set((state) => ({
             orders: state.orders.map((o) =>
               o.id === id ? updated : o

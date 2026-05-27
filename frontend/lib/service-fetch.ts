@@ -8,7 +8,7 @@
  * Usage:
  *   const productsFetch = createServiceFetch(ProductsError, {
  *     validationCode: "VALIDATION_ERROR",
- *     forbiddenCode: "FORBIDDEN",
+ *     tokenExpiredCode: "TOKEN_EXPIRED",
  *   });
  *   const data = await productsFetch<MyResponse>("/admin/products", { method: "GET" });
  */
@@ -20,7 +20,7 @@ export interface ServiceFetchConfig {
   /** Error code to use when mapping a VALIDATION_ERROR from authFetch */
   validationCode: string;
   /** Error code to use when mapping a TOKEN_EXPIRED from authFetch */
-  forbiddenCode: string;
+  tokenExpiredCode: string;
 }
 
 /**
@@ -48,7 +48,7 @@ export async function serviceFetch<T>(
         throw new ErrorClass(authErr.message, config.validationCode, authErr.fields ?? {});
       }
       if (authErr.code === "TOKEN_EXPIRED") {
-        throw new ErrorClass("Session expired. Please sign in again.", config.forbiddenCode);
+        throw new ErrorClass("Session expired. Please sign in again.", config.tokenExpiredCode);
       }
     }
     throw new ErrorClass(

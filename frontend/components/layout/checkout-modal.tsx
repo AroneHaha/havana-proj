@@ -74,9 +74,9 @@ export function CheckoutModal() {
     const errors: Record<string, boolean> = {};
     if (!name.trim()) errors.name = true;
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = true;
-    // Kuwait phone: +965 followed by 8 digits (with optional spaces)
+    // Kuwait phone: +965 followed by exactly 8 digits
     const cleanedPhone = phone.replace(/[\s-]/g, "");
-    if (!cleanedPhone.startsWith("+965") || cleanedPhone.length < 12) errors.phone = true;
+    if (!/^\+965\d{8}$/.test(cleanedPhone)) errors.phone = true;
     if (!address.trim()) errors.address = true;
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;

@@ -43,6 +43,7 @@ export class CartError extends AppError {
     | "NOT_FOUND"
     | "VALIDATION_ERROR"
     | "FORBIDDEN"
+    | "TOKEN_EXPIRED"
     | "NETWORK_ERROR"
     | "STOCK_INSUFFICIENT"
     | "UNKNOWN";
@@ -91,7 +92,7 @@ function mapLaravelCartItem(raw: LaravelCartItem): CartItemAPI {
 
 const cartFetch = createServiceFetch(CartError, {
   validationCode: "VALIDATION_ERROR",
-  forbiddenCode: "FORBIDDEN",
+  tokenExpiredCode: "TOKEN_EXPIRED",
 });
 
 // ─── Mock data ────────────────────────────────────────────────────────
@@ -116,11 +117,15 @@ export async function fetchCart(): Promise<CartItemAPI[]> {
       return data.data.map(mapLaravelCartItem);
     } catch (err) {
       if (err instanceof CartError && err.code === "FORBIDDEN") throw err;
-      // API unreachable — fall through to mock
+      if (err instanceof CartError) throw err;
+      throw new CartError(
+        err instanceof Error ? err.message : "Failed to fetch cart",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 150));
   return [...MOCK_CART_ITEMS];
 }
@@ -144,11 +149,14 @@ export async function addCartItem(
       return mapLaravelCartItem(data.data);
     } catch (err) {
       if (err instanceof CartError) throw err;
-      // fall through to mock
+      throw new CartError(
+        err instanceof Error ? err.message : "Failed to add cart item",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 200));
 
   const existing = MOCK_CART_ITEMS.find((item) => item.productId === productId);
@@ -192,11 +200,14 @@ export async function updateCartItemQuantity(
       return mapLaravelCartItem(data.data);
     } catch (err) {
       if (err instanceof CartError) throw err;
-      // fall through to mock
+      throw new CartError(
+        err instanceof Error ? err.message : "Failed to update cart item",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 150));
 
   const item = MOCK_CART_ITEMS.find((i) => i.id === cartItemId);
@@ -222,11 +233,14 @@ export async function removeCartItem(cartItemId: string): Promise<boolean> {
       return true;
     } catch (err) {
       if (err instanceof CartError) throw err;
-      // fall through to mock
+      throw new CartError(
+        err instanceof Error ? err.message : "Failed to remove cart item",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 150));
 
   const idx = MOCK_CART_ITEMS.findIndex((i) => i.id === cartItemId);
@@ -252,11 +266,14 @@ export async function clearCart(): Promise<boolean> {
       return true;
     } catch (err) {
       if (err instanceof CartError) throw err;
-      // fall through to mock
+      throw new CartError(
+        err instanceof Error ? err.message : "Failed to clear cart",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 100));
   MOCK_CART_ITEMS = [];
   return true;

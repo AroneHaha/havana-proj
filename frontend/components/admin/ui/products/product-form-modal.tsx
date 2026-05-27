@@ -20,6 +20,39 @@ export function processFiles(files: FileList): Promise<string[]> {
   );
 }
 
+/**
+ * Build a FormData object from the product form data + raw files.
+ * When the backend is live, use this instead of processFiles() to send
+ * multipart/form-data (Laravel expects file uploads via FormData, not base64).
+ *
+ * For now, this is provided as a ready-to-use alternative. The product service
+ * layer can switch to this by accepting FormData instead of JSON.
+ */
+export function buildProductFormData(
+  formData: ProductFormData,
+  files: File[]
+): FormData {
+  const fd = new FormData();
+  fd.append("name", formData.name);
+  fd.append("name_ar", formData.nameAr);
+  fd.append("category", formData.category);
+  fd.append("price", formData.price);
+  fd.append("stock", formData.stock);
+  fd.append("description", formData.description);
+  if (formData.sku) fd.append("sku", formData.sku);
+  if (formData.soldOut) fd.append("sold_out", "1");
+  files.forEach((file, i) => {
+    fd.append(`images[${i}]`, file);
+  });
+  // Keep existing base64 images that weren't replaced
+  formData.images.forEach((img, i) => {
+    if (!img.startsWith("data:")) {
+      fd.append(`existing_images[${i}]`, img);
+    }
+  });
+  return fd;
+}
+
 export type ProductFormMode = "add" | "edit";
 
 export interface ProductFormData {
@@ -65,6 +98,9 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
     soldOut: product?.soldOut ?? false,
     images: product ? [...product.images] : [],
   });
+
+  // When soldOut is checked, disable and visually indicate the stock field
+  const stockDisabled = form.soldOut;
 
   const handleImageUpload = async (files: FileList) => {
     const newImages = await processFiles(files);

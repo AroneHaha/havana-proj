@@ -16,6 +16,7 @@ import {
 import {
   type Order,
   type OrderStatus,
+  type PaymentMethod,
   ORDER_STATUS_FLOW,
   STATUS_I18N_KEY,
 } from "@/store/orders-store";
@@ -57,6 +58,11 @@ export function OrderDetailDrawer({
     preparing: "markPreparing",
     out_for_delivery: "markOutForDelivery",
     delivered: "markDelivered",
+  };
+
+  const getPaymentLabel = (method: PaymentMethod) => {
+    const map: Record<PaymentMethod, string> = { cash: t.cash, card: t.card, online: t.online };
+    return map[method] ?? t.cash;
   };
 
   const formatDate = (dateStr: string) => {
@@ -187,7 +193,7 @@ export function OrderDetailDrawer({
                   <div className="bg-inset rounded-lg p-3 border border-border ring-1 ring-black/[0.02] dark:ring-white/[0.02]">
                     <p className="text-xs text-muted-foreground">{t.paymentMethod}</p>
                     <p className="text-sm font-medium text-foreground mt-0.5 flex items-center gap-1.5">
-                      <CreditCard className="w-3.5 h-3.5 text-maroon dark:text-gold" />{t.cash}
+                      <CreditCard className="w-3.5 h-3.5 text-maroon dark:text-gold" />{getPaymentLabel(order.paymentMethod)}
                     </p>
                   </div>
                   <div className="bg-inset rounded-lg p-3 border border-border ring-1 ring-black/[0.02] dark:ring-white/[0.02]">

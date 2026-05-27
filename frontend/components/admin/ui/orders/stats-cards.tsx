@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ShoppingBag, DollarSign, TrendingUp, Clock } from "lucide-react";
+import { formatPrice } from "@/lib/utils";
 import type { OrdersT } from "./use-orders-data";
 
 interface StatsCardsProps {
@@ -15,8 +16,8 @@ interface StatsCardsProps {
 export function StatsCards({ t, ordersCount, totalRevenue, avgOrder, pendingCount }: StatsCardsProps) {
   const stats = [
     { label: t.all, value: ordersCount, icon: ShoppingBag, color: "text-blue-500" },
-    { label: t.revenue, value: totalRevenue.toLocaleString(), icon: DollarSign, color: "text-emerald-500" },
-    { label: t.averageOrder, value: Math.round(avgOrder).toLocaleString(), icon: TrendingUp, color: "text-orange-500" },
+    { label: t.revenue, value: formatPrice(totalRevenue), icon: DollarSign, color: "text-emerald-500" },
+    { label: t.averageOrder, value: formatPrice(avgOrder), icon: TrendingUp, color: "text-orange-500" },
     { label: t.pending, value: pendingCount, icon: Clock, color: "text-yellow-500" },
   ];
 

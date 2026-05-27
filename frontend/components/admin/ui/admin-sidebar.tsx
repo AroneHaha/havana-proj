@@ -5,7 +5,6 @@ import {
   ShoppingBag,
   Package,
   DollarSign,
-  LogOut,
   Menu,
   X,
   Flower2,
@@ -13,8 +12,7 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/auth-store";
+import { usePathname } from "next/navigation";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
 import { useState } from "react";
@@ -44,22 +42,14 @@ const sidebarItems = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const locale = useLanguageStore((s) => s.locale);
   const dict = getDictionary(locale);
   const nav = dict.admin.nav;
-  const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
   const toggleCollapse = () => {
     setCollapsed(!collapsed);
-  };
-
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
   };
 
   const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose;
@@ -152,41 +142,6 @@ export function AdminSidebar() {
         </div>
       </nav>
 
-      {/* Bottom */}
-      <div className="px-2 pb-3">
-        <div className="border-t border-border/50 pt-3">
-          {/* User */}
-          <div className={`flex items-center gap-2.5 mb-2 px-2 ${collapsed ? "justify-center" : ""}`}>
-            <div className="h-8 w-8 rounded-full bg-maroon/10 dark:bg-gold/15 flex items-center justify-center shrink-0">
-              <span className="text-maroon dark:text-gold text-[11px] font-bold">
-                {user?.firstName?.[0]}{user?.lastName?.[0]}
-              </span>
-            </div>
-            <div className={`flex flex-col min-w-0 whitespace-nowrap transition-[max-width,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${textCls}`}>
-              <span className="text-[12px] font-medium text-foreground truncate leading-tight">
-                {user?.firstName} {user?.lastName}
-              </span>
-              <span className="text-[10px] text-muted-foreground/60 truncate">
-                {user?.email}
-              </span>
-            </div>
-          </div>
-
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            className={`group flex items-center rounded-lg text-[13px] font-medium text-muted-foreground hover:text-red-600 dark:hover:text-red-400 transition-all duration-150 cursor-pointer ${
-              collapsed ? "px-0 py-[9px] justify-center" : "w-full px-3 py-[9px] gap-3"
-            }`}
-          >
-            <LogOut className="h-[17px] w-[17px] shrink-0 text-muted-foreground/40 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors duration-150" />
-            <span className={`whitespace-nowrap transition-[max-width,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${textCls}`}>
-              {nav.signOut}
-            </span>
-          </button>
-        </div>
-      </div>
-
       {/* Expand button when collapsed */}
       {collapsed && (
         <button
@@ -262,30 +217,7 @@ export function AdminSidebar() {
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-border/50 bg-white dark:bg-dark-card">
-          <div className="flex items-center gap-3 px-2 mb-3">
-            <div className="h-9 w-9 rounded-full bg-maroon/10 dark:bg-gold/15 flex items-center justify-center">
-              <span className="text-maroon dark:text-gold text-xs font-bold">
-                {user?.firstName?.[0]}{user?.lastName?.[0]}
-              </span>
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[13px] font-medium text-foreground truncate">
-                {user?.firstName} {user?.lastName}
-              </span>
-              <span className="text-[11px] text-muted-foreground/60 truncate">
-                {user?.email}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all duration-150 cursor-pointer"
-          >
-            <LogOut className="h-[17px] w-[17px]" />
-            <span>{nav.signOut}</span>
-          </button>
-        </div>
+
       </aside>
 
       {/* Desktop sidebar */}

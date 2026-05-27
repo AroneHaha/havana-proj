@@ -33,7 +33,7 @@ import { type OrderStatus } from "@/types";
 // (consumers importing from this service still work)
 export type { OrderStatus } from "@/types";
 
-export type PaymentMethod = "cash"; // Cash on Delivery only for now
+export type PaymentMethod = "cash" | "card" | "online";
 
 /** The canonical status flow — each step advances to the next */
 export const ORDER_STATUS_FLOW: OrderStatus[] = [
@@ -103,6 +103,7 @@ export class OrdersError extends AppError {
     | "NOT_FOUND"
     | "VALIDATION_ERROR"
     | "FORBIDDEN"
+    | "TOKEN_EXPIRED"
     | "NETWORK_ERROR"
     | "STATUS_CONFLICT"
     | "UNKNOWN";
@@ -198,7 +199,7 @@ function mapLaravelOrder(raw: LaravelOrder): Order {
 
 const ordersFetch = createServiceFetch(OrdersError, {
   validationCode: "VALIDATION_ERROR",
-  forbiddenCode: "FORBIDDEN",
+  tokenExpiredCode: "TOKEN_EXPIRED",
 });
 
 // ─── Mock data (Kuwait-based luxury floral shop) ──────────────────────

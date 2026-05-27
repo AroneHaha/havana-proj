@@ -1,7 +1,7 @@
 "use client";
 
 import { Eye, Trash2, ShoppingBag, CreditCard } from "lucide-react";
-import { STATUS_I18N_KEY, type Order } from "@/store/orders-store";
+import { STATUS_I18N_KEY, type Order, type PaymentMethod } from "@/store/orders-store";
 import { formatPrice } from "@/lib/format-price";
 import { ORDER_STATUS_COLORS, ORDER_STATUS_DOT_COLORS, DEFAULT_ITEMS_PER_PAGE } from "@/lib/constant";
 import { DateRangeBar } from "@/components/admin/ui/shared/date-range-bar";
@@ -79,6 +79,11 @@ export function OrdersTable({
     return t[STATUS_I18N_KEY[status as keyof typeof STATUS_I18N_KEY] as keyof typeof t] as string;
   };
 
+  const getPaymentLabel = (method: PaymentMethod) => {
+    const map: Record<PaymentMethod, string> = { cash: t.cash, card: t.card, online: t.online };
+    return map[method] ?? t.cash;
+  };
+
   return (
     <div className="bg-white dark:bg-dark-card rounded-2xl border border-border ring-1 ring-black/[0.03] dark:ring-white/[0.03] shadow-elevated overflow-hidden">
       {/* Date Range Bar — uses shared DateRangeBar */}
@@ -152,7 +157,7 @@ export function OrdersTable({
                   <td className="px-6 py-4 hidden md:table-cell">
                     <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                       <CreditCard className="w-3.5 h-3.5" />
-                      {t.cash}
+                      {getPaymentLabel(order.paymentMethod)}
                     </span>
                   </td>
                   <td className="px-6 py-4 hidden lg:table-cell text-xs text-muted-foreground">{formatDate(order.createdAt)}</td>

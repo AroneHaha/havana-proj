@@ -27,24 +27,25 @@ export function useReviewsData() {
   const [searchValue, setSearchValue] = useState(filters.search ?? "");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // Fetch on mount (auth guard is handled by (admin)/layout.tsx)
+  // Fetch on mount + refetch when filters change
+  // (This single effect handles both — filters starts as {}, which triggers
+  // the initial fetch, and any subsequent filter change triggers a refetch.)
   useEffect(() => {
-    fetchReviews();
-    fetchStats();
-  }, [fetchReviews, fetchStats]);
+    fetchReviews(filters);
+  }, [filters, fetchReviews]);
 
-  // Debounced search
+  // Fetch stats on mount
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  // Debounced search — updates store filters (which triggers the effect above)
   useEffect(() => {
     const timer = setTimeout(() => {
       setFilters({ search: searchValue || undefined });
     }, 300);
     return () => clearTimeout(timer);
   }, [searchValue, setFilters]);
-
-  // Refetch when filters change
-  useEffect(() => {
-    fetchReviews(filters);
-  }, [filters, fetchReviews]);
 
   const handleVisibilityChange = useCallback(
     async (id: string, visibility: ReviewVisibility) => {

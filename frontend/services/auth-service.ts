@@ -94,7 +94,8 @@ interface LaravelRegisterResponse extends LaravelLoginResponse {}
 
 // ─── Storage keys ─────────────────────────────────────────────────────
 
-const USER_KEY = "havana-customer";
+/** Zustand persist key for auth store — single source of truth for user data */
+const AUTH_STORE_KEY = "havana-auth";
 const TOKEN_KEY = "havana-token";
 const REFRESH_TOKEN_KEY = "havana-refresh-token";
 
@@ -124,15 +125,23 @@ const MOCK_ACCOUNTS: Record<
 function getStoredUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(USER_KEY);
-    return raw ? JSON.parse(raw) : null;
+    // Read from the Zustand persist key — single source of truth.
+    // The persist format is: { state: { user: ... }, version: 0 }
+    const raw = localStorage.getItem(AUTH_STORE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.state?.user ?? null;
   } catch {
     return null;
   }
 }
 
 function storeUser(user: AuthUser, token?: string, refreshToken?: string) {
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  // NOTE: User data is no longer stored here — the auth-store's Zustand persist
+  // (key: "havana-auth") is the single source of truth for user data.
+  // This function only stores the JWT token and sets the auth cookie.
+  // The auth-store's login/register actions call set({ user }) which triggers
+  // the persist middleware to write to localStorage automatically.
   if (token) localStorage.setItem(TOKEN_KEY, token);
   if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
 
@@ -144,7 +153,8 @@ function storeUser(user: AuthUser, token?: string, refreshToken?: string) {
 }
 
 function clearStored() {
-  localStorage.removeItem(USER_KEY);
+  // Clear tokens — the auth-store's persist will handle clearing user data
+  // when the store sets user: null via the logout action.
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   removeAuthCookie();
@@ -206,7 +216,7 @@ export async function authFetch<T>(
 
   // Only dedup GET requests — writes must always execute
   if (method === "GET") {
-    const cacheKey = `GET:${path}`;
+    const cacheKey = `GET:${path}:${JSON.stringify(options.body ?? "")}`;
     const existing = authPendingRequests.get(cacheKey);
     if (existing) return existing as Promise<T>;
 
@@ -359,7 +369,10 @@ export async function login(
       return { user, token: data.token, refreshToken: data.refresh_token };
     } catch (err) {
       if (err instanceof AuthError) throw err;
-      // API unreachable — fall through to mock
+      throw new AuthError(
+        err instanceof Error ? err.message : "Login failed",
+        "NETWORK_ERROR"
+      );
     }
   }
 
@@ -381,8 +394,9 @@ export async function login(
     emailVerified: account.emailVerified,
   };
 
-  storeUser(user, "mock-token-" + Date.now());
-  return { user, token: "mock-token-" + Date.now() };
+  const mockToken = "mock-token-" + Date.now();
+  storeUser(user, mockToken);
+  return { user, token: mockToken };
 }
 
 export async function register(data: {
@@ -408,8 +422,9 @@ export async function register(data: {
 
       const user = mapLaravelUser(res.user);
       // Don't auto-login after register — user needs to verify email first
-      // (Laravel will send verification email)
-      storeUser(user, res.token, res.refresh_token);
+      // (Laravel will send verification email). Only store tokens AFTER verification.
+      // The auth-store's register action will NOT set the user — caller must
+      // show a "check your email" screen instead.
       return { user, token: res.token, refreshToken: res.refresh_token };
     } catch (err) {
       if (err instanceof AuthError) {
@@ -424,7 +439,10 @@ export async function register(data: {
         }
         throw err;
       }
-      // fall through to mock
+      throw new AuthError(
+        err instanceof Error ? err.message : "Registration failed",
+        "NETWORK_ERROR"
+      );
     }
   }
 
@@ -453,8 +471,9 @@ export async function register(data: {
     emailVerified: false,
   };
 
-  storeUser(user, "mock-token-" + Date.now());
-  return { user, token: "mock-token-" + Date.now() };
+  const mockToken = "mock-token-" + Date.now();
+  storeUser(user, mockToken);
+  return { user, token: mockToken };
 }
 
 export async function forgotPassword(email: string): Promise<boolean> {

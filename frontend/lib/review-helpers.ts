@@ -14,7 +14,7 @@ export function formatRating(rating: number): string {
 /** Format an ISO date string to a readable format */
 export function formatReviewDate(isoDate: string): string {
   const date = new Date(isoDate);
-  return date.toLocaleDateString("en-QA", {
+  return date.toLocaleDateString("en-KW", {
     year: "numeric",
     month: "short",
     day: "numeric",

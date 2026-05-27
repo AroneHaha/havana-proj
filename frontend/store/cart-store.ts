@@ -55,7 +55,7 @@ function cartItemAPIToCartItem(api: CartItemAPI): CartItem {
     stock: 0,
     rating: 0,
     reviewCount: 0,
-    inStock: true,
+    inStock: api.price > 0, // Derive from available data; real value comes from API
   };
   return { product, quantity: api.quantity };
 }
@@ -99,7 +99,6 @@ export const useCartStore = create<CartStore>()(
 
         set({ loading: true });
         try {
-          useCartStore.persist.rehydrate();
           const apiItems = await serviceFetchCart();
           const items = apiItems.map(cartItemAPIToCartItem);
           // Build the productId → cartItemId mapping from the API response
@@ -168,18 +167,18 @@ export const useCartStore = create<CartStore>()(
           const cartItemId = get().cartItemIds[productId] ?? productId;
           try {
             await serviceRemoveCartItem(cartItemId);
+            // Clean up the cartItemId mapping only on success
+            set((state) => {
+              const { [productId]: _, ...rest } = state.cartItemIds;
+              return { cartItemIds: rest };
+            });
           } catch (err) {
-            // Revert on failure
+            // Revert on failure — also restore the cartItemId mapping
             set((state) => ({
               items: [...state.items, removed],
               error: getErrorMessage(err, "Failed to remove item"),
             }));
           }
-          // Clean up the cartItemId mapping
-          set((state) => {
-            const { [productId]: _, ...rest } = state.cartItemIds;
-            return { cartItemIds: rest };
-          });
         }
       },
 

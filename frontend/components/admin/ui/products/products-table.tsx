@@ -111,7 +111,16 @@ export function ProductGrid({
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-maroon dark:text-gold">{formatPrice(product.price)}</span>
+              <div className="flex items-center gap-1.5">
+                {product.salePrice ? (
+                  <>
+                    <span className="text-sm font-bold text-maroon dark:text-gold">{formatPrice(product.salePrice)}</span>
+                    <span className="text-[10px] text-muted-foreground line-through">{formatPrice(product.price)}</span>
+                  </>
+                ) : (
+                  <span className="text-sm font-bold text-maroon dark:text-gold">{formatPrice(product.price)}</span>
+                )}
+              </div>
               <span className={`text-[10px] font-medium ${product.stock === 0 ? "text-red-500" : product.stock <= 5 ? "text-yellow-600 dark:text-yellow-400" : "text-muted-foreground"}`}>
                 {product.stock} in stock
               </span>

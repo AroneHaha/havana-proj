@@ -24,11 +24,13 @@ export function AdminTopbar() {
     <header className="sticky top-0 z-30 bg-white/95 dark:bg-dark-card/90 backdrop-blur-md border-b border-border shadow-topbar">
       <div className="flex items-center justify-between h-16 px-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-maroon/8 dark:bg-gold/10 border border-maroon/10 dark:border-gold/15">
-            <Flower2 className="h-5 w-5 text-maroon dark:text-gold" />
+          <div className="p-2 rounded-xl bg-gradient-to-br from-maroon to-maroon-light dark:from-gold dark:to-gold-light shadow-sm">
+            <Flower2 className="h-5 w-5 text-white" />
           </div>
-          <span className="font-serif text-lg font-semibold text-foreground">Havana</span>
-          <span className="text-xs text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full font-medium border border-border shadow-xs">Admin</span>
+          <div className="flex flex-col min-w-0">
+            <span className="font-serif text-[17px] font-bold leading-tight text-gold-gradient">Havana</span>
+            <span className="text-[11px] font-medium text-muted-foreground tracking-wide uppercase leading-tight">Ordering &amp; Inventory Management System</span>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <button className="relative p-2 rounded-lg hover:bg-muted hover:shadow-xs transition-all duration-200 cursor-pointer group">

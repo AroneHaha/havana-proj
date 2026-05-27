@@ -21,6 +21,8 @@ import { createServiceFetch } from "@/lib/service-fetch";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
+export type PaymentMethod = "cash" | "card" | "online";
+
 export interface CheckoutPayload {
   items: Array<{ productId: string; quantity: number }>;
   customer: {
@@ -30,7 +32,7 @@ export interface CheckoutPayload {
     address: string;
   };
   notes?: string;
-  paymentMethod: "cash";
+  paymentMethod: PaymentMethod;
 }
 
 export interface CheckoutResult {
@@ -59,6 +61,7 @@ export class CheckoutError extends AppError {
     | "NOT_FOUND"
     | "VALIDATION_ERROR"
     | "FORBIDDEN"
+    | "TOKEN_EXPIRED"
     | "NETWORK_ERROR"
     | "STOCK_INSUFFICIENT"
     | "PAYMENT_FAILED"
@@ -122,7 +125,7 @@ function mapLaravelStockVerification(raw: LaravelStockVerification): StockVerifi
 
 const checkoutFetch = createServiceFetch(CheckoutError, {
   validationCode: "VALIDATION_ERROR",
-  forbiddenCode: "FORBIDDEN",
+  tokenExpiredCode: "TOKEN_EXPIRED",
 });
 
 // ─── Public API ───────────────────────────────────────────────────────

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useOrdersStore } from "@/store/orders-store";
 import { useReviewsStore } from "@/store/review-store";
+import { formatPrice } from "@/lib/utils";
 import type { AdminProduct } from "./products-types";
 
 interface ProductHistoryDrawerProps {
@@ -157,7 +158,7 @@ export function ProductHistoryDrawer({
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">{product.nameAr}</p>
                   <p className="text-xs text-muted-foreground mt-1">{product.sku} &middot; {product.category}</p>
-                  <p className="text-lg font-bold text-maroon dark:text-gold mt-1">KD {product.price.toLocaleString()}</p>
+                  <p className="text-lg font-bold text-maroon dark:text-gold mt-1">{formatPrice(product.salePrice ?? product.price)}</p>
                 </div>
               </div>
 
@@ -180,7 +181,7 @@ export function ProductHistoryDrawer({
                 </div>
                 <div className="bg-muted/50 dark:bg-[#111] rounded-xl p-3 text-center">
                   <div className="flex items-center justify-center mb-1.5"><ShoppingBag className="w-4 h-4 text-maroon dark:text-gold" /></div>
-                  <p className="text-lg font-bold text-foreground">KD {totalRevenue.toLocaleString()}</p>
+                  <p className="text-lg font-bold text-foreground">{formatPrice(totalRevenue)}</p>
                   <p className="text-[10px] text-muted-foreground font-medium">Revenue</p>
                 </div>
               </div>

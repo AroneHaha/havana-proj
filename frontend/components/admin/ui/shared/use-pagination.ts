@@ -49,13 +49,17 @@ export function usePagination<T>({
   const resetPage = useCallback(() => setCurrentPage(1), []);
 
   const startIndex = (safePage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
 
-  /** Slice any array for the current page */
+  /** Slice any array for the current page.
+   *  Uses the items array's own length (not totalItems) so that
+   *  paginate works correctly even when totalItems is 0 or stale. */
   const paginate = useCallback(
-    <U>(items: U[]): U[] => items.slice(startIndex, endIndex),
-    [startIndex, endIndex]
+    <U>(items: U[]): U[] => items.slice(startIndex, startIndex + itemsPerPage),
+    [startIndex, itemsPerPage]
   );
+
+  /** End index based on totalItems (for display / metadata only) */
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
 
   return {
     currentPage: safePage,

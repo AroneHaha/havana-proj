@@ -20,6 +20,9 @@ export const useLanguageStore = create<LanguageStore>()(
     }),
     {
       name: "havana-language",
+      // Prevent server/client hydration mismatch — rehydrate is called
+      // once on mount by the ThemeProvider's useStoreHydration hook.
+      skipHydration: true,
     }
   )
 );

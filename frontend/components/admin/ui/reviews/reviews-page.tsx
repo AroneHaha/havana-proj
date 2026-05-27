@@ -31,7 +31,7 @@ export function AdminReviews() {
   } = useReviewsData();
 
   return (
-    <div className="p-6 lg:p-8">
+    <>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         {/* Page header */}
         <div className="mb-8">
@@ -142,7 +142,7 @@ export function AdminReviews() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }
 

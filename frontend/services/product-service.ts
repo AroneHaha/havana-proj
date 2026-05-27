@@ -23,7 +23,7 @@ import type { Locale } from "@/i18n";
 // ─── Error class ──────────────────────────────────────────────────────
 
 export class ProductsError extends AppError {
-  declare code: "NOT_FOUND" | "VALIDATION_ERROR" | "FORBIDDEN" | "NETWORK_ERROR" | "UNKNOWN";
+  declare code: "NOT_FOUND" | "VALIDATION_ERROR" | "FORBIDDEN" | "TOKEN_EXPIRED" | "NETWORK_ERROR" | "UNKNOWN";
 
   constructor(
     message: string,
@@ -41,7 +41,7 @@ export type { FieldErrors };
 
 const productsFetch = createServiceFetch(ProductsError, {
   validationCode: "VALIDATION_ERROR",
-  forbiddenCode: "FORBIDDEN",
+  tokenExpiredCode: "TOKEN_EXPIRED",
 });
 
 // ─── Locale resolver ──────────────────────────────────────────────────
@@ -133,12 +133,17 @@ export async function getFeaturedProducts(locale: Locale): Promise<Product[]> {
         { locale }
       );
       return (res.data ?? []).map((p) => mapLaravelProduct(p, locale));
-    } catch {
-      // API unreachable — fall through to seed data
+    } catch (err) {
+      // When API is configured, errors must surface — never silently fall back to mock.
+      if (err instanceof ProductsError) throw err;
+      throw new ProductsError(
+        err instanceof Error ? err.message : "Failed to fetch products",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   return featuredProducts.map((p) => localizeProduct(p, locale));
 }
 
@@ -151,12 +156,16 @@ export async function getBestSellerProducts(locale: Locale): Promise<Product[]> 
         { locale }
       );
       return (res.data ?? []).map((p) => mapLaravelProduct(p, locale));
-    } catch {
-      // API unreachable — fall through to seed data
+    } catch (err) {
+      if (err instanceof ProductsError) throw err;
+      throw new ProductsError(
+        err instanceof Error ? err.message : "Failed to fetch best sellers",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   return bestSellerProducts.map((p) => localizeProduct(p, locale));
 }
 
@@ -179,12 +188,16 @@ export async function getProducts(
         products: (res.data ?? []).map((p) => mapLaravelProduct(p, locale)),
         total: res.meta?.total ?? 0,
       };
-    } catch {
-      // API unreachable — fall through to seed data
+    } catch (err) {
+      if (err instanceof ProductsError) throw err;
+      throw new ProductsError(
+        err instanceof Error ? err.message : "Failed to fetch products",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   const all = [...featuredProducts, ...bestSellerProducts].map((p) =>
     localizeProduct(p, locale)
   );
@@ -207,12 +220,16 @@ export async function fetchProductById(
         { locale }
       );
       return mapLaravelProduct(res.data, locale);
-    } catch {
-      // API unreachable — fall through to seed data
+    } catch (err) {
+      if (err instanceof ProductsError) throw err;
+      throw new ProductsError(
+        err instanceof Error ? err.message : "Failed to fetch product",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 100));
   const all = [...featuredProducts, ...bestSellerProducts];
   const found = all.find((p) => p.id === id) ?? null;
@@ -226,7 +243,8 @@ export async function fetchProductById(
  * Expected Laravel endpoint: POST /admin/products
  */
 export async function createProduct(
-  data: Omit<Product, "id" | "slug" | "rating" | "reviewCount" | "createdAt">
+  data: Omit<Product, "id" | "slug" | "rating" | "reviewCount" | "createdAt">,
+  locale: Locale = "en"
 ): Promise<Product> {
   // ── Try real API first ──
   if (API_BASE) {
@@ -249,14 +267,17 @@ export async function createProduct(
           is_new: data.isNew ?? false,
         }),
       });
-      return mapLaravelProduct(res.data, "en");
+      return mapLaravelProduct(res.data, locale);
     } catch (err) {
       if (err instanceof ProductsError) throw err;
-      // fall through to mock
+      throw new ProductsError(
+        err instanceof Error ? err.message : "Failed to create product",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 300));
   const id = `prod_${Date.now()}`;
   const slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -277,7 +298,8 @@ export async function createProduct(
  */
 export async function updateProduct(
   id: string,
-  data: Partial<Product>
+  data: Partial<Product>,
+  locale: Locale = "en"
 ): Promise<Product> {
   // ── Try real API first ──
   if (API_BASE) {
@@ -307,14 +329,17 @@ export async function updateProduct(
           body: JSON.stringify(body),
         }
       );
-      return mapLaravelProduct(res.data, "en");
+      return mapLaravelProduct(res.data, locale);
     } catch (err) {
       if (err instanceof ProductsError) throw err;
-      // fall through to mock
+      throw new ProductsError(
+        err instanceof Error ? err.message : "Failed to update product",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 300));
 
   // Find in seed data
@@ -343,11 +368,14 @@ export async function deleteProduct(id: string): Promise<boolean> {
       return true;
     } catch (err) {
       if (err instanceof ProductsError) throw err;
-      // fall through to mock
+      throw new ProductsError(
+        err instanceof Error ? err.message : "Failed to delete product",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 200));
 
   const allProducts = [...featuredProducts, ...bestSellerProducts];
@@ -375,12 +403,16 @@ export async function fetchProductStats(): Promise<ProductStats> {
         lowStockCount: data.low_stock_count,
         outOfStockCount: data.out_of_stock_count,
       };
-    } catch {
-      // fall through to mock
+    } catch (err) {
+      if (err instanceof ProductsError) throw err;
+      throw new ProductsError(
+        err instanceof Error ? err.message : "Failed to fetch product stats",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 100));
 
   const allProducts = [...featuredProducts, ...bestSellerProducts];

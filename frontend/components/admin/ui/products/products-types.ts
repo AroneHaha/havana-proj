@@ -15,7 +15,8 @@ export interface AdminProduct {
   name: string;
   nameAr: string;
   category: string;
-  price: number;
+  price: number;          // Base price (always the original price from the product)
+  salePrice?: number;     // Sale price if discounted (undefined = no discount)
   stock: number;
   status: "in_stock" | "low_stock" | "sold_out";
   images: string[];

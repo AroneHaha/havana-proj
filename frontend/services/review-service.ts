@@ -36,7 +36,7 @@ import type {
 export type { FieldErrors };
 
 export class ReviewsError extends AppError {
-  declare code: "NOT_FOUND" | "VALIDATION_ERROR" | "FORBIDDEN" | "NETWORK_ERROR" | "UNKNOWN";
+  declare code: "NOT_FOUND" | "VALIDATION_ERROR" | "FORBIDDEN" | "TOKEN_EXPIRED" | "NETWORK_ERROR" | "UNKNOWN";
 
   constructor(
     message: string,
@@ -110,7 +110,7 @@ function mapLaravelReview(raw: LaravelReview): Review {
 
 const reviewsFetch = createServiceFetch(ReviewsError, {
   validationCode: "VALIDATION_ERROR",
-  forbiddenCode: "FORBIDDEN",
+  tokenExpiredCode: "TOKEN_EXPIRED",
 });
 
 // ─── Mock data (Kuwait-based luxury floral shop) ──────────────────────
@@ -312,10 +312,15 @@ export async function fetchReviews(filters?: ReviewFilters & { page?: number; pe
       };
     } catch (err) {
       if (err instanceof ReviewsError && err.code === "FORBIDDEN") throw err;
+      if (err instanceof ReviewsError) throw err;
+      throw new ReviewsError(
+        err instanceof Error ? err.message : "Failed to fetch reviews",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 200));
 
   let result = [...MOCK_REVIEWS];
@@ -381,10 +386,14 @@ export async function updateReviewVisibility(
       return mapLaravelReview(data.data);
     } catch (err) {
       if (err instanceof ReviewsError) throw err;
+      throw new ReviewsError(
+        err instanceof Error ? err.message : "Failed to update review visibility",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 300));
 
   const review = MOCK_REVIEWS.find((r) => r.id === id);
@@ -406,10 +415,14 @@ export async function deleteReview(id: string): Promise<boolean> {
       return true;
     } catch (err) {
       if (err instanceof ReviewsError) throw err;
+      throw new ReviewsError(
+        err instanceof Error ? err.message : "Failed to delete review",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 200));
 
   const idx = MOCK_REVIEWS.findIndex((r) => r.id === id);
@@ -429,12 +442,16 @@ export async function fetchReviewStats(): Promise<ReviewStats> {
         totalReviews: data.total_reviews,
         ratingDistribution: data.rating_distribution,
       };
-    } catch {
-      // fall through to mock
+    } catch (err) {
+      if (err instanceof ReviewsError) throw err;
+      throw new ReviewsError(
+        err instanceof Error ? err.message : "Failed to fetch review stats",
+        "NETWORK_ERROR"
+      );
     }
   }
 
-  // ── Mock ──
+  // ── Mock (only when API_BASE is not configured) ──
   await new Promise((r) => setTimeout(r, 100));
 
   const totalReviews = MOCK_REVIEWS.filter((r) => r.visibility === "visible").length;

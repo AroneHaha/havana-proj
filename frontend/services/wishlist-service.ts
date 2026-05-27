@@ -29,6 +29,7 @@ export class WishlistError extends AppError {
     | "NOT_FOUND"
     | "VALIDATION_ERROR"
     | "FORBIDDEN"
+    | "TOKEN_EXPIRED"
     | "NETWORK_ERROR"
     | "UNKNOWN";
 
@@ -57,7 +58,7 @@ interface LaravelWishlistResponse {
 
 const wishlistFetch = createServiceFetch(WishlistError, {
   validationCode: "VALIDATION_ERROR",
-  forbiddenCode: "FORBIDDEN",
+  tokenExpiredCode: "TOKEN_EXPIRED",
 });
 
 // ─── Mock data ────────────────────────────────────────────────────────

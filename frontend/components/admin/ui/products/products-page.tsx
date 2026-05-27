@@ -33,10 +33,11 @@ function toAdminProduct(p: Product): AdminProduct {
     name: p.name,
     nameAr: p.localeText?.ar?.name || p.name,
     category: p.category,
-    price: p.salePrice ?? p.price,
+    price: p.price,
+    salePrice: p.salePrice,
     stock: p.stock,
     status: getStockStatus(p),
-    images: p.images && p.images.length > 0 ? p.images : [p.image],
+    images: p.images && p.images.length > 0 ? p.images : (p.image ? [p.image] : []),
     description: p.description,
     sku: p.sku || "",
     soldOut: p.stock <= 0,
@@ -86,54 +87,74 @@ export function ProductsPage() {
     return "in_stock";
   };
 
-  const handleAddProduct = (formData: ProductFormData) => {
-    if (!formData.name || !formData.price || !formData.stock) return;
-    storeAddProduct({
-      name: formData.name,
-      description: formData.description,
-      price: parseFloat(formData.price),
-      salePrice: parseFloat(formData.price),
-      image: formData.images[0] || "",
-      images: formData.images,
-      category: formData.category,
-      stock: parseInt(formData.stock),
-      inStock: parseInt(formData.stock) > 0,
-      sku: formData.sku || `HVF-${Date.now().toString(36).toUpperCase()}`,
-      localeText: {
-        en: { name: formData.name, description: formData.description },
-        ar: { name: formData.nameAr || formData.name, description: formData.description },
-      },
-    });
-    setAddModalOpen(false);
+  const handleAddProduct = async (formData: ProductFormData) => {
+    // Validate required fields
+    if (!formData.name.trim()) return;
+    const price = parseFloat(formData.price);
+    const stock = parseInt(formData.stock, 10);
+    if (isNaN(price) || price < 0) return;
+    if (isNaN(stock) || stock < 0) return;
+    try {
+      await storeAddProduct({
+        name: formData.name.trim(),
+        description: formData.description,
+        price,
+        salePrice: undefined,
+        image: formData.images[0] || "",
+        images: formData.images,
+        category: formData.category,
+        stock,
+        inStock: stock > 0,
+        sku: formData.sku.trim() || `HVF-${Date.now().toString(36).toUpperCase()}`,
+        localeText: {
+          en: { name: formData.name.trim(), description: formData.description },
+          ar: { name: formData.nameAr.trim() || formData.name.trim(), description: formData.description },
+        },
+      });
+      setAddModalOpen(false);
+    } catch {
+      // Error is stored in product store — UI can display via store error state
+    }
   };
 
   const handleOpenEdit = (product: AdminProduct) => {
     setEditProduct(product);
   };
 
-  const handleSaveEdit = (product: AdminProduct, editForm: ProductFormData) => {
-    const newStock = parseInt(editForm.stock);
-    storeUpdateProduct(product.id, {
-      name: editForm.name,
-      description: editForm.description,
-      price: parseFloat(editForm.price),
-      salePrice: parseFloat(editForm.price),
-      image: editForm.images[0] || "",
-      images: editForm.images,
-      category: editForm.category,
-      stock: editForm.soldOut ? 0 : newStock,
-      inStock: !editForm.soldOut && newStock > 0,
-      sku: product.sku,
-      localeText: {
-        en: { name: editForm.name, description: editForm.description },
-        ar: { name: editForm.nameAr || editForm.name, description: editForm.description },
-      },
-    });
-    setEditProduct(null);
+  const handleSaveEdit = async (product: AdminProduct, editForm: ProductFormData) => {
+    const newStock = parseInt(editForm.stock, 10);
+    const newPrice = parseFloat(editForm.price);
+    if (isNaN(newPrice) || newPrice < 0) return;
+    if (isNaN(newStock) || newStock < 0) return;
+    try {
+      await storeUpdateProduct(product.id, {
+        name: editForm.name.trim(),
+        description: editForm.description,
+        price: newPrice,
+        salePrice: undefined,
+        image: editForm.images[0] || "",
+        images: editForm.images,
+        category: editForm.category,
+        stock: editForm.soldOut ? 0 : newStock,
+        inStock: !editForm.soldOut && newStock > 0,
+        sku: product.sku,
+        localeText: {
+          en: { name: editForm.name.trim(), description: editForm.description },
+          ar: { name: editForm.nameAr.trim() || editForm.name.trim(), description: editForm.description },
+        },
+      });
+      setEditProduct(null);
+    } catch {
+      // Error is stored in product store — UI can display via store error state
+    }
   };
 
-  const handleDelete = (id: string) => {
-    storeDeleteProduct(id);
+  const handleDelete = async (id: string) => {
+    try {
+      await storeDeleteProduct(id);
+    } catch {
+      // Error is stored in product store — UI can display via store error state
+    }
     setDeleteConfirm(null);
   };
 

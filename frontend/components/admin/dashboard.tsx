@@ -50,7 +50,7 @@ export function AdminDashboard() {
   const fetchReviews = useReviewsStore((s) => s.fetchReviews);
   const fetchReviewStats = useReviewsStore((s) => s.fetchStats);
 
-  const loading = ordersLoading || productsLoading;
+  const loading = ordersLoading || productsLoading || reviewsLoading;
 
   // ─── Fetch on mount ──
   useEffect(() => {

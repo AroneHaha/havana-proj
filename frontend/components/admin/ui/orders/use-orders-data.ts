@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   useOrdersStore,
   type OrderStatus,
+  type PaymentMethod,
   STATUS_I18N_KEY,
   type Order,
 } from "@/store/orders-store";
@@ -36,29 +37,11 @@ export function useOrdersData() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   // ── Shared hooks for filter state ──────────────────────────────────
-  const search = useSearchFilter({
-    onSearchChange: () => pagination.resetPage(),
-  });
+  const search = useSearchFilter();
 
-  const dateRange = useDateRangeFilter({
-    onChange: () => pagination.resetPage(),
-  });
+  const dateRange = useDateRangeFilter();
 
-  const pagination = usePagination({
-    totalItems: 0, // will be overridden by filteredOrders.length
-    itemsPerPage: ITEMS_PER_PAGE,
-  });
-
-  useEffect(() => {
-    storeFetchOrders();
-    storeFetchStats();
-  }, [storeFetchOrders, storeFetchStats]);
-
-  const statusCounts = getStatusCounts();
-  const totalRevenue = getTotalRevenue();
-  const avgOrder = getAverageOrderValue();
-
-  // ── Filtered orders (search + status + date range) ─────────────────
+  // Compute filtered orders first so we can pass the count to pagination
   const filteredOrders = useMemo(() => {
     let result = [...orders];
     if (activeFilter !== "all") result = result.filter((o) => o.status === activeFilter);
@@ -80,8 +63,49 @@ export function useOrdersData() {
     return result;
   }, [orders, activeFilter, search.searchQuery, dateRange.dateFrom, dateRange.dateTo]);
 
+  const pagination = usePagination({
+    totalItems: filteredOrders.length,
+    itemsPerPage: ITEMS_PER_PAGE,
+  });
+
+  // Wire up search/date changes to reset pagination (after pagination is defined)
+  // These refs ensure we reset page without stale closures
+  const handleSearchChange = useCallback((value: string) => {
+    search.setSearchQuery(value);
+    pagination.resetPage();
+  }, [search.setSearchQuery, pagination.resetPage]);
+
+  const handleDateFromChange = useCallback((value: string) => {
+    dateRange.setDateFrom(value);
+    pagination.resetPage();
+  }, [dateRange.setDateFrom, pagination.resetPage]);
+
+  const handleDateToChange = useCallback((value: string) => {
+    dateRange.setDateTo(value);
+    pagination.resetPage();
+  }, [dateRange.setDateTo, pagination.resetPage]);
+
+  const handleDatePreset = useCallback((preset: "today" | "7d" | "30d") => {
+    dateRange.applyPreset(preset);
+    pagination.resetPage();
+  }, [dateRange.applyPreset, pagination.resetPage]);
+
+  const clearDateFilter = useCallback(() => {
+    dateRange.clearDate();
+    pagination.resetPage();
+  }, [dateRange.clearDate, pagination.resetPage]);
+
+  useEffect(() => {
+    storeFetchOrders();
+    storeFetchStats();
+  }, [storeFetchOrders, storeFetchStats]);
+
+  const statusCounts = getStatusCounts();
+  const totalRevenue = getTotalRevenue();
+  const avgOrder = getAverageOrderValue();
+
   const paginatedOrders = pagination.paginate(filteredOrders);
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ITEMS_PER_PAGE));
+  const totalPages = pagination.totalPages;
 
   // Update pagination total when filtered orders change
   useEffect(() => {
@@ -107,9 +131,14 @@ export function useOrdersData() {
     } catch {}
   };
 
+  const getPaymentLabel = useCallback((method: PaymentMethod) => {
+    const map: Record<PaymentMethod, string> = { cash: "Cash on Delivery", card: "Card Payment", online: "Online Payment" };
+    return map[method] ?? "Cash on Delivery";
+  }, []);
+
   const exportCSV = () => {
     const headers = ["Order ID", "Customer", "Email", "Phone", "Items", "Subtotal", "Delivery Fee", "Total", "Status", "Payment", "Notes", "Created At"];
-    const rows = filteredOrders.map((o) => [o.id, o.customer.name, o.customer.email, o.customer.phone, o.items.map((i) => `${i.productName} x${i.quantity}`).join("; "), o.subtotal.toString(), o.deliveryFee.toString(), o.total.toString(), o.status, "Cash on Delivery", o.notes || "", o.createdAt]);
+    const rows = filteredOrders.map((o) => [o.id, o.customer.name, o.customer.email, o.customer.phone, o.items.map((i) => `${i.productName} x${i.quantity}`).join("; "), o.subtotal.toString(), o.deliveryFee.toString(), o.total.toString(), o.status, getPaymentLabel(o.paymentMethod), o.notes || "", o.createdAt]);
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -128,18 +157,18 @@ export function useOrdersData() {
   return {
     t,
     loading,
-    searchQuery: search.searchQuery, handleSearchChange: search.setSearchQuery, handleClearSearch: search.clearSearch,
+    searchQuery: search.searchQuery, handleSearchChange, handleClearSearch: search.clearSearch,
     activeFilter, handleFilterChange,
     currentPage: pagination.currentPage, setCurrentPage: pagination.setPage,
     selectedOrder, setSelectedOrder, drawerOpen, setDrawerOpen,
     deleteConfirm, setDeleteConfirm,
-    dateFrom: dateRange.dateFrom, handleDateFromChange: dateRange.setDateFrom,
-    dateTo: dateRange.dateTo, handleDateToChange: dateRange.setDateTo,
+    dateFrom: dateRange.dateFrom, handleDateFromChange,
+    dateTo: dateRange.dateTo, handleDateToChange,
     activeDatePreset: dateRange.activePreset, hasDateFilter: dateRange.hasDateFilter,
     filteredOrders, paginatedOrders, totalPages,
     orders, statusCounts, totalRevenue, avgOrder,
     handleViewOrder, handleUpdateStatus, handleDeleteOrder,
-    handleDatePreset: dateRange.applyPreset, clearDateFilter: dateRange.clearDate, exportCSV,
+    handleDatePreset, clearDateFilter, exportCSV,
     formatDate, itemCount, getTabLabel,
   };
 }
