@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 class OrderStatusHistory extends Model
 {
     use HasFactory, HasUuids;
+    
+    protected $table = 'order_status_history';  // ← ADD THIS LINE
 
     public $timestamps = false; // we only use created_at
 
