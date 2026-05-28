@@ -32,7 +32,6 @@ export function MobileNav() {
   const closeMobileMenu = useUIStore((s) => s.closeMobileMenu);
   const openCart = useUIStore((s) => s.openCart);
   const cartCount = useCartStore((s) => s.getItemCount());
-  const wishlistCount = useWishlistStore((s) => s.getItemCount());
   const locale = useLanguageStore((s) => s.locale);
   const t = getDictionary(locale);
   const hydrated = useHydrated();
@@ -115,11 +114,6 @@ export function MobileNav() {
                   >
                     <link.icon className="h-4 w-4" />
                     {t.mobileNav[link.key]}
-                    {link.key === "wishlist" && hydrated && wishlistCount > 0 && (
-                      <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-maroon text-[10px] font-bold text-white">
-                        {wishlistCount}
-                      </span>
-                    )}
                   </a>
                 ))}
               </div>
