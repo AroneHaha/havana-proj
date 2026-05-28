@@ -2,16 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ShoppingBag, Heart, User, Menu, X, ChevronDown, Truck } from "lucide-react";
+import { User, Menu, ChevronDown, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { LanguageToggle } from "@/components/shared/language-toggle";
-import { useUIStore, useCartStore, useWishlistStore } from "@/store";
+import { useUIStore } from "@/store";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
-import { useHydrated } from "@/hooks/use-hydrated";
 
 const occasionKeys = [
   "eid", "weddings", "birthday", "anniversary",
@@ -20,25 +17,19 @@ const occasionKeys = [
 
 const navKeys = [
   { key: "home" as const, href: "/" },
-  { key: "shop" as const, href: "/shop" },
-  { key: "categories" as const, href: "/categories" },
+  { key: "shop" as const, href: "#shop" },
+  { key: "categories" as const, href: "#categories" },
   { key: "occasions" as const, href: "#occasions", hasDropdown: true },
-  { key: "blog" as const, href: "/blog" },
-  { key: "about" as const, href: "/about" },
-  { key: "contact" as const, href: "/contact" },
+  { key: "about" as const, href: "#about" },
+  { key: "contact" as const, href: "#contact" },
 ];
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isOccasionsOpen, setIsOccasionsOpen] = useState(false);
   const openMobileMenu = useUIStore((s) => s.openMobileMenu);
-  const openCart = useUIStore((s) => s.openCart);
-  const cartCount = useCartStore((s) => s.getItemCount());
-  const wishlistCount = useWishlistStore((s) => s.getItemCount());
   const locale = useLanguageStore((s) => s.locale);
   const t = getDictionary(locale);
-  const hydrated = useHydrated();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -109,13 +100,12 @@ export function Header() {
                           className="absolute top-full left-0 mt-1 w-56 rounded-xl border border-border bg-card shadow-xl p-2"
                         >
                           {occasionKeys.map((occ) => (
-                            <a
+                            <span
                               key={occ}
-                              href="#occasions"
-                              className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-maroon/10 hover:text-maroon dark:hover:bg-gold/10 dark:hover:text-gold transition-colors"
+                              className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-maroon/10 hover:text-maroon dark:hover:bg-gold/10 dark:hover:text-gold transition-colors cursor-default"
                             >
                               {t.occasions[occ]}
-                            </a>
+                            </span>
                           ))}
                         </motion.div>
                       )}
@@ -135,48 +125,11 @@ export function Header() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-1">
-              {/* Search */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsSearchOpen(!isSearchOpen)}
-                className="relative"
-              >
-                <AnimatePresence mode="wait">
-                  {isSearchOpen ? (
-                    <motion.div
-                      key="close"
-                      initial={{ rotate: -90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: 90, opacity: 0 }}
-                    >
-                      <X className="h-5 w-5" />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="search"
-                      initial={{ rotate: 90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: -90, opacity: 0 }}
-                    >
-                      <Search className="h-5 w-5" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </Button>
-
               <LanguageToggle />
               <ThemeToggle />
 
-              {/* Wishlist */}
-              <Button variant="ghost" size="icon" className="relative hidden sm:flex">
-                <Heart className="h-5 w-5" />
-                {hydrated && wishlistCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-maroon text-[10px] font-bold text-white">
-                    {wishlistCount}
-                  </span>
-                )}
-              </Button>
+              {/* REMOVED: Search button */}
+              {/* REMOVED: Wishlist Heart button */}
 
               {/* User */}
               <a
@@ -185,43 +138,12 @@ export function Header() {
               >
                 <User className="h-5 w-5" />
               </a>
-
-              {/* Cart */}
-              <Button variant="ghost" size="icon" onClick={openCart} className="relative">
-                <ShoppingBag className="h-5 w-5" />
-                {hydrated && cartCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-maroon text-[10px] font-bold text-white">
-                    {cartCount}
-                  </span>
-                )}
-              </Button>
             </div>
           </div>
         </div>
 
-        {/* Search Bar */}
-        <AnimatePresence>
-          {isSearchOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="overflow-hidden border-t border-border"
-            >
-              <div className="container mx-auto px-4 lg:px-8 py-4">
-                <div className="relative max-w-2xl mx-auto">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground rtl:left-auto rtl:right-4" />
-                  <Input
-                    placeholder={t.search.placeholder}
-                    className="pl-12 h-12 text-base rounded-xl bg-muted border-0 focus-visible:ring-2 focus-visible:ring-maroon dark:focus-visible:ring-gold"
-                    autoFocus
-                  />
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* REMOVED: Expandable Search Bar */}
+
       </header>
     </>
   );

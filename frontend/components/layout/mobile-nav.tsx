@@ -1,8 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Search, User, Heart, Package, Settings, ChevronRight } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { X, User, Heart, Package, Settings, ChevronRight } from "lucide-react";
 import { useUIStore, useCartStore, useWishlistStore } from "@/store";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
@@ -13,7 +12,6 @@ const navKeys = [
   { key: "shop" as const, href: "/shop" },
   { key: "categories" as const, href: "/categories" },
   { key: "about" as const, href: "/about" },
-  { key: "blog" as const, href: "/blog" },
   { key: "contact" as const, href: "/contact" },
 ];
 
@@ -69,13 +67,7 @@ export function MobileNav() {
               </button>
             </div>
 
-            {/* Search */}
-            <div className="p-4 border-b border-border">
-              <div className="relative">
-                <Search className={`absolute top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground ${locale === "ar" ? "right-3" : "left-3"}`} />
-                <Input placeholder={t.search.mobilePlaceholder} className={locale === "ar" ? "pr-10 rounded-xl" : "pl-10 rounded-xl"} />
-              </div>
-            </div>
+            {/* REMOVED: Search input section */}
 
             {/* Nav Links */}
             <div className="py-2">
@@ -99,14 +91,12 @@ export function MobileNav() {
               </h3>
               <div className="grid grid-cols-2 gap-2">
                 {occasionKeys.map((occ) => (
-                  <a
+                  <span
                     key={occ}
-                    href="#occasions"
-                    onClick={closeMobileMenu}
-                    className="rounded-lg border border-border p-3 text-center text-sm font-medium text-foreground hover:border-maroon hover:text-maroon dark:hover:border-gold dark:hover:text-gold transition-colors"
+                    className="rounded-lg border border-border p-3 text-center text-sm font-medium text-foreground hover:border-maroon hover:text-maroon dark:hover:border-gold dark:hover:text-gold transition-colors cursor-default"
                   >
                     {t.occasions[occ]}
-                  </a>
+                  </span>
                 ))}
               </div>
             </div>

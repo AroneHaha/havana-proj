@@ -2,13 +2,11 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Heart, ShoppingBag } from "lucide-react";
+
 import { cn, formatPrice } from "@/lib/utils";
 import { BadgeSale } from "./badge-sale";
 import { RatingStars } from "./rating-stars";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useCartStore, useWishlistStore } from "@/store";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
 import type { Product } from "@/types";
@@ -21,9 +19,6 @@ interface ProductCardProps {
 
 export function ProductCard({ product, index = 0, className }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const addItem = useCartStore((s) => s.addItem);
-  const toggleWishlist = useWishlistStore((s) => s.toggleItem);
-  const isInWishlist = useWishlistStore((s) => s.isInWishlist(product.id));
   const locale = useLanguageStore((s) => s.locale);
   const t = getDictionary(locale);
 
@@ -71,34 +66,10 @@ export function ProductCard({ product, index = 0, className }: ProductCardProps)
             {t.productCard.bestSeller}
           </Badge>
         )}
-        {/* Wishlist Button */}
-        <button
-          onClick={(e) => { e.stopPropagation(); toggleWishlist(product); }}
-          className="absolute top-3 right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm transition-all duration-300 hover:bg-white hover:scale-110 cursor-pointer dark:bg-black/50 dark:hover:bg-black/70"
-        >
-          <Heart
-            className={cn(
-              "h-4 w-4 transition-colors",
-              isInWishlist ? "fill-red-500 text-red-500" : "text-foreground"
-            )}
-          />
-        </button>
-        {/* Quick Add to Cart */}
-        <div
-          className={cn(
-            "absolute bottom-4 left-1/2 -translate-x-1/2 transition-all duration-300",
-            isHovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-          )}
-        >
-          <Button
-            onClick={() => addItem(product)}
-            size="sm"
-            className="gap-2 bg-white text-foreground hover:bg-maroon hover:text-white shadow-xl dark:bg-dark-card dark:text-white dark:hover:bg-maroon"
-          >
-            <ShoppingBag className="h-4 w-4" />
-            {t.productCard.addToCart}
-          </Button>
-        </div>
+
+        {/* REMOVED: Wishlist Heart button */}
+        {/* REMOVED: Quick Add to Cart button */}
+
       </div>
       {/* Info */}
       <div className="mt-3 space-y-1.5">
