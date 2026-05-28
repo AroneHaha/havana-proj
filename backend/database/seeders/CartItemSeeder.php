@@ -11,22 +11,21 @@ class CartItemSeeder extends Seeder
 {
     public function run(): void
     {
-        // Use Ahmed (first customer) for cart items
+        // Ahmed's cart
         $ahmed = User::where('email', 'ahmed@example.com')->first();
 
-        $products = Product::inRandomOrder()->take(3)->get();
-
         $cartItems = [
-            ['product' => Product::where('slug', 'red-rose-bunch')->first(), 'quantity' => 2],
-            ['product' => Product::where('slug', 'sunshine-bouquet')->first(), 'quantity' => 1],
-            ['product' => Product::where('slug', 'orchid-in-pot')->first(), 'quantity' => 1],
+            ['slug' => 'noor-al-zahra-basket', 'quantity' => 1],
+            ['slug' => 'golden-spark-bouquet', 'quantity' => 2],
+            ['slug' => 'velvet-embrace-bouquet', 'quantity' => 1],
         ];
 
         foreach ($cartItems as $item) {
-            if ($item['product']) {
+            $product = Product::where('slug', $item['slug'])->first();
+            if ($product) {
                 CartItem::create([
                     'user_id' => $ahmed->id,
-                    'product_id' => $item['product']->id,
+                    'product_id' => $product->id,
                     'quantity' => $item['quantity'],
                 ]);
             }

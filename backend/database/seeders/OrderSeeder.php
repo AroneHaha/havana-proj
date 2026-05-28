@@ -18,14 +18,14 @@ class OrderSeeder extends Seeder
         $omar = User::where('email', 'omar@example.com')->first();
 
         $orders = [
-            // Order 1: Ahmed — Delivered order
+            // Order 1: Ahmed — Delivered (Eid gift)
             [
                 'user' => $ahmed,
                 'order_number' => 'HAV-2026-0001',
                 'status' => 'delivered',
                 'items' => [
-                    ['slug' => 'red-rose-bunch', 'quantity' => 2],
-                    ['slug' => 'flower-chocolate-combo', 'quantity' => 1],
+                    ['slug' => 'noor-al-zahra-basket', 'quantity' => 1],
+                    ['slug' => 'golden-lantern-petals', 'quantity' => 2],
                 ],
                 'shipping_address' => 'Salmiya, Block 12, Street 5, Building 30, Floor 3, Apt 7',
                 'shipping_phone' => '+965-5000-1001',
@@ -38,14 +38,14 @@ class OrderSeeder extends Seeder
                 'status_trail' => ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered'],
             ],
 
-            // Order 2: Fatima — Out for delivery
+            // Order 2: Fatima — Out for delivery (Romance gift)
             [
                 'user' => $fatima,
                 'order_number' => 'HAV-2026-0002',
                 'status' => 'out_for_delivery',
                 'items' => [
-                    ['slug' => 'white-rose-box', 'quantity' => 1],
-                    ['slug' => 'teddy-bear-with-flowers', 'quantity' => 1],
+                    ['slug' => 'crimson-desire-bouquet', 'quantity' => 1],
+                    ['slug' => 'velvet-embrace-bouquet', 'quantity' => 1],
                 ],
                 'shipping_address' => 'Kuwait City, Block 4, Street 10, Building 15, Floor 1, Apt 2',
                 'shipping_phone' => '+965-5000-1002',
@@ -58,13 +58,13 @@ class OrderSeeder extends Seeder
                 'status_trail' => ['pending', 'confirmed', 'preparing', 'out_for_delivery'],
             ],
 
-            // Order 3: Omar — Pending (new order)
+            // Order 3: Omar — Pending (Wedding)
             [
                 'user' => $omar,
                 'order_number' => 'HAV-2026-0003',
                 'status' => 'pending',
                 'items' => [
-                    ['slug' => '100-red-roses-basket', 'quantity' => 1],
+                    ['slug' => 'royal-union-fleur', 'quantity' => 1],
                 ],
                 'shipping_address' => 'Hawally, Block 7, Street 3, Building 22, Floor 5, Apt 12',
                 'shipping_phone' => '+965-5000-1003',
@@ -77,13 +77,13 @@ class OrderSeeder extends Seeder
                 'status_trail' => ['pending'],
             ],
 
-            // Order 4: Ahmed — Cancelled order
+            // Order 4: Ahmed — Cancelled (Birthday)
             [
                 'user' => $ahmed,
                 'order_number' => 'HAV-2026-0004',
                 'status' => 'cancelled',
                 'items' => [
-                    ['slug' => 'golden-rose-box', 'quantity' => 1],
+                    ['slug' => 'sunset-confetti-bloom', 'quantity' => 1],
                 ],
                 'shipping_address' => 'Salmiya, Block 12, Street 5, Building 30, Floor 3, Apt 7',
                 'shipping_phone' => '+965-5000-1001',
@@ -96,18 +96,18 @@ class OrderSeeder extends Seeder
                 'status_trail' => ['pending', 'cancelled'],
             ],
 
-            // Order 5: Fatima — Preparing
+            // Order 5: Fatima — Preparing (Sympathy)
             [
                 'user' => $fatima,
                 'order_number' => 'HAV-2026-0005',
                 'status' => 'preparing',
                 'items' => [
-                    ['slug' => 'pastel-dream-bouquet', 'quantity' => 1],
-                    ['slug' => 'succulent-garden', 'quantity' => 2],
+                    ['slug' => 'silent-ivory-grace', 'quantity' => 1],
+                    ['slug' => 'gentle-farewell-bloom', 'quantity' => 1],
                 ],
                 'shipping_address' => 'Kuwait City, Block 4, Street 10, Building 15, Floor 1, Apt 2',
                 'shipping_phone' => '+965-5000-1002',
-                'notes' => null,
+                'notes' => 'Please deliver before 10 AM if possible',
                 'payment_method' => 'cash',
                 'payment_status' => 'pending',
                 'confirmed_at' => now()->subHours(5),

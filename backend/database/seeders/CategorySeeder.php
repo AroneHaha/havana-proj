@@ -1,10 +1,9 @@
-<?php
+?php
 
 namespace Database\Seeders;
 
 use App\Models\Category;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 
 class CategorySeeder extends Seeder
 {
@@ -12,52 +11,68 @@ class CategorySeeder extends Seeder
     {
         $categories = [
             [
-                'name_en' => 'Roses',
-                'name_ar' => 'ورود',
-                'slug' => 'roses',
-                'image' => 'categories/roses.jpg',
+                'name_en' => 'Eid',
+                'name_ar' => 'عيد',
+                'slug' => 'eid',
+                'image' => 'categories/eid.jpg',
                 'is_active' => true,
                 'sort_order' => 1,
             ],
             [
-                'name_en' => 'Bouquets',
-                'name_ar' => 'باقات زهور',
-                'slug' => 'bouquets',
-                'image' => 'categories/bouquets.jpg',
+                'name_en' => 'Weddings',
+                'name_ar' => 'أعراس',
+                'slug' => 'weddings',
+                'image' => 'categories/weddings.jpg',
                 'is_active' => true,
                 'sort_order' => 2,
             ],
             [
-                'name_en' => 'Occasions',
-                'name_ar' => 'مناسبات',
-                'slug' => 'occasions',
-                'image' => 'categories/occasions.jpg',
+                'name_en' => 'Birthday',
+                'name_ar' => 'عيد ميلاد',
+                'slug' => 'birthday',
+                'image' => 'categories/birthday.jpg',
                 'is_active' => true,
                 'sort_order' => 3,
             ],
             [
-                'name_en' => 'Plants',
-                'name_ar' => 'نباتات',
-                'slug' => 'plants',
-                'image' => 'categories/plants.jpg',
+                'name_en' => 'Anniversary',
+                'name_ar' => 'ذكرى سنوية',
+                'slug' => 'anniversary',
+                'image' => 'categories/anniversary.jpg',
                 'is_active' => true,
                 'sort_order' => 4,
             ],
             [
-                'name_en' => 'Luxury',
-                'name_ar' => 'فاخر',
-                'slug' => 'luxury',
-                'image' => 'categories/luxury.jpg',
+                'name_en' => 'Graduation',
+                'name_ar' => 'تخرج',
+                'slug' => 'graduation',
+                'image' => 'categories/graduation.jpg',
                 'is_active' => true,
                 'sort_order' => 5,
             ],
             [
-                'name_en' => 'Gifts',
-                'name_ar' => 'هدايا',
-                'slug' => 'gifts',
-                'image' => 'categories/gifts.jpg',
+                'name_en' => "Mother's Day",
+                'name_ar' => 'عيد الأم',
+                'slug' => 'mothers-day',
+                'image' => 'categories/mothers-day.jpg',
                 'is_active' => true,
                 'sort_order' => 6,
+            ],
+            [
+                'name_en' => 'Love & Romance',
+                'name_ar' => 'حب ورومانسية',
+                'slug' => 'love-romance',
+                'image' => 'categories/love-romance.jpg',
+                'is_active' => true,
+                'sort_order' => 7,
+            ],
+            [
+                'name_en' => 'Sympathy',
+                'name_ar' => 'تعازي',
+                'slug' => 'sympathy',
+                'image' => 'categories/sympathy.jpg',
+                'is_active' => true,
+                'sort_order' => 8,
             ],
         ];
 
