@@ -2,15 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, User, Menu, ChevronDown, Truck } from "lucide-react";
+import { User, Menu, ChevronDown, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { LanguageToggle } from "@/components/shared/language-toggle";
-import { useUIStore, useCartStore } from "@/store";
+import { useUIStore } from "@/store";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
-import { useHydrated } from "@/hooks/use-hydrated";
 
 const occasionKeys = [
   "eid", "weddings", "birthday", "anniversary",
@@ -19,22 +17,19 @@ const occasionKeys = [
 
 const navKeys = [
   { key: "home" as const, href: "/" },
-  { key: "shop" as const, href: "/shop" },
-  { key: "categories" as const, href: "/categories" },
+  { key: "shop" as const, href: "#shop" },
+  { key: "categories" as const, href: "#categories" },
   { key: "occasions" as const, href: "#occasions", hasDropdown: true },
-  { key: "about" as const, href: "/about" },
-  { key: "contact" as const, href: "/contact" },
+  { key: "about" as const, href: "#about" },
+  { key: "contact" as const, href: "#contact" },
 ];
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [isOccasionsOpen, setIsOccasionsOpen] = useState(false);
   const openMobileMenu = useUIStore((s) => s.openMobileMenu);
-  const openCart = useUIStore((s) => s.openCart);
-  const cartCount = useCartStore((s) => s.getItemCount());
   const locale = useLanguageStore((s) => s.locale);
   const t = getDictionary(locale);
-  const hydrated = useHydrated();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -143,16 +138,6 @@ export function Header() {
               >
                 <User className="h-5 w-5" />
               </a>
-
-              {/* Cart */}
-              <Button variant="ghost" size="icon" onClick={openCart} className="relative">
-                <ShoppingBag className="h-5 w-5" />
-                {hydrated && cartCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-maroon text-[10px] font-bold text-white">
-                    {cartCount}
-                  </span>
-                )}
-              </Button>
             </div>
           </div>
         </div>
