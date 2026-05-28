@@ -1,0 +1,131 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Notification;
+use App\Models\User;
+use Illuminate\Database\Seeder;
+
+class NotificationSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $ahmed = User::where('email', 'ahmed@example.com')->first();
+        $fatima = User::where('email', 'fatima@example.com')->first();
+        $omar = User::where('email', 'omar@example.com')->first();
+        $admin = User::where('role', 'admin')->first();
+
+        $notifications = [
+            // Customer notifications — Ahmed
+            [
+                'user_id' => $ahmed->id,
+                'type' => 'order_confirmed',
+                'title_en' => 'Order Confirmed',
+                'title_ar' => 'تم تأكيد الطلب',
+                'body_en' => 'Your order HAV-2026-0001 has been confirmed and is being prepared.',
+                'body_ar' => 'تم تأكيد طلبك HAV-2026-0001 ويتم تحضيره الآن.',
+                'data' => ['order_id' => '1', 'order_number' => 'HAV-2026-0001'],
+                'is_read' => true,
+                'read_at' => now()->subDays(5),
+            ],
+            [
+                'user_id' => $ahmed->id,
+                'type' => 'order_delivered',
+                'title_en' => 'Order Delivered',
+                'title_ar' => 'تم توصيل الطلب',
+                'body_en' => 'Your order HAV-2026-0001 has been delivered. Enjoy your flowers!',
+                'body_ar' => 'تم توصيل طلبك HAV-2026-0001. استمتع بزهورك!',
+                'data' => ['order_id' => '1', 'order_number' => 'HAV-2026-0001'],
+                'is_read' => true,
+                'read_at' => now()->subDays(3),
+            ],
+            [
+                'user_id' => $ahmed->id,
+                'type' => 'order_cancelled',
+                'title_en' => 'Order Cancelled',
+                'title_ar' => 'تم إلغاء الطلب',
+                'body_en' => 'Your order HAV-2026-0004 has been cancelled. Refund will be processed within 3-5 business days.',
+                'body_ar' => 'تم إلغاء طلبك HAV-2026-0004. سيتم معالجة الاسترداد خلال 3-5 أيام عمل.',
+                'data' => ['order_id' => '4', 'order_number' => 'HAV-2026-0004'],
+                'is_read' => false,
+                'read_at' => null,
+            ],
+
+            // Customer notifications — Fatima
+            [
+                'user_id' => $fatima->id,
+                'type' => 'order_confirmed',
+                'title_en' => 'Order Confirmed',
+                'title_ar' => 'تم تأكيد الطلب',
+                'body_en' => 'Your order HAV-2026-0002 has been confirmed and is out for delivery.',
+                'body_ar' => 'تم تأكيد طلبك HAV-2026-0002 وهو في طريقه إليك.',
+                'data' => ['order_id' => '2', 'order_number' => 'HAV-2026-0002'],
+                'is_read' => true,
+                'read_at' => now()->subDay(),
+            ],
+            [
+                'user_id' => $fatima->id,
+                'type' => 'order_placed',
+                'title_en' => 'Order Placed',
+                'title_ar' => 'تم تقديم الطلب',
+                'body_en' => 'Your order HAV-2026-0005 has been placed successfully.',
+                'body_ar' => 'تم تقديم طلبك HAV-2026-0005 بنجاح.',
+                'data' => ['order_id' => '5', 'order_number' => 'HAV-2026-0005'],
+                'is_read' => false,
+                'read_at' => null,
+            ],
+
+            // Customer notifications — Omar
+            [
+                'user_id' => $omar->id,
+                'type' => 'order_placed',
+                'title_en' => 'Order Placed',
+                'title_ar' => 'تم تقديم الطلب',
+                'body_en' => 'Your order HAV-2026-0003 has been placed. We will confirm it shortly.',
+                'body_ar' => 'تم تقديم طلبك HAV-2026-0003. سنقوم بتأكيده قريباً.',
+                'data' => ['order_id' => '3', 'order_number' => 'HAV-2026-0003'],
+                'is_read' => false,
+                'read_at' => null,
+            ],
+
+            // Admin broadcast notifications (user_id = null)
+            [
+                'user_id' => null,
+                'type' => 'new_review',
+                'title_en' => 'New Review Submitted',
+                'title_ar' => 'مراجعة جديدة',
+                'body_en' => 'A new review has been submitted for Red Rose Bunch and is pending approval.',
+                'body_ar' => 'تم تقديم مراجعة جديدة لباقة الورد الأحمر وهي بانتظار الموافقة.',
+                'data' => ['product_slug' => 'red-rose-bunch'],
+                'is_read' => false,
+                'read_at' => null,
+            ],
+            [
+                'user_id' => null,
+                'type' => 'low_stock',
+                'title_en' => 'Low Stock Alert',
+                'title_ar' => 'تنبيه مخزون منخفض',
+                'body_en' => '100 Red Roses Basket is running low on stock (5 remaining).',
+                'body_ar' => 'سلة 100 وردة حمراء ينخفض المخزون (5 متبقية).',
+                'data' => ['product_slug' => '100-red-roses-basket', 'stock' => 5],
+                'is_read' => false,
+                'read_at' => null,
+            ],
+            [
+                'user_id' => null,
+                'type' => 'system',
+                'title_en' => 'System Update',
+                'title_ar' => 'تحديث النظام',
+                'body_en' => 'Havana platform has been updated with new features. Check the admin dashboard for details.',
+                'body_ar' => 'تم تحديث منصة هافانا بميزات جديدة. تحقق من لوحة الإدارة للتفاصيل.',
+                'data' => null,
+                'is_read' => false,
+                'read_at' => null,
+            ],
+        ];
+
+        foreach ($notifications as $notification) {
+            Notification::create($notification);
+        }
+    }
+}
