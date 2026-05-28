@@ -4,7 +4,9 @@ import { Flower2, Bell, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { useLanguageStore } from "@/store/language-store";
+import { useUIStore } from "@/store/ui-store";
 import { getDictionary } from "@/i18n";
+import { NotificationDropdown } from "./notification-dropdown";
 
 export function AdminTopbar() {
   const router = useRouter();
@@ -14,6 +16,9 @@ export function AdminTopbar() {
 
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+
+  const isNotificationOpen = useUIStore((s) => s.isNotificationOpen);
+  const toggleNotification = useUIStore((s) => s.toggleNotification);
 
   const handleLogout = async () => {
     await logout();
@@ -33,10 +38,16 @@ export function AdminTopbar() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button className="relative p-2 rounded-lg hover:bg-muted hover:shadow-xs transition-all duration-200 cursor-pointer group">
-            <Bell className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-maroon dark:bg-gold ring-2 ring-white dark:ring-dark-card shadow-xs" />
-          </button>
+          <div className="relative">
+            <button
+              onClick={toggleNotification}
+              className="relative p-2 rounded-lg hover:bg-muted hover:shadow-xs transition-all duration-200 cursor-pointer group"
+            >
+              <Bell className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-maroon dark:bg-gold ring-2 ring-white dark:ring-dark-card shadow-xs" />
+            </button>
+            <NotificationDropdown />
+          </div>
           <div className="flex items-center gap-2.5 pl-3 border-l border-border">
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-maroon to-maroon-light dark:from-gold dark:to-gold-light flex items-center justify-center shadow-sm">
               <span className="text-white text-xs font-bold">

@@ -5,6 +5,7 @@ interface UIStore {
   isMobileMenuOpen: boolean;
   isSearchOpen: boolean;
   isCheckoutOpen: boolean;
+  isNotificationOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
@@ -16,6 +17,9 @@ interface UIStore {
   toggleSearch: () => void;
   openCheckout: () => void;
   closeCheckout: () => void;
+  openNotification: () => void;
+  closeNotification: () => void;
+  toggleNotification: () => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -23,6 +27,7 @@ export const useUIStore = create<UIStore>((set) => ({
   isMobileMenuOpen: false,
   isSearchOpen: false,
   isCheckoutOpen: false,
+  isNotificationOpen: false,
   openCart: () => set({ isCartOpen: true }),
   closeCart: () => set({ isCartOpen: false }),
   toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
@@ -34,4 +39,7 @@ export const useUIStore = create<UIStore>((set) => ({
   toggleSearch: () => set((state) => ({ isSearchOpen: !state.isSearchOpen })),
   openCheckout: () => set({ isCheckoutOpen: true }),
   closeCheckout: () => set({ isCheckoutOpen: false }),
+  openNotification: () => set({ isNotificationOpen: true }),
+  closeNotification: () => set({ isNotificationOpen: false }),
+  toggleNotification: () => set((state) => ({ isNotificationOpen: !state.isNotificationOpen })),
 }));

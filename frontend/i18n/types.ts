@@ -255,6 +255,29 @@ export interface Translation {
       mainSection: string;
       topbarSubtitle: string;
     };
+    notifications: {
+      title: string;
+      markAllRead: string;
+      noNotifications: string;
+      orderPlaced: string;
+      orderPlacedDesc: string;
+      orderCancelled: string;
+      orderCancelledDesc: string;
+      orderDelivered: string;
+      orderDeliveredDesc: string;
+      orderInTransit: string;
+      orderInTransitDesc: string;
+      orderProcessing: string;
+      orderProcessingDesc: string;
+      lowStock: string;
+      lowStockDesc: string;
+      newReview: string;
+      newReviewDesc: string;
+      justNow: string;
+      minutesAgo: string;
+      hoursAgo: string;
+      yesterday: string;
+    };
     dashboard: {
       title: string;
       subtitle: string;
