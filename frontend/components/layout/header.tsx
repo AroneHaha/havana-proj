@@ -129,7 +129,6 @@ export function Header() {
               <ThemeToggle />
 
               {/* REMOVED: Search button */}
-              {/* REMOVED: Wishlist Heart button */}
 
               {/* User */}
               <a

@@ -43,7 +43,6 @@ const layout = {
     account: "Account",
     signIn: "Sign In",
     myOrders: "My Orders",
-    wishlist: "Wishlist",
     settings: "Settings",
     cart: "Cart",
   },

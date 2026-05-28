@@ -254,7 +254,6 @@ const en: Translation = {
     account: "Account",
     signIn: "Sign In",
     myOrders: "My Orders",
-    wishlist: "Wishlist",
     settings: "Settings",
     cart: "Cart",
   },

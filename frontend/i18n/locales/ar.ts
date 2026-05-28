@@ -254,7 +254,6 @@ const ar: Translation = {
     account: "الحساب",
     signIn: "تسجيل الدخول",
     myOrders: "طلباتي",
-    wishlist: "المفضلة",
     settings: "الإعدادات",
     cart: "السلة",
   },

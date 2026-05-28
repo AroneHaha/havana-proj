@@ -1,8 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, User, Heart, Package, Settings, ChevronRight } from "lucide-react";
-import { useUIStore, useCartStore, useWishlistStore } from "@/store";
+import { X, User, Package, Settings, ChevronRight } from "lucide-react";
+import { useUIStore, useCartStore } from "@/store";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -23,7 +23,6 @@ const occasionKeys = [
 const accountLinkKeys = [
   { key: "signIn" as const, icon: User, href: "/login" },
   { key: "myOrders" as const, icon: Package, href: "#" },
-  { key: "wishlist" as const, icon: Heart, href: "#" },
   { key: "settings" as const, icon: Settings, href: "#" },
 ] as const;
 

@@ -176,7 +176,6 @@ export interface Translation {
     account: string;
     signIn: string;
     myOrders: string;
-    wishlist: string;
     settings: string;
     cart: string;
   };

@@ -67,7 +67,6 @@ export function ProductCard({ product, index = 0, className }: ProductCardProps)
           </Badge>
         )}
 
-        {/* REMOVED: Wishlist Heart button */}
         {/* REMOVED: Quick Add to Cart button */}
 
       </div>

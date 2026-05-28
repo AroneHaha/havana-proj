@@ -1,7 +1,7 @@
 /**
  * AppError — base class for all service-layer errors.
  *
- * Every service-specific error class (CartError, WishlistError, CheckoutError, etc.)
+ * Every service-specific error class (CartError, CheckoutError, etc.)
  * extends this so the UI can catch `instanceof AppError` for generic handling
  * or `instanceof CartError` for service-specific logic.
  *
