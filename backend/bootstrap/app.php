@@ -4,7 +4,6 @@ use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Support\Facades\RateLimiter;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -21,10 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         // ─── API Middleware Group ───────────────────────────────────
+        // HandleCors is already applied globally by Laravel 11 — no need
+        // to prepend it here (doing so causes double CORS processing which
+        // can strip response bodies for cross-origin requests).
         // Ensure JSON responses for API routes (no /api fallback to web)
-        $middleware->api(prepend: [
-            HandleCors::class,  // CORS for cross-origin requests (Next.js → Laravel)
-        ]);
 
         // ─── Global Middleware ─────────────────────────────────────
         // Sanctum already handles API token auth via auth:sanctum guard

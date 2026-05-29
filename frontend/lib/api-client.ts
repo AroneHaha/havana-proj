@@ -68,7 +68,12 @@ export async function publicFetch<T>(
   const cacheKey = buildCacheKey(path, options);
 
   return dedupFetch<T>(cacheKey, async () => {
-    const url = new URL(path, API_BASE);
+    // Build URL using template literal (same pattern as authFetch).
+    // new URL(path, base) treats leading "/" as absolute — which strips
+    // the /api prefix from API_BASE, breaking all public endpoints.
+    const separator = path.startsWith("?") ? "" : (path.startsWith("/") ? "" : "/");
+    const urlStr = `${API_BASE}${separator}${path}`;
+    const url = new URL(urlStr);
     if (locale) url.searchParams.set("locale", locale);
 
     const res = await fetch(url.toString(), {

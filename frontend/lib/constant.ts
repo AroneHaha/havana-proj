@@ -127,10 +127,10 @@ export const DEFAULT_ITEMS_PER_PAGE = 8;
  * displayed total always matches what the customer is charged.
  * The backend may have location-based fees or per-item surcharges.
  */
-export const DELIVERY_FEE = 3; // KWD
-export const FREE_DELIVERY_THRESHOLD = 50; // KWD — free delivery above this subtotal
+export const DELIVERY_FEE = 0; // KWD — free delivery
+export const FREE_DELIVERY_THRESHOLD = 0; // KWD — always free delivery
 
 /** Calculate delivery fee based on subtotal */
 export function calculateDeliveryFee(subtotal: number): number {
-  return subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
+  return 0; // Free delivery
 }

@@ -22,7 +22,7 @@ return [
 
     'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:3000')),
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => ['/localhost:\d+/'], // Allow any localhost port for dev
 
     'allowed_headers' => ['*'],
 

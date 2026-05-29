@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Concerns\RespondsTrait;
-use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,10 +17,36 @@ use Illuminate\Validation\Rules\Password as PasswordRule;
  * Uses Sanctum API tokens with hvn_ prefix.
  * Access tokens: 24h expiry. Refresh tokens: 30d expiry.
  * Token storage: localStorage (havana-token, havana-refresh-token)
+ *
+ * IMPORTANT: We do NOT use UserResource inside respondWithData() because
+ * JsonResource objects can fail silently when nested inside response()->json()
+ * via the respondWithData() wrapper. Instead, we build user arrays manually.
+ * UserResource is only used when returned DIRECTLY from a controller method.
  */
 class AuthController extends Controller
 {
     use RespondsTrait;
+
+    /**
+     * Build a consistent user array for auth responses.
+     * Avoids JsonResource serialization issues when nested inside respondWithData().
+     */
+    private function userToArray(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'full_name' => $user->fullName(),
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'role' => $user->role,
+            'avatar' => $user->avatar,
+            'is_admin' => $user->isAdmin(),
+            'email_verified_at' => $user->email_verified_at?->toISOString(),
+            'created_at' => $user->created_at?->toISOString(),
+        ];
+    }
 
     /**
      * POST /api/auth/login
@@ -57,7 +82,7 @@ class AuthController extends Controller
         )->plainTextToken;
 
         return $this->respondWithData([
-            'user' => new UserResource($user),
+            'user' => $this->userToArray($user),
             'access_token' => $accessToken,
             'refresh_token' => $refreshToken,
             'token_type' => 'Bearer',
@@ -101,7 +126,7 @@ class AuthController extends Controller
         )->plainTextToken;
 
         return $this->respondCreated([
-            'user' => new UserResource($user),
+            'user' => $this->userToArray($user),
             'access_token' => $accessToken,
             'refresh_token' => $refreshToken,
             'token_type' => 'Bearer',
@@ -165,7 +190,7 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
-        return $this->respondWithData(new UserResource($request->user()));
+        return $this->respondWithData($this->userToArray($request->user()));
     }
 
     /**
@@ -235,7 +260,7 @@ class AuthController extends Controller
 
         $user->update($validated);
 
-        return $this->respondWithData(new UserResource($user), 'Profile updated successfully');
+        return $this->respondWithData($this->userToArray($user), 'Profile updated successfully');
     }
 
     /**

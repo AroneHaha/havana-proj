@@ -68,21 +68,36 @@ export function localizeProduct(product: Product, locale: Locale): Product {
 interface LaravelProduct {
   id: string;
   slug: string;
-  locale_text: Record<string, { name: string; description: string }>;
   name: string;
+  name_en: string;
+  name_ar: string;
   description: string;
+  description_en: string;
+  description_ar: string;
   price: number;
   sale_price: number | null;
+  effective_price: number;
+  is_on_sale: boolean;
   image: string;
   images: string[];
-  category: string;
+  sku?: string;
   stock: number;
   rating: number;
-  review_count: number;
+  reviews_count?: number;
+  review_count?: number;
   in_stock: boolean;
   is_featured: boolean;
   is_best_seller: boolean;
   is_new: boolean;
+  is_active: boolean;
+  category_id: string;
+  category?: {
+    id: string;
+    name: string;
+    name_en?: string;
+    name_ar?: string;
+    slug?: string;
+  } | null;
   created_at: string;
 }
 
@@ -97,21 +112,30 @@ interface LaravelProductsResponse {
 }
 
 function mapLaravelProduct(raw: LaravelProduct, locale: Locale): Product {
+  // Build localeText from the backend's separate locale fields
+  const localeText: Record<string, { name: string; description: string }> = {};
+  if (raw.name_en || raw.description_en) {
+    localeText.en = { name: raw.name_en ?? raw.name, description: raw.description_en ?? raw.description };
+  }
+  if (raw.name_ar || raw.description_ar) {
+    localeText.ar = { name: raw.name_ar ?? raw.name, description: raw.description_ar ?? raw.description };
+  }
+
   return localizeProduct(
     {
       id: raw.id,
       slug: raw.slug,
-      localeText: raw.locale_text ?? {},
+      localeText,
       name: raw.name,
       description: raw.description,
       price: raw.price,
       salePrice: raw.sale_price ?? undefined,
       image: raw.image,
       images: raw.images ?? [],
-      category: raw.category,
+      category: raw.category?.name ?? raw.category_id ?? "",
       stock: raw.stock,
       rating: raw.rating,
-      reviewCount: raw.review_count,
+      reviewCount: raw.reviews_count ?? raw.review_count ?? 0,
       inStock: raw.in_stock,
       isFeatured: raw.is_featured,
       isBestSeller: raw.is_best_seller,

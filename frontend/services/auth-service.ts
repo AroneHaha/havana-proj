@@ -75,7 +75,12 @@ export class AuthError extends AppError {
 
 // ─── Laravel API response shapes ──────────────────────────────────────
 
-interface LaravelLoginResponse {
+/**
+ * Shape of the INNER data object returned by Laravel's respondWithData().
+ * All backend responses are wrapped in { data: { ... } } — this type
+ * represents what's inside the "data" key.
+ */
+interface LaravelAuthData {
   user: {
     id: string;
     email: string;
@@ -84,8 +89,15 @@ interface LaravelLoginResponse {
     role: "customer" | "admin";
     email_verified_at?: string | null;
   };
-  token: string;
+  access_token: string;
   refresh_token?: string;
+  token_type?: string;
+  expires_in?: number;
+}
+
+/** Full Laravel response: outer { data: ... } wrapper from respondWithData() */
+interface LaravelLoginResponse {
+  data: LaravelAuthData;
 }
 
 interface LaravelRegisterResponse extends LaravelLoginResponse {}
@@ -112,7 +124,7 @@ const MOCK_ACCOUNTS: Record<
   }
 > = {
   "admin@gmail.com": {
-    password: "admin",
+    password: "password",
     role: "admin",
     firstName: "Admin",
     lastName: "Havana",
@@ -256,6 +268,11 @@ async function authFetchInner<T>(
     headers,
   });
 
+  // Debug: log the response status for non-GET requests
+  if (options.method && options.method !== "GET") {
+    console.log(`[Auth] ${options.method} ${API_BASE}${path} → ${res.status} ${res.statusText}`);
+  }
+
   // ── Token expired → try refresh ──
   if (res.status === 401 && token) {
     const refreshed = await tryRefreshToken();
@@ -278,7 +295,18 @@ async function authFetchInner<T>(
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (res.ok) {
-    return res.json() as Promise<T>;
+    // Read raw text first for debugging, then parse as JSON
+    const text = await res.text();
+    if (!text || text.trim() === '') {
+      console.error('[Auth] Empty response body from', res.url, 'Status:', res.status);
+      throw new AuthError('Server returned an empty response', 'UNKNOWN');
+    }
+    try {
+      return JSON.parse(text) as T;
+    } catch (parseErr) {
+      console.error('[Auth] Failed to parse JSON response:', text.substring(0, 500));
+      throw new AuthError('Server returned invalid JSON', 'UNKNOWN');
+    }
   }
 
   // ── Laravel validation error (422) ──
@@ -316,15 +344,21 @@ async function tryRefreshToken(): Promise<boolean> {
 
       const res = await fetch(`${API_BASE}/auth/refresh`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${refreshToken}`,
+        },
         body: JSON.stringify({ refresh_token: refreshToken }),
       });
 
       if (!res.ok) return false;
 
-      const data = await res.json();
-      if (data.token) {
-        localStorage.setItem(TOKEN_KEY, data.token);
+      const json = await res.json();
+      // Backend wraps in { data: { access_token, refresh_token, ... } }
+      const data = json.data ?? json;
+      if (data.access_token) {
+        localStorage.setItem(TOKEN_KEY, data.access_token);
         if (data.refresh_token) {
           localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
         }
@@ -344,7 +378,7 @@ async function tryRefreshToken(): Promise<boolean> {
 
 // ─── Map Laravel user → AuthUser ──────────────────────────────────────
 
-function mapLaravelUser(raw: LaravelLoginResponse["user"]): AuthUser {
+function mapLaravelUser(raw: LaravelAuthData["user"]): AuthUser {
   return {
     id: String(raw.id),
     email: raw.email,
@@ -364,15 +398,43 @@ export async function login(
   // ── Try real API first ──
   if (API_BASE) {
     try {
-      const data = await authFetch<LaravelLoginResponse>("/auth/login", {
+      console.log("[Auth] Logging in to:", `${API_BASE}/auth/login`);
+      const response = await authFetch<Record<string, unknown>>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
 
-      const user = mapLaravelUser(data.user);
-      storeUser(user, data.token, data.refresh_token);
-      return { user, token: data.token, refreshToken: data.refresh_token };
+      console.log("[Auth] Login raw response:", JSON.stringify(response).substring(0, 800));
+
+      // ── Flexible response unwrapping ──
+      // Backend returns { data: { user, access_token, ... } } via respondWithData()
+      // But we handle both wrapped and flat formats for robustness
+      let inner: LaravelAuthData | null = null;
+
+      if (response && typeof response === 'object') {
+        // Check if it's wrapped in { data: { ... } }
+        const maybeData = response.data;
+        if (maybeData && typeof maybeData === 'object' && (maybeData as Record<string, unknown>).access_token) {
+          inner = maybeData as unknown as LaravelAuthData;
+        }
+        // Check if it's flat (no wrapper) — access_token at top level
+        else if ((response as Record<string, unknown>).access_token) {
+          inner = response as unknown as LaravelAuthData;
+        }
+      }
+
+      if (!inner || !inner.user || !inner.access_token) {
+        console.error("[Auth] Unexpected response structure. Full response:", JSON.stringify(response, null, 2));
+        throw new AuthError(
+          "Unexpected server response format. Check browser console for details.",
+          "UNKNOWN"
+        );
+      }
+      const user = mapLaravelUser(inner.user);
+      storeUser(user, inner.access_token, inner.refresh_token);
+      return { user, token: inner.access_token, refreshToken: inner.refresh_token };
     } catch (err) {
+      console.error("[Auth] Login error:", err);
       if (err instanceof AuthError) throw err;
       throw new AuthError(
         err instanceof Error ? err.message : "Login failed",
@@ -414,7 +476,7 @@ export async function register(data: {
   // ── Try real API first ──
   if (API_BASE) {
     try {
-      const res = await authFetch<LaravelRegisterResponse>("/auth/register", {
+      const response = await authFetch<LaravelRegisterResponse>("/auth/register", {
         method: "POST",
         body: JSON.stringify({
           first_name: data.firstName,
@@ -425,12 +487,14 @@ export async function register(data: {
         }),
       });
 
-      const user = mapLaravelUser(res.user);
+      // Unwrap the { data: { ... } } wrapper from Laravel's respondWithData()
+      const inner = response.data;
+      const user = mapLaravelUser(inner.user);
       // Don't auto-login after register — user needs to verify email first
       // (Laravel will send verification email). Only store tokens AFTER verification.
       // The auth-store's register action will NOT set the user — caller must
       // show a "check your email" screen instead.
-      return { user, token: res.token, refreshToken: res.refresh_token };
+      return { user, token: inner.access_token, refreshToken: inner.refresh_token };
     } catch (err) {
       if (err instanceof AuthError) {
         // Map Laravel field errors to our error codes for easier UI handling
@@ -534,8 +598,9 @@ export async function getCurrentUserFromAPI(): Promise<AuthUser | null> {
   if (!API_BASE) return getStoredUser();
 
   try {
-    const data = await authFetch<{ user: LaravelLoginResponse["user"] }>("/auth/me");
-    return mapLaravelUser(data.user);
+    // Backend's respondWithData() wraps in { data: { ... } }
+    const response = await authFetch<{ data: { user: LaravelAuthData["user"] } }>("/auth/me");
+    return mapLaravelUser(response.data.user);
   } catch {
     // API is configured but call failed (token revoked, account suspended, etc.).
     // Do NOT fall back to stale localStorage — that would show a ghost-authenticated

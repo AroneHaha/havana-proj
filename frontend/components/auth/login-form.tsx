@@ -17,8 +17,14 @@ import { AuthError, forgotPassword } from "@/services/auth-service";
  * that we map here — the UI never needs to change.
  */
 function getLoginErrorMessage(err: unknown, t: ReturnType<typeof getDictionary>): string {
+  // Log the real error for debugging (check browser console → F12)
+  console.error("[Login Error]", err);
+
   if (!(err instanceof AuthError)) {
-    return t.auth.login.requiredFields;
+    // Non-AuthError (e.g., TypeError from response parsing) — show actual message
+    return err instanceof Error
+      ? err.message
+      : t.auth.login.requiredFields;
   }
 
   switch (err.code) {
@@ -33,8 +39,12 @@ function getLoginErrorMessage(err: unknown, t: ReturnType<typeof getDictionary>)
     }
     case "NETWORK_ERROR":
       return t.auth.login.networkError ?? t.auth.login.requiredFields;
+    case "UNKNOWN":
+      // Show the actual error message from the backend instead of generic fallback
+      return err.message || t.auth.login.networkError || "An unexpected error occurred. Please try again.";
     default:
-      return t.auth.login.requiredFields;
+      // For any unhandled code, show the actual message
+      return err.message || t.auth.login.requiredFields;
   }
 }
 

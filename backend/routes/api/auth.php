@@ -20,6 +20,17 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
 
+    // ─── Debug / Health Check (no auth) ─────────────────────────────
+    // Simple endpoint to verify API connectivity and CORS — remove in production
+    Route::get('/ping', function () {
+        return response()->json([
+            'data' => [
+                'message' => 'Havana API is running',
+                'timestamp' => now()->toISOString(),
+            ],
+        ]);
+    });
+
     // ─── Public (no auth required) ────────────────────────────────────
     // Throttled to prevent abuse on login/register/forgot-password
 
