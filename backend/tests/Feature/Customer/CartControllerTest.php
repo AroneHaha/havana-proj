@@ -41,12 +41,17 @@ class CartControllerTest extends TestCase
     public function test_user_can_clear_cart(): void
     {
         $user = $this->actingAsCustomer();
-        $product = Product::factory()->create(['category_id' => Category::factory()->create()->id]);
+        $category = Category::factory()->create();
 
-        CartItem::factory()->count(3)->create([
-            'user_id' => $user->id,
-            'product_id' => $product->id,
-        ]);
+        // Create 3 different products to avoid unique constraint on (user_id, product_id)
+        $products = Product::factory()->count(3)->create(['category_id' => $category->id]);
+
+        foreach ($products as $product) {
+            CartItem::factory()->create([
+                'user_id' => $user->id,
+                'product_id' => $product->id,
+            ]);
+        }
 
         $this->deleteJson('/api/cart')
             ->assertOk()

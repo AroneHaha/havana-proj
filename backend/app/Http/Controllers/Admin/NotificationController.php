@@ -64,7 +64,7 @@ class NotificationController extends \App\Http\Controllers\Controller
             'data' => ['nullable', 'array'],
         ]);
 
-        // Get all user IDs
+        // Get all user IDs — broadcasts go to ALL users including admins
         $userIds = User::pluck('id');
 
         $sentCount = 0;

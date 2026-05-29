@@ -13,12 +13,12 @@ return new class extends Migration
             $table->foreignUuid('category_id')->constrained('categories')->cascadeOnDelete();
             $table->string('name_en');
             $table->string('name_ar');
-            $table->text('description_en');
-            $table->text('description_ar');
+            $table->text('description_en')->nullable();
+            $table->text('description_ar')->nullable();
             $table->string('slug')->unique();
             $table->decimal('price', 10, 3);
             $table->decimal('sale_price', 10, 3)->nullable();
-            $table->string('image');
+            $table->string('image')->nullable();
             $table->json('images')->nullable();
             $table->string('sku')->nullable()->unique();
             $table->integer('stock')->default(0);

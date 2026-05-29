@@ -29,8 +29,8 @@ class CategoryController extends Controller
         // Search by name
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('name_en', 'ilike', "%{$search}%")
-                    ->orWhere('name_ar', 'ilike', "%{$search}%");
+                $q->where('name_en', 'LIKE', "%{$search}%")
+                    ->orWhere('name_ar', 'LIKE', "%{$search}%");
             });
         }
 

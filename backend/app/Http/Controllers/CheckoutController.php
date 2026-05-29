@@ -167,6 +167,7 @@ class CheckoutController extends Controller
                 'status' => 'pending',
                 'changed_by' => $user->id,
                 'note' => 'Order placed successfully',
+                'created_at' => now(),
             ]);
 
             // Clear cart

@@ -98,12 +98,12 @@ class OrderController extends \App\Http\Controllers\Controller
         // Search by order number or shipping phone
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('order_number', 'ilike', "%{$search}%")
-                    ->orWhere('shipping_phone', 'ilike', "%{$search}%")
+                $q->where('order_number', 'LIKE', "%{$search}%")
+                    ->orWhere('shipping_phone', 'LIKE', "%{$search}%")
                     ->orWhereHas('user', function ($q) use ($search) {
-                        $q->where('first_name', 'ilike', "%{$search}%")
-                            ->orWhere('last_name', 'ilike', "%{$search}%")
-                            ->orWhere('email', 'ilike', "%{$search}%");
+                        $q->where('first_name', 'LIKE', "%{$search}%")
+                            ->orWhere('last_name', 'LIKE', "%{$search}%")
+                            ->orWhere('email', 'LIKE', "%{$search}%");
                     });
             });
         }

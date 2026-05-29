@@ -52,9 +52,13 @@ class ReviewControllerTest extends TestCase
     public function test_customer_can_list_their_reviews(): void
     {
         $user = $this->actingAsCustomer();
-        $product = Product::factory()->create(['category_id' => Category::factory()->create()->id]);
 
-        Review::factory()->count(3)->create(['user_id' => $user->id, 'product_id' => $product->id]);
+        // Create 3 different products to avoid unique constraint on (user_id, product_id)
+        $products = Product::factory()->count(3)->create(['category_id' => Category::factory()->create()->id]);
+
+        foreach ($products as $product) {
+            Review::factory()->create(['user_id' => $user->id, 'product_id' => $product->id]);
+        }
 
         $this->getJson('/api/reviews')
             ->assertOk()

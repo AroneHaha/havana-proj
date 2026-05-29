@@ -158,9 +158,15 @@ class AuthControllerTest extends TestCase
 
     public function test_user_can_change_password(): void
     {
-        $user = $this->actingAsCustomer([
+        // Create user with a known password (bypass hashed cast by setting directly)
+        $user = User::factory()->create([
+            'role' => 'customer',
             'password' => Hash::make('oldpassword'),
         ]);
+
+        // Authenticate with real Sanctum token
+        $token = $user->createToken('test-access-token', ['*'], now()->addHours(24))->plainTextToken;
+        $this->withHeader('Authorization', 'Bearer ' . $token);
 
         $this->putJson('/api/auth/password', [
             'current_password' => 'oldpassword',

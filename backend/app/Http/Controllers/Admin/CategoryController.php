@@ -31,9 +31,9 @@ class CategoryController extends \App\Http\Controllers\Controller
         // Search by name
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('name_en', 'ilike', "%{$search}%")
-                    ->orWhere('name_ar', 'ilike', "%{$search}%")
-                    ->orWhere('slug', 'ilike', "%{$search}%");
+                $q->where('name_en', 'LIKE', "%{$search}%")
+                    ->orWhere('name_ar', 'LIKE', "%{$search}%")
+                    ->orWhere('slug', 'LIKE', "%{$search}%");
             });
         }
 
@@ -75,7 +75,7 @@ class CategoryController extends \App\Http\Controllers\Controller
 
         // Set default sort_order if not provided
         if (!isset($validated['sort_order'])) {
-            $validated['sort_order'] = Category::max('sort_order') + 1 ?? 0;
+            $validated['sort_order'] = (Category::max('sort_order') ?? -1) + 1;
         }
 
         $category = Category::create($validated);

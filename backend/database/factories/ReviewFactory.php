@@ -16,7 +16,7 @@ class ReviewFactory extends Factory
             'user_id' => \App\Models\User::factory(),
             'rating' => fake()->numberBetween(1, 5),
             'title' => fake()->optional()->sentence(4),
-            'comment' => fake()->optional()->paragraph(),
+            'comment' => fake()->paragraph(),
             'visibility' => fake()->randomElement(['visible', 'hidden', 'pending']),
         ];
     }

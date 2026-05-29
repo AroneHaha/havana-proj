@@ -98,6 +98,7 @@ class OrderController extends \App\Http\Controllers\Controller
                 'status' => 'cancelled',
                 'changed_by' => $request->user()->id,
                 'note' => 'Order cancelled by customer',
+                'created_at' => now(),
             ]);
 
             $order->load(['items', 'statusHistory']);

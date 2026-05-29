@@ -28,8 +28,12 @@ class NotificationControllerTest extends TestCase
 
     public function test_admin_can_broadcast_notification(): void
     {
-        $this->actingAsAdmin();
+        $admin = $this->actingAsAdmin();
+        // Create 3 customers — broadcast goes to ALL users (including admin)
         User::factory()->count(3)->create(['role' => 'customer']);
+
+        // Total users = 3 customers + 1 admin = 4
+        $expectedCount = User::count();
 
         $this->postJson('/api/admin/notifications/broadcast', [
             'type' => 'promotion',
@@ -38,7 +42,7 @@ class NotificationControllerTest extends TestCase
             'body_en' => 'Get 20% off all bouquets.',
             'body_ar' => 'خصم 20% على جميع الباقات.',
         ])->assertOk()
-            ->assertJsonPath('data.sent_count', 3);
+            ->assertJsonPath('data.sent_count', $expectedCount);
     }
 
     public function test_admin_can_list_notifications(): void

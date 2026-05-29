@@ -53,10 +53,11 @@ class ProductController extends \App\Http\Controllers\Controller
         // Search by name, slug, or SKU
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('name_en', 'ilike', "%{$search}%")
-                    ->orWhere('name_ar', 'ilike', "%{$search}%")
-                    ->orWhere('slug', 'ilike', "%{$search}%")
-                    ->orWhere('sku', 'ilike', "%{$search}%");
+                $op = $this->ilike();
+                $q->where('name_en', $op, "%{$search}%")
+                    ->orWhere('name_ar', $op, "%{$search}%")
+                    ->orWhere('slug', $op, "%{$search}%")
+                    ->orWhere('sku', $op, "%{$search}%");
             });
         }
 
@@ -194,13 +195,20 @@ class ProductController extends \App\Http\Controllers\Controller
             $validated['sale_price'] = bcmul((string) $validated['sale_price'], '1', 3);
         }
 
-        // Validate sale_price < price (when both or either is updated)
-        $effectivePrice = $validated['price'] ?? $product->price;
-        $effectiveSalePrice = array_key_exists('sale_price', $validated)
-            ? $validated['sale_price']
-            : $product->sale_price;
-        if ($effectiveSalePrice !== null && bccomp((string) $effectiveSalePrice, (string) $effectivePrice, 3) >= 0) {
-            return $this->respondError('Sale price must be less than the regular price', 422);
+        // Validate sale_price < price only when sale_price is explicitly provided
+        if (array_key_exists('sale_price', $validated) && $validated['sale_price'] !== null) {
+            $effectivePrice = $validated['price'] ?? $product->price;
+            if (bccomp((string) $validated['sale_price'], (string) $effectivePrice, 3) >= 0) {
+                return $this->respondError('Sale price must be less than the regular price', 422);
+            }
+        }
+
+        // When price is updated but sale_price is not, auto-clear sale_price if it conflicts
+        if (isset($validated['price']) && !array_key_exists('sale_price', $validated)) {
+            $currentSalePrice = $product->sale_price;
+            if ($currentSalePrice !== null && bccomp((string) $currentSalePrice, (string) $validated['price'], 3) >= 0) {
+                $validated['sale_price'] = null;
+            }
         }
 
         $product->update($validated);

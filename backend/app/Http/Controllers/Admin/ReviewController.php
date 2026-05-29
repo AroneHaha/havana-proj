@@ -59,16 +59,16 @@ class ReviewController extends \App\Http\Controllers\Controller
         // Search by title, comment, or product name
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('title', 'ilike', "%{$search}%")
-                    ->orWhere('comment', 'ilike', "%{$search}%")
+                $q->where('title', 'LIKE', "%{$search}%")
+                    ->orWhere('comment', 'LIKE', "%{$search}%")
                     ->orWhereHas('product', function ($q) use ($search) {
-                        $q->where('name_en', 'ilike', "%{$search}%")
-                            ->orWhere('name_ar', 'ilike', "%{$search}%");
+                        $q->where('name_en', 'LIKE', "%{$search}%")
+                            ->orWhere('name_ar', 'LIKE', "%{$search}%");
                     })
                     ->orWhereHas('user', function ($q) use ($search) {
-                        $q->where('first_name', 'ilike', "%{$search}%")
-                            ->orWhere('last_name', 'ilike', "%{$search}%")
-                            ->orWhere('email', 'ilike', "%{$search}%");
+                        $q->where('first_name', 'LIKE', "%{$search}%")
+                            ->orWhere('last_name', 'LIKE', "%{$search}%")
+                            ->orWhere('email', 'LIKE', "%{$search}%");
                     });
             });
         }

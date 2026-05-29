@@ -12,10 +12,10 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('full_address');
-            $table->string('area');
-            $table->string('block');
-            $table->string('street');
-            $table->string('building');
+            $table->string('area')->nullable();
+            $table->string('block')->nullable();
+            $table->string('street')->nullable();
+            $table->string('building')->nullable();
             $table->string('floor')->nullable();
             $table->string('apartment')->nullable();
             $table->decimal('latitude', 10, 3)->nullable();

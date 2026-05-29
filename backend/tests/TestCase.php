@@ -11,6 +11,7 @@ use Illuminate\Testing\TestResponse;
 abstract class TestCase extends BaseTestCase
 {
     use CreatesApplication, RefreshDatabase;
+
     /**
      * Create a customer user and return it.
      */
@@ -32,23 +33,27 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * Act as a customer user.
+     * Act as a customer user with a real Sanctum token.
      */
     protected function actingAsCustomer(array $overrides = []): User
     {
         $user = $this->createCustomer($overrides);
-        $this->actingAs($user, 'sanctum');
+        $token = $user->createToken('test-access-token', ['*'], now()->addHours(24))->plainTextToken;
+
+        $this->withHeader('Authorization', 'Bearer ' . $token);
 
         return $user;
     }
 
     /**
-     * Act as an admin user.
+     * Act as an admin user with a real Sanctum token.
      */
     protected function actingAsAdmin(array $overrides = []): User
     {
         $user = $this->createAdmin($overrides);
-        $this->actingAs($user, 'sanctum');
+        $token = $user->createToken('test-access-token', ['*'], now()->addHours(24))->plainTextToken;
+
+        $this->withHeader('Authorization', 'Bearer ' . $token);
 
         return $user;
     }
@@ -59,6 +64,19 @@ abstract class TestCase extends BaseTestCase
     protected function createCategory(array $overrides = []): Category
     {
         return Category::factory()->create($overrides);
+    }
+
+    /**
+     * Create a product with category for testing.
+     */
+    protected function createProduct(array $overrides = []): \App\Models\Product
+    {
+        $category = Category::factory()->create();
+        return \App\Models\Product::factory()->create(array_merge([
+            'category_id' => $category->id,
+            'is_active' => true,
+            'stock' => 10,
+        ], $overrides));
     }
 
     /**
