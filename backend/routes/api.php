@@ -18,10 +18,6 @@ use Illuminate\Support\Facades\Route;
 | All routes are auto-prefixed with /api by Laravel.
 | Rate limiting and middleware are configured per-group in each file.
 |
-| Legend:
-|   ✅ = Verified against web frontend service files
-|   🔮 = Planned for Android customer app (not yet in web frontend)
-|
 */
 
 // Load domain-specific route files

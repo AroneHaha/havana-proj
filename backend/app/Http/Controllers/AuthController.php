@@ -48,13 +48,13 @@ class AuthController extends Controller
             'access-token',
             ['*'],
             now()->addHours(24)
-        )->plainTextValue;
+        )->plainTextToken;
 
         $refreshToken = $user->createToken(
             'refresh-token',
             ['refresh'],
             now()->addDays(30)
-        )->plainTextValue;
+        )->plainTextToken;
 
         return $this->respondWithData([
             'user' => new UserResource($user),
@@ -92,13 +92,13 @@ class AuthController extends Controller
             'access-token',
             ['*'],
             now()->addHours(24)
-        )->plainTextValue;
+        )->plainTextToken;
 
         $refreshToken = $user->createToken(
             'refresh-token',
             ['refresh'],
             now()->addDays(30)
-        )->plainTextValue;
+        )->plainTextToken;
 
         return $this->respondCreated([
             'user' => new UserResource($user),
@@ -201,13 +201,13 @@ class AuthController extends Controller
             'access-token',
             ['*'],
             now()->addHours(24)
-        )->plainTextValue;
+        )->plainTextToken;
 
         $refreshToken = $user->createToken(
             'refresh-token',
             ['refresh'],
             now()->addDays(30)
-        )->plainTextValue;
+        )->plainTextToken;
 
         return $this->respondWithData([
             'access_token' => $accessToken,
