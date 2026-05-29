@@ -1,9 +1,11 @@
 <?php
 
-namespace App\Http\Resources;
+namespace App\Http\Resources\Admin;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\ProductResource;
+use App\Http\Resources\UserResource;
 
 class ReviewResource extends JsonResource
 {

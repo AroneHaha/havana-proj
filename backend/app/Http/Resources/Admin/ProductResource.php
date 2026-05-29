@@ -1,22 +1,18 @@
-<?php
-
-namespace App\Http\Resources;
+namespace App\Http\Resources\Admin;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\CategoryResource;
 
 class ProductResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $locale = $request->query('locale', 'en');
-
         return [
             'id' => $this->id,
-            'name' => $locale === 'ar' ? $this->name_ar : $this->name_en,
+            'category_id' => $this->category_id,
             'name_en' => $this->name_en,
             'name_ar' => $this->name_ar,
-            'description' => $locale === 'ar' ? $this->description_ar : $this->description_en,
             'description_en' => $this->description_en,
             'description_ar' => $this->description_ar,
             'slug' => $this->slug,
@@ -34,9 +30,10 @@ class ProductResource extends JsonResource
             'is_best_seller' => $this->is_best_seller,
             'is_new' => $this->is_new,
             'is_active' => $this->is_active,
-            'category_id' => $this->category_id,
             'category' => new CategoryResource($this->whenLoaded('category')),
+            'reviews' => ReviewResource::collection($this->whenLoaded('reviews')),
             'reviews_count' => $this->whenCounted('reviews'),
+            'deleted_at' => $this->deleted_at?->toISOString(),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];
