@@ -13,9 +13,9 @@ class OrderSeeder extends Seeder
 {
     public function run(): void
     {
-        $ahmed = User::where('email', 'ahmed@example.com')->first();
-        $fatima = User::where('email', 'fatima@example.com')->first();
-        $omar = User::where('email', 'omar@example.com')->first();
+        $ahmed = User::where('email', 'user1@gmail.com')->first();
+        $fatima = User::where('email', 'user2@gmail.com')->first();
+        $omar = User::where('email', 'user3@gmail.com')->first();
 
         $orders = [
             // Order 1: Ahmed — Delivered (Eid gift)
@@ -103,7 +103,7 @@ class OrderSeeder extends Seeder
                 'status' => 'preparing',
                 'items' => [
                     ['slug' => 'silent-ivory-grace', 'quantity' => 1],
-                    ['slug' => 'gentle-farewell-bloom', 'quantity' => 1],
+                    ['slug' => 'heavenly-calm-bouquet', 'quantity' => 1],
                 ],
                 'shipping_address' => 'Kuwait City, Block 4, Street 10, Building 15, Floor 1, Apt 2',
                 'shipping_phone' => '+965-5000-1002',
@@ -137,7 +137,7 @@ class OrderSeeder extends Seeder
                 }
             }
 
-            $shippingCost = '2.000';
+            $shippingCost = '0.000';
             $discount = '0.000';
             $total = bcadd($subtotal, $shippingCost, 3);
 

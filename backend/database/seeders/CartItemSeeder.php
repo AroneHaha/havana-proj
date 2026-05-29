@@ -12,7 +12,7 @@ class CartItemSeeder extends Seeder
     public function run(): void
     {
         // Ahmed's cart
-        $ahmed = User::where('email', 'ahmed@example.com')->first();
+        $ahmed = User::where('email', 'user1@gmail.com')->first();
 
         $cartItems = [
             ['slug' => 'noor-al-zahra-basket', 'quantity' => 1],

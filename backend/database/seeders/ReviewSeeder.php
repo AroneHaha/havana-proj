@@ -17,7 +17,7 @@ class ReviewSeeder extends Seeder
             // Red Rose Bunch reviews
             [
                 'product_slug' => 'red-rose-bunch',
-                'user_email' => 'ahmed@example.com',
+                'user_email' => 'user1@gmail.com',
                 'rating' => 5,
                 'title' => 'Absolutely stunning!',
                 'comment' => 'The roses were fresh and beautifully arranged. My wife loved them!',
@@ -25,7 +25,7 @@ class ReviewSeeder extends Seeder
             ],
             [
                 'product_slug' => 'red-rose-bunch',
-                'user_email' => 'fatima@example.com',
+                'user_email' => 'user2@gmail.com',
                 'rating' => 4,
                 'title' => 'Great quality',
                 'comment' => 'Beautiful flowers, delivery was on time. Would order again.',
@@ -33,7 +33,7 @@ class ReviewSeeder extends Seeder
             ],
             [
                 'product_slug' => 'red-rose-bunch',
-                'user_email' => 'omar@example.com',
+                'user_email' => 'user3@gmail.com',
                 'rating' => 3,
                 'title' => 'Decent but...',
                 'comment' => 'Flowers were nice but some petals were slightly damaged.',
@@ -43,7 +43,7 @@ class ReviewSeeder extends Seeder
             // Sunshine Bouquet reviews
             [
                 'product_slug' => 'sunshine-bouquet',
-                'user_email' => 'noor@example.com',
+                'user_email' => 'user4@gmail.com',
                 'rating' => 5,
                 'title' => 'Perfect birthday gift',
                 'comment' => 'Bright and cheerful! Exactly what I wanted for my friend birthday.',
@@ -53,7 +53,7 @@ class ReviewSeeder extends Seeder
             // White Rose Box reviews
             [
                 'product_slug' => 'white-rose-box',
-                'user_email' => 'sara@example.com',
+                'user_email' => 'user5@gmail.com',
                 'rating' => 5,
                 'title' => 'Elegant and luxurious',
                 'comment' => 'The box presentation was amazing. Perfect for special occasions.',
@@ -61,7 +61,7 @@ class ReviewSeeder extends Seeder
             ],
             [
                 'product_slug' => 'white-rose-box',
-                'user_email' => 'ahmed@example.com',
+                'user_email' => 'user1@gmail.com',
                 'rating' => 2,
                 'title' => 'Not worth the price',
                 'comment' => 'Expected more for the price. The box was smaller than shown in photos.',
@@ -71,7 +71,7 @@ class ReviewSeeder extends Seeder
             // Orchid in Pot reviews
             [
                 'product_slug' => 'orchid-in-pot',
-                'user_email' => 'fatima@example.com',
+                'user_email' => 'user2@gmail.com',
                 'rating' => 5,
                 'title' => 'Lasted over a month!',
                 'comment' => 'The orchid is still blooming after 5 weeks. Amazing quality.',
@@ -81,7 +81,7 @@ class ReviewSeeder extends Seeder
             // 100 Red Roses Basket
             [
                 'product_slug' => '100-red-roses-basket',
-                'user_email' => 'omar@example.com',
+                'user_email' => 'user3@gmail.com',
                 'rating' => 5,
                 'title' => 'Showstopper!',
                 'comment' => 'This basket made the entire event. Everyone was taking photos of it.',

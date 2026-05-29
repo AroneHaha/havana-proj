@@ -10,9 +10,9 @@ class NotificationSeeder extends Seeder
 {
     public function run(): void
     {
-        $ahmed = User::where('email', 'ahmed@example.com')->first();
-        $fatima = User::where('email', 'fatima@example.com')->first();
-        $omar = User::where('email', 'omar@example.com')->first();
+        $ahmed = User::where('email', 'user1@gmail.com')->first();
+        $fatima = User::where('email', 'user2@gmail.com')->first();
+        $omar = User::where('email', 'user3@gmail.com')->first();
 
         $notifications = [
             // Customer notifications — Ahmed
