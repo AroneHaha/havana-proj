@@ -26,7 +26,7 @@
  *   - Token refresh is handled by Supabase SDK automatically
  */
 
-import { API_BASE, type FieldErrors, type LaravelValidationErrorResponse } from "@/lib/api-config";
+import { API_BASE, checkApiAvailability, setApiAvailable, getApiUnavailableMessage, type FieldErrors, type LaravelValidationErrorResponse } from "@/lib/api-config";
 import { AppError } from "@/lib/app-error";
 
 // ─── Types ────────────────────────────────────────────────────────────
@@ -263,10 +263,23 @@ async function authFetchInner<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers,
+    });
+    // Mark API as available on any successful fetch
+    setApiAvailable(true);
+  } catch (fetchErr) {
+    // fetch() only throws on network errors (DNS failure, connection refused, CORS block)
+    // — NOT on 4xx/5xx HTTP responses.
+    setApiAvailable(false);
+    throw new AuthError(
+      getApiUnavailableMessage(),
+      "NETWORK_ERROR"
+    );
+  }
 
   // Debug: log the response status for non-GET requests
   if (options.method && options.method !== "GET") {
@@ -436,6 +449,7 @@ export async function login(
     } catch (err) {
       console.error("[Auth] Login error:", err);
       if (err instanceof AuthError) throw err;
+      // Unexpected non-AuthError — wrap as network error with helpful message
       throw new AuthError(
         err instanceof Error ? err.message : "Login failed",
         "NETWORK_ERROR"

@@ -21,7 +21,8 @@ import { createServiceFetch } from "@/lib/service-fetch";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
-export type PaymentMethod = "cash" | "card" | "online";
+/** Havana only supports cash on delivery — matches Laravel `cash_on_delivery` value */
+export type PaymentMethod = "cash_on_delivery";
 
 export interface CheckoutPayload {
   items: Array<{ productId: string; quantity: number }>;

@@ -72,7 +72,7 @@ class CheckoutControllerTest extends TestCase
         $response = $this->postJson('/api/checkout', [
             'shipping_address' => '123 Main St, Kuwait City',
             'shipping_phone' => '+96512345678',
-            'payment_method' => 'knet',
+            'payment_method' => 'cash_on_delivery',
         ]);
 
         $response->assertCreated()
@@ -88,7 +88,7 @@ class CheckoutControllerTest extends TestCase
         $this->assertDatabaseHas('orders', [
             'user_id' => $user->id,
             'status' => 'pending',
-            'payment_method' => 'knet',
+            'payment_method' => 'cash_on_delivery',
         ]);
 
         // Stock should be decremented
@@ -102,7 +102,7 @@ class CheckoutControllerTest extends TestCase
         $this->postJson('/api/checkout', [
             'shipping_address' => '123 Main St',
             'shipping_phone' => '+96512345678',
-            'payment_method' => 'knet',
+            'payment_method' => 'cash_on_delivery',
         ])->assertStatus(422);
     }
 

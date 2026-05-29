@@ -370,9 +370,7 @@ export interface Translation {
       subtotal: string;
       notes: string;
       noNotes: string;
-      cash: string;
-      card: string;
-      online: string;
+      cashOnDelivery: string;
       createdAt: string;
       updatedAt: string;
       qty: string;

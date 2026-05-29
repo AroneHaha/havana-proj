@@ -283,7 +283,7 @@ export async function createProduct(
         if (data.localeText) fd.append("locale_text", JSON.stringify(data.localeText));
         fd.append("price", String(data.price));
         if (data.salePrice != null) fd.append("sale_price", String(data.salePrice));
-        fd.append("category", data.category);
+        fd.append("category_id", data.category);
         fd.append("stock", String(data.stock));
         fd.append("in_stock", String(data.stock > 0));
         fd.append("is_featured", String(data.isFeatured ?? false));
@@ -320,7 +320,7 @@ export async function createProduct(
           sale_price: data.salePrice ?? null,
           image: data.image,
           images: data.images ?? [],
-          category: data.category,
+          category_id: data.category,
           stock: data.stock,
           in_stock: data.stock > 0,
           is_featured: data.isFeatured ?? false,
@@ -378,7 +378,7 @@ export async function updateProduct(
         if (data.localeText !== undefined) fd.append("locale_text", JSON.stringify(data.localeText));
         if (data.price !== undefined) fd.append("price", String(data.price));
         if (data.salePrice !== undefined) fd.append("sale_price", String(data.salePrice));
-        if (data.category !== undefined) fd.append("category", data.category);
+        if (data.category !== undefined) fd.append("category_id", data.category);
         if (data.stock !== undefined) {
           fd.append("stock", String(data.stock));
           fd.append("in_stock", String(data.stock > 0));
@@ -419,7 +419,7 @@ export async function updateProduct(
       if (data.salePrice !== undefined) body.sale_price = data.salePrice;
       if (data.image !== undefined) body.image = data.image;
       if (data.images !== undefined) body.images = data.images;
-      if (data.category !== undefined) body.category = data.category;
+      if (data.category !== undefined) body.category_id = data.category;
       if (data.stock !== undefined) {
         body.stock = data.stock;
         body.in_stock = data.stock > 0;
@@ -500,9 +500,11 @@ export async function fetchProductStats(): Promise<ProductStats> {
   // ── Try real API first ──
   if (API_BASE) {
     try {
-      const data = await productsFetch<LaravelProductStats>(
+      const response = await productsFetch<LaravelStatsResponse>(
         "/admin/products/stats"
       );
+      // Backend respondWithStats() wraps in { data: {...} }
+      const data = response.data;
       return {
         totalProducts: data.total_products,
         totalValue: data.total_value,
@@ -551,4 +553,9 @@ interface LaravelProductStats {
   total_value: number;
   low_stock_count: number;
   out_of_stock_count: number;
+}
+
+/** Backend respondWithStats() wraps in { data: {...} } */
+interface LaravelStatsResponse {
+  data: LaravelProductStats;
 }

@@ -23,7 +23,7 @@ class OrderFactory extends Factory
             'shipping_cost' => $shipping,
             'discount' => '0.000',
             'total' => bcadd(bcadd((string) $subtotal, $shipping, 3), '0.000', 3),
-            'payment_method' => fake()->randomElement(['cash_on_delivery', 'knet', 'card']),
+            'payment_method' => 'cash_on_delivery',
             'payment_status' => 'pending',
             'shipping_address' => fake()->address(),
             'shipping_phone' => fake()->phoneNumber(),

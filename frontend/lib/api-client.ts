@@ -69,14 +69,18 @@ export async function publicFetch<T>(
 
   return dedupFetch<T>(cacheKey, async () => {
     // Build URL using template literal (same pattern as authFetch).
-    // new URL(path, base) treats leading "/" as absolute — which strips
-    // the /api prefix from API_BASE, breaking all public endpoints.
+    // IMPORTANT: Do NOT use new URL(path, base) — it treats leading "/" as
+    // absolute and strips the /api prefix from API_BASE. Use string concat instead.
     const separator = path.startsWith("?") ? "" : (path.startsWith("/") ? "" : "/");
-    const urlStr = `${API_BASE}${separator}${path}`;
-    const url = new URL(urlStr);
-    if (locale) url.searchParams.set("locale", locale);
+    let urlStr = `${API_BASE}${separator}${path}`;
 
-    const res = await fetch(url.toString(), {
+    // Append locale as query parameter
+    if (locale) {
+      const joinChar = urlStr.includes("?") ? "&" : "?";
+      urlStr += `${joinChar}locale=${encodeURIComponent(locale)}`;
+    }
+
+    const res = await fetch(urlStr, {
       headers: {
         // When body is FormData, let the browser set Content-Type with boundary
         ...(init.body instanceof FormData ? {} : { "Content-Type": "application/json" }),

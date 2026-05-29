@@ -131,9 +131,9 @@ export function useOrdersData() {
     } catch {}
   };
 
-  const getPaymentLabel = useCallback((method: PaymentMethod) => {
-    const map: Record<PaymentMethod, string> = { cash: "Cash on Delivery", card: "Card Payment", online: "Online Payment" };
-    return map[method] ?? "Cash on Delivery";
+  const getPaymentLabel = useCallback((_method: PaymentMethod) => {
+    // Cash on delivery is the only payment method
+    return "Cash on Delivery";
   }, []);
 
   const exportCSV = () => {

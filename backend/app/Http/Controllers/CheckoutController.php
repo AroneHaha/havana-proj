@@ -96,7 +96,7 @@ class CheckoutController extends Controller
             'shipping_address' => ['required', 'string', 'max:1000'],
             'shipping_phone' => ['required', 'string', 'max:20'],
             'notes' => ['nullable', 'string', 'max:1000'],
-            'payment_method' => ['required', 'string', 'in:cash_on_delivery,card,bank_transfer,knet'],
+            'payment_method' => ['required', 'string', 'in:cash_on_delivery'],
         ]);
 
         $user = $request->user();

@@ -62,9 +62,9 @@ export function OrderDetailDrawer({
     delivered: "markDelivered",
   };
 
-  const getPaymentLabel = (method: PaymentMethod) => {
-    const map: Record<PaymentMethod, string> = { cash: t.cash, card: t.card, online: t.online };
-    return map[method] ?? t.cash;
+  const getPaymentLabel = (_method: PaymentMethod) => {
+    // Cash on delivery is the only payment method
+    return t.cashOnDelivery;
   };
 
   const formatDate = (dateStr: string) => {

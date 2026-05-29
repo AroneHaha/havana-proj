@@ -30,7 +30,7 @@ class OrderSeeder extends Seeder
                 'shipping_address' => 'Salmiya, Block 12, Street 5, Building 30, Floor 3, Apt 7',
                 'shipping_phone' => '+965-5000-1001',
                 'notes' => null,
-                'payment_method' => 'cash',
+                'payment_method' => 'cash_on_delivery',
                 'payment_status' => 'paid',
                 'confirmed_at' => now()->subDays(6),
                 'delivered_at' => now()->subDays(3),
@@ -50,7 +50,7 @@ class OrderSeeder extends Seeder
                 'shipping_address' => 'Kuwait City, Block 4, Street 10, Building 15, Floor 1, Apt 2',
                 'shipping_phone' => '+965-5000-1002',
                 'notes' => 'Please ring the doorbell twice',
-                'payment_method' => 'online',
+                'payment_method' => 'cash_on_delivery',
                 'payment_status' => 'paid',
                 'confirmed_at' => now()->subDays(1),
                 'delivered_at' => null,
@@ -69,7 +69,7 @@ class OrderSeeder extends Seeder
                 'shipping_address' => 'Hawally, Block 7, Street 3, Building 22, Floor 5, Apt 12',
                 'shipping_phone' => '+965-5000-1003',
                 'notes' => 'Anniversary gift — please include a card',
-                'payment_method' => 'card',
+                'payment_method' => 'cash_on_delivery',
                 'payment_status' => 'pending',
                 'confirmed_at' => null,
                 'delivered_at' => null,
@@ -88,7 +88,7 @@ class OrderSeeder extends Seeder
                 'shipping_address' => 'Salmiya, Block 12, Street 5, Building 30, Floor 3, Apt 7',
                 'shipping_phone' => '+965-5000-1001',
                 'notes' => null,
-                'payment_method' => 'online',
+                'payment_method' => 'cash_on_delivery',
                 'payment_status' => 'refunded',
                 'confirmed_at' => null,
                 'delivered_at' => null,
@@ -103,12 +103,12 @@ class OrderSeeder extends Seeder
                 'status' => 'preparing',
                 'items' => [
                     ['slug' => 'silent-ivory-grace', 'quantity' => 1],
-                    ['slug' => 'heavenly-calm-bouquet', 'quantity' => 1],
+                    ['slug' => 'gentle-farewell-bloom', 'quantity' => 1],
                 ],
                 'shipping_address' => 'Kuwait City, Block 4, Street 10, Building 15, Floor 1, Apt 2',
                 'shipping_phone' => '+965-5000-1002',
                 'notes' => 'Please deliver before 10 AM if possible',
-                'payment_method' => 'cash',
+                'payment_method' => 'cash_on_delivery',
                 'payment_status' => 'pending',
                 'confirmed_at' => now()->subHours(5),
                 'delivered_at' => null,
@@ -137,7 +137,7 @@ class OrderSeeder extends Seeder
                 }
             }
 
-            $shippingCost = '0.000';
+            $shippingCost = '2.000';
             $discount = '0.000';
             $total = bcadd($subtotal, $shippingCost, 3);
 

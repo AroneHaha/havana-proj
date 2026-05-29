@@ -61,19 +61,18 @@ export function AdminDashboard() {
     fetchReviewStats();
   }, [fetchOrders, fetchStats, fetchProducts, fetchReviews, fetchReviewStats]);
 
-  // ─── Derived data ──
-  const totalRevenue = useMemo(() => {
-    if (orderStats) return orderStats.totalRevenue;
+const totalRevenue = useMemo(() => {
+    if (orderStats) return orderStats.totalRevenue ?? 0;
     return orders
       .filter((o) => o.status === "delivered")
-      .reduce((sum, o) => sum + o.total, 0);
+      .reduce((sum, o) => sum + (o.total ?? 0), 0);
   }, [orders, orderStats]);
 
-  const avgOrderValue = useMemo(() => {
-    if (orderStats) return orderStats.averageOrderValue;
+const avgOrderValue = useMemo(() => {
+    if (orderStats) return orderStats.averageOrderValue ?? 0;
     const delivered = orders.filter((o) => o.status === "delivered");
     if (delivered.length === 0) return 0;
-    return delivered.reduce((sum, o) => sum + o.total, 0) / delivered.length;
+    return delivered.reduce((sum, o) => sum + (o.total ?? 0), 0) / delivered.length;
   }, [orders, orderStats]);
 
   const activeOrders = useMemo(
@@ -98,11 +97,11 @@ export function AdminDashboard() {
     [products]
   );
 
-  const averageRating = useMemo(() => {
-    if (reviewStats) return reviewStats.averageRating;
+const averageRating = useMemo(() => {
+    if (reviewStats) return reviewStats.averageRating ?? 0;
     const visible = reviews.filter((r) => r.visibility === "visible");
     if (visible.length === 0) return 0;
-    return visible.reduce((sum, r) => sum + r.rating, 0) / visible.length;
+    return visible.reduce((sum, r) => sum + (r.rating ?? 0), 0) / visible.length;
   }, [reviews, reviewStats]);
 
   const recentReviews = useMemo(
@@ -424,7 +423,7 @@ export function AdminDashboard() {
                 <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{t.averageRating}</span>
               </div>
               <div className="flex items-center gap-2">
-                <p className="text-lg font-semibold text-foreground">{averageRating.toFixed(1)}</p>
+                <p className="text-lg font-semibold text-foreground">{(averageRating ?? 0).toFixed(1)}</p>
                 <div className="flex">
                   {[...Array(5)].map((_, i) => (
                     <Star

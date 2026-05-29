@@ -50,20 +50,37 @@ export class ReviewsError extends AppError {
 
 // ─── Laravel API response shapes ──────────────────────────────────────
 
+/**
+ * The ACTUAL shape returned by the backend's Admin\ReviewResource.
+ * The backend nests user info in a user object and product info in a product object,
+ * NOT flat customer_name/customer_email/product_name fields.
+ */
 interface LaravelReview {
   id: string;
-  customer_name: string;
-  customer_email: string;
-  product: {
-    product_id: string;
-    product_name: string;
-    product_image: string;
-    product_slug: string;
-  };
+  product_id: string;
+  user_id: string;
   rating: number;
   title: string | null;
   comment: string;
   visibility: ReviewVisibility;
+  // Backend returns full UserResource for user
+  user?: {
+    id?: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    avatar?: string | null;
+  } | null;
+  // Backend returns full ProductResource for product
+  product?: {
+    id: string;
+    name?: string;
+    name_en?: string;
+    name_ar?: string;
+    image?: string | null;
+    slug?: string;
+    price?: number;
+  } | null;
   created_at: string;
   updated_at: string;
 }
@@ -84,18 +101,32 @@ interface LaravelReviewStats {
   rating_distribution: Record<number, number>;
 }
 
+/** Backend respondWithStats() wraps in { data: {...} } */
+interface LaravelReviewStatsResponse {
+  data: LaravelReviewStats;
+}
+
 // ─── Map Laravel review → Review ──────────────────────────────────────
 
 function mapLaravelReview(raw: LaravelReview): Review {
+  // Build customer name from the backend's user object
+  const user = raw.user;
+  const customerName = user
+    ? `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim()
+    : 'Unknown Customer';
+
+  // Build product info from the backend's product object
+  const product = raw.product;
+
   return {
     id: raw.id,
-    customerName: raw.customer_name,
-    customerEmail: raw.customer_email,
+    customerName,
+    customerEmail: user?.email ?? '',
     product: {
-      productId: raw.product.product_id,
-      productName: raw.product.product_name,
-      productImage: raw.product.product_image,
-      productSlug: raw.product.product_slug,
+      productId: product?.id ?? raw.product_id,
+      productName: product?.name ?? product?.name_en ?? '',
+      productImage: product?.image ?? '',
+      productSlug: product?.slug ?? '',
     },
     rating: raw.rating,
     title: raw.title ?? undefined,
@@ -436,11 +467,13 @@ export async function deleteReview(id: string): Promise<boolean> {
 export async function fetchReviewStats(): Promise<ReviewStats> {
   if (API_BASE) {
     try {
-      const data = await reviewsFetch<LaravelReviewStats>("/admin/reviews/stats");
+      const response = await reviewsFetch<LaravelReviewStatsResponse>("/admin/reviews/stats");
+      // Backend respondWithStats() wraps in { data: {...} }
+      const data = response.data;
       return {
-        averageRating: data.average_rating,
-        totalReviews: data.total_reviews,
-        ratingDistribution: data.rating_distribution,
+        averageRating: data.average_rating ?? 0,
+        totalReviews: data.total_reviews ?? 0,
+        ratingDistribution: data.rating_distribution ?? { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
       };
     } catch (err) {
       if (err instanceof ReviewsError) throw err;
