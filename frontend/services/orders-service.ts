@@ -124,30 +124,56 @@ export class OrdersError extends AppError {
 // ─── Laravel API response shapes ──────────────────────────────────────
 
 interface LaravelOrderItem {
+  id?: string;
   product_id: string;
   product_name: string;
+  product_image?: string;
   quantity: number;
   price: number;
+  subtotal?: number;
 }
 
-interface LaravelOrderCustomer {
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-}
-
+/**
+ * The ACTUAL shape returned by the backend's Admin\OrderResource.
+ * The backend uses shipping_address/shipping_phone/shipping_cost
+ * and nests user info in a user object, NOT a flat customer object.
+ */
 interface LaravelOrder {
   id: string;
+  user_id?: string;
   order_number: string;
-  customer: LaravelOrderCustomer;
-  items: LaravelOrderItem[];
-  subtotal: number;
-  delivery_fee: number;
-  total: number;
   status: OrderStatus;
+  subtotal: number;
+  shipping_cost: number;
+  discount: number;
+  total: number;
   payment_method: PaymentMethod;
+  payment_status?: string;
+  shipping_address: string;
+  shipping_phone: string;
   notes: string | null;
+  is_paid?: boolean;
+  is_delivered?: boolean;
+  is_cancelled?: boolean;
+  // Backend nests user as a UserResource object
+  user?: {
+    id?: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string | null;
+  } | null;
+  items: LaravelOrderItem[];
+  status_history?: Array<{
+    id: string;
+    status: string;
+    changed_by?: string;
+    note?: string | null;
+    created_at: string;
+  }>;
+  confirmed_at?: string | null;
+  delivered_at?: string | null;
+  cancelled_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -168,19 +194,32 @@ interface LaravelOrderStats {
   status_counts: Record<OrderStatus, number>;
 }
 
+/** Backend respondWithStats() wraps in { data: {...} } */
+interface LaravelOrderStatsResponse {
+  data: LaravelOrderStats;
+}
+
 // LaravelValidationErrorResponse is now imported from lib/api-config
 
 // ─── Map Laravel order → Order ────────────────────────────────────────
 
 function mapLaravelOrder(raw: LaravelOrder): Order {
+  // Build customer from the backend's user object + shipping fields
+  // Backend Admin\OrderResource has: user.first_name, user.last_name, user.email,
+  // user.phone, shipping_address, shipping_phone
+  const user = raw.user;
+  const customerName = user
+    ? `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim()
+    : 'Unknown Customer';
+
   return {
     id: String(raw.id),
     orderNumber: raw.order_number,
     customer: {
-      name: raw.customer.name,
-      email: raw.customer.email,
-      phone: raw.customer.phone,
-      address: raw.customer.address,
+      name: customerName,
+      email: user?.email ?? '',
+      phone: raw.shipping_phone ?? user?.phone ?? '',
+      address: raw.shipping_address ?? '',
     },
     items: raw.items.map((item) => ({
       productId: String(item.product_id),
@@ -189,7 +228,7 @@ function mapLaravelOrder(raw: LaravelOrder): Order {
       price: item.price,
     })),
     subtotal: raw.subtotal,
-    deliveryFee: raw.delivery_fee,
+    deliveryFee: raw.shipping_cost,
     total: raw.total,
     status: raw.status,
     paymentMethod: raw.payment_method,
@@ -651,9 +690,11 @@ export async function fetchOrderStats(): Promise<OrderStats> {
   // ── Try real API first ──
   if (API_BASE) {
     try {
-      const data = await ordersFetch<LaravelOrderStats>(
+      const response = await ordersFetch<LaravelOrderStatsResponse>(
         "/admin/orders/stats"
       );
+      // Backend respondWithStats() wraps in { data: {...} }
+      const data = response.data;
       return {
         totalRevenue: data.total_revenue ?? 0,
         averageOrderValue: data.average_order_value ?? 0,

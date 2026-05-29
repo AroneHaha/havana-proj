@@ -160,7 +160,7 @@ function storeUser(user: AuthUser, token?: string, refreshToken?: string) {
   // Also set a cookie for middleware route protection (server-side accessible)
   // Cookie exists so middleware can check it; not truly HTTP-only (see setAuthCookie docs)
   if (token) {
-    setAuthCookie(token);
+    setAuthCookie(token, user.role);
   }
 }
 
@@ -175,22 +175,30 @@ function clearStored() {
 // ─── Cookie helpers (for middleware route protection) ──────────────────
 
 /**
- * Set a non-sensitive session-indicator cookie so Next.js middleware
- * can check for authentication server-side (before the page renders).
+ * Set a session cookie so Next.js middleware can check authentication
+ * AND role server-side (before the page renders).
  *
- * SECURITY: We store only a truthy indicator ("1"), NOT the raw JWT.
- * The actual JWT lives in localStorage (client-only). This prevents
- * the token from being accessible via `document.cookie` (XSS).
+ * SECURITY: We store a minimal JSON string { r: "admin" | "customer" },
+ * NOT the raw JWT. The actual JWT lives in localStorage (client-only).
+ * This prevents the token from being accessible via `document.cookie` (XSS).
  *
- * The middleware only checks cookie existence, not its value:
- *   `if (isAdminRoute && !token) → redirect to /login`
+ * The middleware checks both cookie existence and role:
+ *   `if (isAdminRoute && !cookie || role !== "admin") → redirect to /login`
+ *
+ * Cookie format: `havana-auth-token={"r":"admin"}` (base64-free, compact)
+ * This is NOT cryptographically secure — it's a UX guard to prevent
+ * flash of admin content. Real authorization is enforced by:
+ *   1. Client-side admin layout: `user.role === "admin"` (Zustand store)
+ *   2. Backend: `auth:sanctum` + `admin` middleware on every API call
  *
  * For true HTTP-only cookies (Phase 2), Laravel will set the cookie
  * server-side on login, and we can remove this client-side fallback.
  */
-function setAuthCookie(_token: string) {
+function setAuthCookie(_token: string, role?: "admin" | "customer") {
   if (typeof document === "undefined") return;
-  document.cookie = `havana-auth-token=1; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  const value = encodeURIComponent(JSON.stringify({ r: role ?? "customer" }));
+  const secure = typeof window !== "undefined" && window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `havana-auth-token=${value}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax${secure}`;
 }
 
 /**
@@ -281,8 +289,8 @@ async function authFetchInner<T>(
     );
   }
 
-  // Debug: log the response status for non-GET requests
-  if (options.method && options.method !== "GET") {
+  // Debug: log the response status for non-GET requests (dev only)
+  if (process.env.NODE_ENV === 'development' && options.method && options.method !== "GET") {
     console.log(`[Auth] ${options.method} ${API_BASE}${path} → ${res.status} ${res.statusText}`);
   }
 
@@ -311,13 +319,17 @@ async function handleResponse<T>(res: Response): Promise<T> {
     // Read raw text first for debugging, then parse as JSON
     const text = await res.text();
     if (!text || text.trim() === '') {
-      console.error('[Auth] Empty response body from', res.url, 'Status:', res.status);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[Auth] Empty response body from', res.url, 'Status:', res.status);
+      }
       throw new AuthError('Server returned an empty response', 'UNKNOWN');
     }
     try {
       return JSON.parse(text) as T;
     } catch (parseErr) {
-      console.error('[Auth] Failed to parse JSON response:', text.substring(0, 500));
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[Auth] Failed to parse JSON response:', text.substring(0, 500));
+      }
       throw new AuthError('Server returned invalid JSON', 'UNKNOWN');
     }
   }
@@ -411,13 +423,17 @@ export async function login(
   // ── Try real API first ──
   if (API_BASE) {
     try {
-      console.log("[Auth] Logging in to:", `${API_BASE}/auth/login`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log("[Auth] Logging in to:", `${API_BASE}/auth/login`);
+      }
       const response = await authFetch<Record<string, unknown>>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
 
-      console.log("[Auth] Login raw response:", JSON.stringify(response).substring(0, 800));
+      if (process.env.NODE_ENV === 'development') {
+        console.log("[Auth] Login raw response:", JSON.stringify(response).substring(0, 800));
+      }
 
       // ── Flexible response unwrapping ──
       // Backend returns { data: { user, access_token, ... } } via respondWithData()
@@ -437,7 +453,9 @@ export async function login(
       }
 
       if (!inner || !inner.user || !inner.access_token) {
-        console.error("[Auth] Unexpected response structure. Full response:", JSON.stringify(response, null, 2));
+        if (process.env.NODE_ENV === 'development') {
+          console.error("[Auth] Unexpected response structure. Full response:", JSON.stringify(response, null, 2));
+        }
         throw new AuthError(
           "Unexpected server response format. Check browser console for details.",
           "UNKNOWN"
@@ -447,7 +465,9 @@ export async function login(
       storeUser(user, inner.access_token, inner.refresh_token);
       return { user, token: inner.access_token, refreshToken: inner.refresh_token };
     } catch (err) {
-      console.error("[Auth] Login error:", err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("[Auth] Login error:", err);
+      }
       if (err instanceof AuthError) throw err;
       // Unexpected non-AuthError — wrap as network error with helpful message
       throw new AuthError(
@@ -457,7 +477,14 @@ export async function login(
     }
   }
 
-  // ── Mock login ──
+  // ── Mock login (API not configured) ──
+  if (process.env.NODE_ENV === 'production') {
+    console.warn(
+      "[Auth] WARNING: Running in mock auth mode in production! " +
+      "Set NEXT_PUBLIC_API_URL to connect to the backend. " +
+      "Mock credentials (admin@gmail.com / password) are active."
+    );
+  }
   await new Promise((r) => setTimeout(r, 600));
 
   const account = MOCK_ACCOUNTS[email.toLowerCase()];

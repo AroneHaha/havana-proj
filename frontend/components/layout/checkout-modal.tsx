@@ -120,7 +120,7 @@ export function CheckoutModal() {
           address: address.trim(),
         },
         notes: notes.trim() || undefined,
-        paymentMethod: "cash",
+        paymentMethod: "cash_on_delivery",
       });
 
       // 3. Clear the cart
