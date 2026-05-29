@@ -1,0 +1,51 @@
+<?php
+
+namespace App\Http\Resources\Admin;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+use App\Http\Resources\CategoryResource;
+use App\Http\Resources\Admin\ReviewResource;
+
+/**
+ * Admin ProductResource — Extended product data for admin dashboard.
+ *
+ * Adds: all reviews (regardless of visibility), full review detail via Admin\ReviewResource,
+ * and stock-related info not exposed to the public API.
+ */
+class ProductResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'category_id' => $this->category_id,
+            'name_en' => $this->name_en,
+            'name_ar' => $this->name_ar,
+            'description_en' => $this->description_en,
+            'description_ar' => $this->description_ar,
+            'slug' => $this->slug,
+            'price' => (float) $this->price,
+            'sale_price' => $this->sale_price ? (float) $this->sale_price : null,
+            'effective_price' => (float) $this->effectivePrice(),
+            'is_on_sale' => $this->isOnSale(),
+            'image' => $this->image,
+            'images' => $this->images ?? [],
+            'sku' => $this->sku,
+            'stock' => $this->stock,
+            'in_stock' => $this->isInStock(),
+            'rating' => (float) ($this->rating ?? 0),
+            'is_featured' => $this->is_featured,
+            'is_best_seller' => $this->is_best_seller,
+            'is_new' => $this->is_new,
+            'is_active' => $this->is_active,
+            'category' => new CategoryResource($this->whenLoaded('category')),
+            'reviews' => ReviewResource::collection($this->whenLoaded('reviews')),
+            'reviews_count' => $this->whenCounted('reviews'),
+            'deleted_at' => $this->deleted_at?->toISOString(),
+            'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
+        ];
+    }
+}
