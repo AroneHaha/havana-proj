@@ -9,6 +9,34 @@ use App\Http\Resources\CategoryResource;
 
 class ProductResource extends JsonResource
 {
+    /**
+     * Transform a stored image path into a full URL.
+     * If the path is already a full URL (external image), return as-is.
+     * If it's a relative path, use Supabase public URL if configured, otherwise local disk.
+     */
+    private function resolveImageUrl(?string $path): ?string
+    {
+        if (!$path) return null;
+        if (str_starts_with($path, 'http')) return $path;
+
+        // Use Supabase public URL if configured
+        $supabasePublicUrl = config('services.supabase.public_url');
+        if ($supabasePublicUrl) {
+            return rtrim($supabasePublicUrl, '/') . '/' . ltrim($path, '/');
+        }
+
+        // Fallback to local public disk
+        return Storage::disk('public')->url($path);
+    }
+
+    /**
+     * Resolve an array of image paths to full URLs.
+     */
+    private function resolveImageUrls(array $paths): array
+    {
+        return array_map(fn($p) => $this->resolveImageUrl($p) ?? $p, $paths);
+    }
+
     public function toArray(Request $request): array
     {
         $locale = $request->query('locale', 'en');
@@ -26,8 +54,8 @@ class ProductResource extends JsonResource
             'sale_price' => $this->sale_price ? (float) $this->sale_price : null,
             'effective_price' => (float) $this->effectivePrice(),
             'is_on_sale' => $this->isOnSale(),
-            'image' => $this->image ? (str_starts_with($this->image, 'http') ? $this->image : Storage::disk('public')->url($this->image)) : null,
-            'images' => array_map(fn($p) => str_starts_with($p, 'http') ? $p : Storage::disk('public')->url($p), $this->images ?? []),
+            'image' => $this->resolveImageUrl($this->image),
+            'images' => $this->resolveImageUrls($this->images ?? []),
             'sku' => $this->sku,
             'stock' => $this->stock,
             'in_stock' => $this->isInStock(),

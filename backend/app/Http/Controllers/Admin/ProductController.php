@@ -20,11 +20,12 @@ use Illuminate\Validation\Rule;
  * Handles both JSON and FormData (multipart) for store/update.
  *
  * Image handling:
- *   - `image` field: single file upload → stored to public disk → URL saved in DB
- *   - `images` field: array of file uploads → stored to public disk → URLs saved in DB
+ *   - `image` field: single file upload → stored to Supabase Storage → path saved in DB
+ *   - `images` field: array of file uploads → stored to Supabase Storage → paths saved in DB
  *   - `existing_images` field: array of URL strings to keep during update
  *   - When sending via FormData: use `image` as file, `images[]` as files
  *   - When sending via JSON: pass URL strings (backward compatible)
+ *   - Uses Supabase S3-compatible storage; falls back to local public disk if not configured
  */
 class ProductController extends \App\Http\Controllers\Controller
 {
@@ -147,19 +148,26 @@ class ProductController extends \App\Http\Controllers\Controller
         }
 
         // ── Handle image uploads ──
+        $disk = $this->storageDisk();
+
         // Single main image (file upload)
         if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')->store('products', 'public');
+            $validated['image'] = $request->file('image')->store('products', $disk);
         }
 
         // Multiple images (file uploads)
         $imagePaths = [];
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $file) {
-                $imagePaths[] = $file->store('products', 'public');
+                $imagePaths[] = $file->store('products', $disk);
             }
         }
         $validated['images'] = !empty($imagePaths) ? $imagePaths : null;
+
+        // Auto-set main image from first gallery image if not explicitly provided
+        if (empty($validated['image']) && !empty($validated['images'])) {
+            $validated['image'] = $validated['images'][0];
+        }
 
         $product = Product::create($validated);
         $product->load('category', 'reviews');
@@ -237,28 +245,34 @@ class ProductController extends \App\Http\Controllers\Controller
         }
 
         // ── Handle image uploads ──
+        $disk = $this->storageDisk();
+
         // Single main image (file upload)
         if ($request->hasFile('image')) {
             // Delete old main image if it exists
             if ($product->image) {
                 $this->deleteImageFile($product->image);
             }
-            $validated['image'] = $request->file('image')->store('products', 'public');
+            $validated['image'] = $request->file('image')->store('products', $disk);
         }
 
         // Multiple images: merge existing (kept) + newly uploaded
         $finalImages = [];
 
         // Keep existing images that the frontend says to preserve
+        // Normalize URLs to relative paths for consistent storage
         $existingImages = $request->input('existing_images', []);
         if (is_array($existingImages)) {
-            $finalImages = array_values(array_filter($existingImages, fn($url) => is_string($url) && !empty($url)));
+            $finalImages = array_values(array_filter(
+                array_map(fn($url) => $this->normalizeImagePath($url), $existingImages),
+                fn($path) => !empty($path)
+            ));
         }
 
         // Append newly uploaded files
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $file) {
-                $finalImages[] = $file->store('products', 'public');
+                $finalImages[] = $file->store('products', $disk);
             }
         }
 
@@ -272,6 +286,11 @@ class ProductController extends \App\Http\Controllers\Controller
                 }
             }
             $validated['images'] = $finalImages;
+
+            // Auto-set main image from first gallery image if not explicitly provided
+            if (empty($validated['image']) && !empty($finalImages)) {
+                $validated['image'] = $finalImages[0];
+            }
         }
 
         $product->update($validated);
@@ -318,20 +337,70 @@ class ProductController extends \App\Http\Controllers\Controller
     }
 
     /**
-     * Delete an image file from the public disk.
+     * Get the active storage disk (Supabase if configured, otherwise local public).
+     */
+    private function storageDisk(): string
+    {
+        return config('filesystems.disks.supabase.endpoint') ? 'supabase' : 'public';
+    }
+
+    /**
+     * Normalize an image path to a relative path for consistent DB storage.
+     * Handles full Supabase URLs, local storage URLs, and already-relative paths.
+     */
+    private function normalizeImagePath(?string $path): ?string
+    {
+        if (empty($path)) return null;
+
+        // Already a relative path
+        if (!str_starts_with($path, 'http')) return $path;
+
+        // Supabase public URL: extract path after bucket name
+        // e.g. https://xxx.supabase.co/storage/v1/object/public/products/products/abc.jpg → products/abc.jpg
+        if (str_contains($path, 'supabase.co')) {
+            $parsed = parse_url($path);
+            $pathPart = $parsed['path'] ?? '';
+            if (preg_match('#^/storage/v1/object/public/[^/]+/(.+)$#', $pathPart, $matches)) {
+                return $matches[1];
+            }
+        }
+
+        // Local storage URL: http://localhost/storage/products/abc.jpg → products/abc.jpg
+        if (str_contains($path, '/storage/')) {
+            $parsed = parse_url($path);
+            $pathPart = ltrim($parsed['path'] ?? '', '/');
+            if (str_starts_with($pathPart, 'storage/')) {
+                return substr($pathPart, strlen('storage/'));
+            }
+        }
+
+        // External URL (Unsplash, etc.) — return as-is
+        return $path;
+    }
+
+    /**
+     * Delete an image file from the active storage disk.
      * Handles both relative paths (products/abc.jpg) and full URLs.
      */
     private function deleteImageFile(string $path): void
     {
-        // If it's a full URL, extract the path part
-        if (str_starts_with($path, 'http')) {
-            $parsed = parse_url($path);
-            $path = ltrim($parsed['path'] ?? '', '/storage/');
+        $disk = $this->storageDisk();
+
+        // Normalize to relative path
+        $relativePath = $this->normalizeImagePath($path);
+
+        // Don't delete external URLs (Unsplash, etc.)
+        if ($relativePath && str_starts_with($relativePath, 'http')) return;
+
+        // Delete from the appropriate disk
+        if ($relativePath && Storage::disk($disk)->exists($relativePath)) {
+            Storage::disk($disk)->delete($relativePath);
         }
 
-        // Only delete if it's a local stored file (not an external URL)
-        if ($path && !str_starts_with($path, 'http') && Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
+        // Also try the other disk (migration fallback)
+        $fallbackDisk = $disk === 'supabase' ? 'public' : 'supabase';
+        if ($relativePath && Storage::disk($fallbackDisk)->exists($relativePath)) {
+            Storage::disk($fallbackDisk)->delete($relativePath);
         }
     }
 }

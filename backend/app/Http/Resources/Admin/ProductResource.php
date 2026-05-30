@@ -13,12 +13,20 @@ class ProductResource extends JsonResource
     /**
      * Transform a stored image path into a full URL.
      * If the path is already a full URL (external image), return as-is.
-     * If it's a relative path (e.g. "products/abc.jpg"), prepend the storage URL.
+     * If it's a relative path, use Supabase public URL if configured, otherwise local disk.
      */
     private function resolveImageUrl(?string $path): ?string
     {
         if (!$path) return null;
         if (str_starts_with($path, 'http')) return $path;
+
+        // Use Supabase public URL if configured
+        $supabasePublicUrl = config('services.supabase.public_url');
+        if ($supabasePublicUrl) {
+            return rtrim($supabasePublicUrl, '/') . '/' . ltrim($path, '/');
+        }
+
+        // Fallback to local public disk
         return Storage::disk('public')->url($path);
     }
 

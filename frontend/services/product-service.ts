@@ -291,9 +291,9 @@ export async function createProduct(
         fd.append("category_id", data.category);
         fd.append("stock", String(data.stock));
         fd.append("in_stock", String(data.stock > 0));
-        fd.append("is_featured", String(data.isFeatured ?? false));
-        fd.append("is_best_seller", String(data.isBestSeller ?? false));
-        fd.append("is_new", String(data.isNew ?? false));
+        fd.append("is_featured", data.isFeatured ? "1" : "0");
+        fd.append("is_best_seller", data.isBestSeller ? "1" : "0");
+        fd.append("is_new", data.isNew ? "1" : "0");
         if (data.sku) fd.append("sku", data.sku);
         // New file uploads
         rawFiles.forEach((file, i) => {
@@ -400,9 +400,9 @@ export async function updateProduct(
           fd.append("stock", String(data.stock));
           fd.append("in_stock", String(data.stock > 0));
         }
-        if (data.isFeatured !== undefined) fd.append("is_featured", String(data.isFeatured));
-        if (data.isBestSeller !== undefined) fd.append("is_best_seller", String(data.isBestSeller));
-        if (data.isNew !== undefined) fd.append("is_new", String(data.isNew));
+        if (data.isFeatured !== undefined) fd.append("is_featured", data.isFeatured ? "1" : "0");
+        if (data.isBestSeller !== undefined) fd.append("is_best_seller", data.isBestSeller ? "1" : "0");
+        if (data.isNew !== undefined) fd.append("is_new", data.isNew ? "1" : "0");
         if (data.sku) fd.append("sku", data.sku);
         // New file uploads
         rawFiles.forEach((file, i) => {

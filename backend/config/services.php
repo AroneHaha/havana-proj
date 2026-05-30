@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'supabase' => [
+        'url' => env('SUPABASE_URL'),
+        'public_url' => env('SUPABASE_PUBLIC_URL'),
+    ],
+
 ];
