@@ -11,8 +11,6 @@ interface ProductGridProps {
   onOpenEdit: (product: AdminProduct) => void;
   onPreview: (product: AdminProduct) => void;
   onDelete: (id: string) => void;
-  deleteConfirm: string | null;
-  setDeleteConfirm: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 export function ProductGrid({
@@ -20,8 +18,6 @@ export function ProductGrid({
   onOpenEdit,
   onPreview,
   onDelete,
-  deleteConfirm,
-  setDeleteConfirm,
 }: ProductGridProps) {
   if (products.length === 0) {
     return (
@@ -70,20 +66,13 @@ export function ProductGrid({
                 >
                   <Edit3 className="w-4 h-4 text-foreground" />
                 </button>
-                {deleteConfirm === product.id ? (
-                  <div className="flex gap-1">
-                    <button onClick={(e) => { e.stopPropagation(); onDelete(product.id); }} className="px-2.5 py-1.5 rounded-lg text-[10px] font-medium bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer shadow-sm ring-1 ring-red-400/30">Delete</button>
-                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }} className="px-2.5 py-1.5 rounded-lg text-[10px] font-medium bg-white/90 dark:bg-dark-card/90 text-foreground hover:bg-white transition-colors cursor-pointer shadow-sm ring-1 ring-black/5">Cancel</button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setDeleteConfirm(product.id); }}
-                    className="p-2 rounded-lg bg-red-500/90 hover:bg-red-500 transition-colors cursor-pointer shadow-sm ring-1 ring-red-400/20"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4 text-white" />
-                  </button>
-                )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(product.id); }}
+                  className="p-2 rounded-lg bg-red-500/90 hover:bg-red-500 transition-colors cursor-pointer shadow-sm ring-1 ring-red-400/20"
+                  title="Delete"
+                >
+                  <Trash2 className="w-4 h-4 text-white" />
+                </button>
               </div>
             </div>
 

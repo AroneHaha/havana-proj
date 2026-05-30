@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { ProductGrid } from "./products-table";
 import { ProductFormModal, type ProductFormData, type FormFieldErrors } from "./product-form-modal";
+import { DeleteConfirmModal } from "./delete-confirm-modal";
 import { ProductHistoryDrawer } from "./product-history-drawer";
 import { useProductsFilters } from "./use-products-filters";
 import { useProductsStore, getStockStatus } from "@/store/product-store";
@@ -80,7 +81,7 @@ export function ProductsPage() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<AdminProduct | null>(null);
   const [previewProduct, setPreviewProduct] = useState<AdminProduct | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminProduct | null>(null);
 
   // ─── Derived ───
   const totalProducts = products.length;
@@ -177,13 +178,15 @@ export function ProductsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await storeDeleteProduct(id);
-    } catch {
-      // Error is stored in product store — UI can display via store error state
+  const handleDeleteRequest = (id: string) => {
+    const product = products.find((p) => p.id === id);
+    if (product) {
+      setDeleteTarget(product);
     }
-    setDeleteConfirm(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    await storeDeleteProduct(id);
   };
 
   // ─── Render ───
@@ -256,9 +259,7 @@ export function ProductsPage() {
         products={filteredProducts}
         onOpenEdit={handleOpenEdit}
         onPreview={(product) => setPreviewProduct(product)}
-        onDelete={handleDelete}
-        deleteConfirm={deleteConfirm}
-        setDeleteConfirm={setDeleteConfirm}
+        onDelete={handleDeleteRequest}
       />
 
       {/* Footer count */}
@@ -291,13 +292,21 @@ export function ProductsPage() {
         )}
       </AnimatePresence>
 
+      {/* ─── Delete Confirmation Modal ─── */}
+      <DeleteConfirmModal
+        product={deleteTarget}
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+      />
+
       {/* ─── Product History Drawer ─── */}
       <ProductHistoryDrawer
         product={previewProduct}
         open={!!previewProduct}
         onClose={() => setPreviewProduct(null)}
         onEdit={(product) => { setPreviewProduct(null); handleOpenEdit(product); }}
-        onDelete={(id) => { setPreviewProduct(null); handleDelete(id); }}
+        onDelete={(id) => { setPreviewProduct(null); handleDeleteRequest(id); }}
       />
     </motion.div>
   );
