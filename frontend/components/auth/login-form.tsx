@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Flower2 } from "lucide-react";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
 import { useAuthStore } from "@/store/auth-store";
-import { AuthError, forgotPassword } from "@/services/auth-service";
+import { AuthError, forgotPassword, getCurrentUserFromAPI } from "@/services/auth-service";
 
 /**
  * Helper: map AuthError codes to i18n message keys.
@@ -54,6 +54,9 @@ export function LoginPage() {
   const locale = useLanguageStore((s) => s.locale);
   const t = getDictionary(locale);
   const login = useAuthStore((s) => s.login);
+  const user = useAuthStore((s) => s.user);
+  const hydrated = useAuthStore((s) => s.hydrated);
+  const hydrate = useAuthStore((s) => s.hydrate);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,6 +69,42 @@ export function LoginPage() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
+
+  // ── Redirect already-authenticated users to dashboard ──
+  // The middleware no longer redirects /login → /dashboard because the cookie
+  // can become stale after server restarts. Instead, we check the ACTUAL auth
+  // state here: hydrate from localStorage, then validate the token with the
+  // backend. Only redirect if the session is confirmed valid.
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!user) return; // Not logged in — show the login form
+
+    // User exists in localStorage — verify the token is still valid
+    let cancelled = false;
+    getCurrentUserFromAPI().then((freshUser) => {
+      if (cancelled) return;
+      if (freshUser) {
+        // Token is valid — redirect to dashboard
+        const redirectPath = searchParams.get("redirect");
+        router.replace(redirectPath || "/dashboard");
+      } else {
+        // Token is stale — clear it so the user can log in fresh.
+        // We clear localStorage directly rather than calling logout()
+        // to avoid an unnecessary backend /auth/logout call with an invalid token.
+        localStorage.removeItem("havana-token");
+        localStorage.removeItem("havana-refresh-token");
+        document.cookie = "havana-auth-token=; path=/; max-age=0";
+        // Also clear the Zustand store user so the login form renders
+        useAuthStore.setState({ user: null });
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [hydrated, user, router, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

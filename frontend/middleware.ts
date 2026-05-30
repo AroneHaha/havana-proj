@@ -11,7 +11,7 @@
  *   1. Reads `havana-auth-token` cookie (set by auth-service on login)
  *   2. The cookie contains a URL-encoded JSON: {"r":"admin"} or {"r":"customer"}
  *   3. For admin routes: redirects to /login if cookie is missing OR role !== "admin"
- *   4. For auth pages (login/signup): redirects to /dashboard if already logged in as admin
+ *   4. For auth pages (login/signup): lets them through (client-side handles redirect)
  *
  * SECURITY: The cookie value is NOT the JWT — it's a minimal role indicator.
  * It can be spoofed by a technical user, but this is only a UX guard layer.
@@ -26,9 +26,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ADMIN_PATHS } from "@/lib/constant";
-
-// Public routes that should redirect to dashboard if already logged in
-const AUTH_ROUTES = ["/login", "/signup"];
 
 /**
  * Parse the role from the havana-auth-token cookie.
@@ -73,10 +70,16 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // ── Redirect logged-in admins away from auth pages ──────────────────
-  if (AUTH_ROUTES.some((route) => pathname.startsWith(route)) && role === "admin") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
+  // ── Auth pages: let them through ──────────────────────────────────────
+  // We NO LONGER redirect logged-in users away from /login or /signup at the
+  // middleware level. The cookie can become stale (e.g. after server restart
+  // the Sanctum token is invalidated but the cookie persists for 7 days),
+  // which causes a false redirect to /dashboard — then the admin layout
+  // redirects back to /login because the JWT is invalid, creating a loop.
+  //
+  // Instead, the login page itself handles this client-side: after Zustand
+  // hydrates + validateSession() confirms the token is actually valid, it
+  // redirects to /dashboard. If the token is stale, the user stays on /login.
 
   return NextResponse.next();
 }
