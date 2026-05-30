@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { AdminTopbar } from "@/components/admin/ui/admin-topbar";
 import { AdminSidebar } from "@/components/admin/ui/admin-sidebar";
+import { hydrateAllStores } from "@/lib/store-hydration";
 
 export default function AdminLayout({
   children,
@@ -19,6 +20,9 @@ export default function AdminLayout({
 
   useEffect(() => {
     hydrate();
+    // Hydrate all persisted stores from localStorage so cached data
+    // is available instantly (SWR pattern: show stale, refresh in background)
+    hydrateAllStores();
   }, [hydrate]);
 
   useEffect(() => {

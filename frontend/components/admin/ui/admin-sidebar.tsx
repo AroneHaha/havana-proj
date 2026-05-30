@@ -15,7 +15,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { prefetchRoute } from "@/lib/store-hydration";
 
 const sidebarItems = [
   {
@@ -51,6 +52,15 @@ export function AdminSidebar() {
   const toggleCollapse = () => {
     setCollapsed(!collapsed);
   };
+
+  // Prefetch data on hover — by the time the user clicks, data is ready
+  const handleHoverPrefetch = useCallback((href: string) => {
+    // Don't prefetch the current page
+    if (href === pathname) return;
+    prefetchRoute(href).catch(() => {
+      // Silently ignore — prefetch is best-effort
+    });
+  }, [pathname]);
 
   const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose;
 
@@ -105,6 +115,7 @@ export function AdminSidebar() {
               >
                 <Link
                   href={item.href}
+                  onMouseEnter={() => handleHoverPrefetch(item.href)}
                   className={`relative w-full flex items-center gap-3 rounded-lg text-[13px] font-medium transition-all duration-150 ${
                     collapsed ? "px-0 py-[9px] justify-center" : "px-3 py-[9px]"
                   } ${
@@ -201,6 +212,7 @@ export function AdminSidebar() {
                 key={item.labelKey}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
+                onMouseEnter={() => handleHoverPrefetch(item.href)}
                 className={`relative w-full flex items-center gap-3 px-3 py-[11px] rounded-lg text-[14px] font-medium transition-all duration-150 ${
                   isActive
                     ? "bg-maroon/8 dark:bg-gold/10 text-maroon dark:text-gold"

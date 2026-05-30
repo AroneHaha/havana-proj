@@ -71,7 +71,10 @@ export const useReviewsStore = create<ReviewsState>()(
       error: null,
 
       fetchReviews: async (filters?: ReviewFilters) => {
-        set({ loading: true, error: null });
+        // SWR: If we already have cached data, fetch in background without
+        // showing a loading spinner. The UI shows stale data instantly.
+        const hasData = get().reviews.length > 0;
+        if (!hasData) set({ loading: true, error: null });
         try {
           const activeFilters = filters ?? get().filters;
           const result = await serviceFetchReviews(activeFilters);

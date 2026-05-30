@@ -73,10 +73,11 @@ export const useProductsStore = create<ProductsState>()(
       error: null,
 
       fetchProducts: async () => {
-        set({ loading: true, error: null });
+        // SWR: If we already have cached data, fetch in background without
+        // showing a loading spinner. The UI shows stale data instantly.
+        const hasData = get().products.length > 0;
+        if (!hasData) set({ loading: true, error: null });
         try {
-          // Rehydrate from localStorage first (cache), then refresh from API
-          useProductsStore.persist.rehydrate();
           // Use the current locale from language store — not hardcoded "en"
           const locale = useLanguageStore.getState().locale;
           const { products } = await serviceGetProducts(locale, 1, 200);

@@ -76,11 +76,11 @@ export const useOrdersStore = create<OrdersState>()(
       error: null,
 
       fetchOrders: async () => {
-        set({ loading: true, error: null });
+        // SWR: If we already have cached data, fetch in background without
+        // showing a loading spinner. The UI shows stale data instantly.
+        const hasData = get().orders.length > 0;
+        if (!hasData) set({ loading: true, error: null });
         try {
-          // Rehydrate from localStorage first (cache), then refresh from API
-          // This ensures stale cache is shown while API call is in-flight
-          useOrdersStore.persist.rehydrate();
           const result = await serviceFetchOrders();
           set({ orders: result.orders, loading: false });
         } catch (err) {
