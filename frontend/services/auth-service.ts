@@ -555,17 +555,20 @@ export async function getCurrentUserFromAPI(): Promise<AuthUser | null> {
 }
 
 export async function logout() {
-  // If API is live, invalidate server-side session BEFORE clearing local state.
-  // Awaiting ensures the Sanctum token is actually revoked on the backend.
-  if (API_BASE) {
-    try {
-      await authFetch("/auth/logout", { method: "POST" });
-    } catch {
-      // Server logout failed — still clear local state to avoid leaving
-      // the user stuck on a "logged in" screen with a dead session.
-    }
-  }
+  // Clear local state IMMEDIATELY so the user sees instant feedback.
+  // The backend token revocation is important for security, but the user
+  // should not have to wait for the network round-trip to complete.
   clearStored();
+
+  // Fire-and-forget: revoke the Sanctum token on the backend in the background.
+  // Even if this fails, the token is already removed locally so the user
+  // cannot make further authenticated requests. The token will naturally
+  // expire (24h access / 30d refresh) if the server call fails.
+  if (API_BASE) {
+    authFetch("/auth/logout", { method: "POST" }).catch(() => {
+      // Silently ignore — local state is already cleared.
+    });
+  }
 }
 
 export function getCurrentUser(): AuthUser | null {
