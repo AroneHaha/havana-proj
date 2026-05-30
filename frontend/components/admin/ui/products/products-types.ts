@@ -14,7 +14,8 @@ export interface AdminProduct {
   id: string;
   name: string;
   nameAr: string;
-  category: string;
+  category: string;       // Category name (for display)
+  categoryId: string;     // Category UUID (for API calls)
   price: number;          // Base price (always the original price from the product)
   salePrice?: number;     // Sale price if discounted (undefined = no discount)
   stock: number;

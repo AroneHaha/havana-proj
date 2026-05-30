@@ -24,7 +24,8 @@ export interface Product {
   salePrice?: number;
   image: string;
   images?: string[];
-  category: string;
+  category: string;       // Category name (display)
+  categoryId?: string;    // Category UUID (for API calls like create/update)
   sku?: string;
   stock: number;          // actual inventory count from backend
   rating: number;

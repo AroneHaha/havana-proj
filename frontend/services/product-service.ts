@@ -133,6 +133,7 @@ function mapLaravelProduct(raw: LaravelProduct, locale: Locale): Product {
       image: raw.image,
       images: raw.images ?? [],
       category: raw.category?.name ?? raw.category_id ?? "",
+      categoryId: raw.category_id,
       stock: raw.stock,
       rating: raw.rating,
       reviewCount: raw.reviews_count ?? raw.review_count ?? 0,
@@ -278,9 +279,13 @@ export async function createProduct(
       // receives actual file uploads in $_FILES instead of base64 JSON strings.
       if (rawFiles && rawFiles.length > 0) {
         const fd = new FormData();
-        fd.append("name", data.name);
-        fd.append("description", data.description);
-        if (data.localeText) fd.append("locale_text", JSON.stringify(data.localeText));
+        // Backend expects name_en/name_ar/description_en/description_ar
+        // (NOT name/description/locale_text)
+        const localeText = data.localeText ?? {};
+        fd.append("name_en", localeText.en?.name ?? data.name);
+        fd.append("name_ar", localeText.ar?.name ?? data.name);
+        fd.append("description_en", localeText.en?.description ?? data.description ?? "");
+        fd.append("description_ar", localeText.ar?.description ?? data.description ?? "");
         fd.append("price", String(data.price));
         if (data.salePrice != null) fd.append("sale_price", String(data.salePrice));
         fd.append("category_id", data.category);
@@ -310,12 +315,16 @@ export async function createProduct(
       }
 
       // No raw files — send as JSON
+      // Backend expects name_en/name_ar/description_en/description_ar
+      // (NOT name/description/locale_text)
+      const localeText = data.localeText ?? {};
       const res = await productsFetch<{ data: LaravelProduct }>("/admin/products", {
         method: "POST",
         body: JSON.stringify({
-          name: data.name,
-          description: data.description,
-          locale_text: data.localeText ?? {},
+          name_en: localeText.en?.name ?? data.name,
+          name_ar: localeText.ar?.name ?? data.name,
+          description_en: localeText.en?.description ?? data.description ?? "",
+          description_ar: localeText.ar?.description ?? data.description ?? "",
           price: data.price,
           sale_price: data.salePrice ?? null,
           image: data.image,
@@ -373,9 +382,17 @@ export async function updateProduct(
         // Laravel method spoofing: FormData must be POST, but we add
         // _method=PATCH so Laravel routes it to the PATCH handler.
         fd.append("_method", "PATCH");
-        if (data.name !== undefined) fd.append("name", data.name);
-        if (data.description !== undefined) fd.append("description", data.description);
-        if (data.localeText !== undefined) fd.append("locale_text", JSON.stringify(data.localeText));
+        // Backend expects name_en/name_ar/description_en/description_ar
+        // (NOT name/description/locale_text)
+        const lt = data.localeText ?? {};
+        if (data.name !== undefined) {
+          fd.append("name_en", lt.en?.name ?? data.name);
+          fd.append("name_ar", lt.ar?.name ?? data.name);
+        }
+        if (data.description !== undefined) {
+          fd.append("description_en", lt.en?.description ?? data.description ?? "");
+          fd.append("description_ar", lt.ar?.description ?? data.description ?? "");
+        }
         if (data.price !== undefined) fd.append("price", String(data.price));
         if (data.salePrice !== undefined) fd.append("sale_price", String(data.salePrice));
         if (data.category !== undefined) fd.append("category_id", data.category);
@@ -410,11 +427,18 @@ export async function updateProduct(
       }
 
       // No raw files — send as JSON (PATCH)
-      // Map camelCase → snake_case for Laravel
+      // Backend expects name_en/name_ar/description_en/description_ar
+      // (NOT name/description/locale_text)
       const body: Record<string, unknown> = {};
-      if (data.name !== undefined) body.name = data.name;
-      if (data.description !== undefined) body.description = data.description;
-      if (data.localeText !== undefined) body.locale_text = data.localeText;
+      const lt = data.localeText ?? {};
+      if (data.name !== undefined) {
+        body.name_en = lt.en?.name ?? data.name;
+        body.name_ar = lt.ar?.name ?? data.name;
+      }
+      if (data.description !== undefined) {
+        body.description_en = lt.en?.description ?? data.description ?? "";
+        body.description_ar = lt.ar?.description ?? data.description ?? "";
+      }
       if (data.price !== undefined) body.price = data.price;
       if (data.salePrice !== undefined) body.sale_price = data.salePrice;
       if (data.image !== undefined) body.image = data.image;
@@ -558,4 +582,64 @@ interface LaravelProductStats {
 /** Backend respondWithStats() wraps in { data: {...} } */
 interface LaravelStatsResponse {
   data: LaravelProductStats;
+}
+
+// ─── Categories ────────────────────────────────────────────────────────
+
+/**
+ * Category returned by GET /api/categories
+ * Used by the product form dropdown (sends UUID as category_id).
+ */
+export interface Category {
+  id: string;
+  name: string;
+  nameEn: string;
+  nameAr: string;
+  slug: string;
+}
+
+interface LaravelCategory {
+  id: string;
+  name: string;
+  name_en: string;
+  name_ar: string;
+  slug: string;
+  image?: string;
+  is_active?: boolean;
+  sort_order?: number;
+  products_count?: number;
+}
+
+/**
+ * Fetch categories from the API. Used by the product form to
+ * populate the category dropdown with real UUIDs.
+ *
+ * When API is not configured, returns the hardcoded PRODUCT_CATEGORIES
+ * as a fallback (with synthetic IDs for mock mode).
+ */
+export async function fetchCategories(locale: Locale = "en"): Promise<Category[]> {
+  if (API_BASE) {
+    try {
+      const res = await publicFetch<{ data: LaravelCategory[] }>("/categories", { locale });
+      return (res.data ?? []).map((c) => ({
+        id: c.id,
+        name: locale === "ar" ? c.name_ar : c.name_en,
+        nameEn: c.name_en,
+        nameAr: c.name_ar,
+        slug: c.slug,
+      }));
+    } catch {
+      // Fall through to mock fallback
+    }
+  }
+
+  // Mock fallback — no UUIDs, just use slug as ID
+  const { PRODUCT_CATEGORIES } = await import("@/lib/constant");
+  return PRODUCT_CATEGORIES.map((name, i) => ({
+    id: `cat-mock-${i}`,
+    name,
+    nameEn: name,
+    nameAr: name,
+    slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+  }));
 }

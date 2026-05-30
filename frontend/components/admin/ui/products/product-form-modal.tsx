@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { X, Upload, Save, ChevronDown } from "lucide-react";
+import { X, Upload, Save, ChevronDown, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { ImageUploader } from "./image-uploader";
 import { PRODUCT_CATEGORIES } from "@/lib/constant";
+import type { Category } from "@/services/product-service";
 import type { AdminProduct } from "./products-types";
 
 export function processFiles(files: FileList): Promise<string[]> {
@@ -33,12 +34,13 @@ export function buildProductFormData(
   files: File[]
 ): FormData {
   const fd = new FormData();
-  fd.append("name", formData.name);
+  fd.append("name_en", formData.name);
   fd.append("name_ar", formData.nameAr);
-  fd.append("category", formData.category);
+  fd.append("category_id", formData.category);
   fd.append("price", formData.price);
   fd.append("stock", formData.stock);
-  fd.append("description", formData.description);
+  fd.append("description_en", formData.description);
+  fd.append("description_ar", formData.description);
   if (formData.salePrice) fd.append("sale_price", formData.salePrice);
   if (formData.sku) fd.append("sku", formData.sku);
   if (formData.soldOut) fd.append("sold_out", "1");
@@ -71,30 +73,39 @@ export interface ProductFormData {
   rawFiles: File[];
 }
 
+/** Field-level errors from the backend (e.g. { sku: ["The sku has already been taken."] }) */
+export type FormFieldErrors = Record<string, string[]>;
+
 interface ProductFormModalProps {
   mode: "add";
+  categories: Category[];
   onClose: () => void;
-  onSubmit: (data: ProductFormData) => void;
+  onSubmit: (data: ProductFormData) => Promise<FormFieldErrors | void>;
 }
 
 interface ProductFormModalEditProps {
   mode: "edit";
   product: AdminProduct;
+  categories: Category[];
   onClose: () => void;
-  onSubmit: (product: AdminProduct, data: ProductFormData) => void;
+  onSubmit: (product: AdminProduct, data: ProductFormData) => Promise<FormFieldErrors | void>;
 }
 
 type ProductFormModalPropsUnion = ProductFormModalProps | ProductFormModalEditProps;
 
 export function ProductFormModal(props: ProductFormModalPropsUnion) {
-  const { mode, onClose } = props;
+  const { mode, onClose, categories } = props;
   const isEdit = mode === "edit";
   const product = isEdit ? (props as ProductFormModalEditProps).product : null;
+
+  // Default category: use first category's ID if available, otherwise ""
+  const defaultCategory = categories.length > 0 ? categories[0].id : "";
 
   const [form, setForm] = useState<ProductFormData>({
     name: product?.name ?? "",
     nameAr: product?.nameAr ?? "",
-    category: product?.category ?? "Rose Arrangements",
+    // For edit mode: use categoryId (UUID) to match the dropdown, fall back to default
+    category: (isEdit && product?.categoryId) ? product.categoryId : defaultCategory,
     price: product?.price?.toString() ?? "",
     stock: product?.stock?.toString() ?? "",
     description: product?.description ?? "",
@@ -107,6 +118,12 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
 
   // Track raw File objects alongside preview URLs
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
+  // Submission state
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FormFieldErrors>({});
+  const [generalError, setGeneralError] = useState("");
 
   // When soldOut is checked, disable and visually indicate the stock field
   const stockDisabled = form.soldOut;
@@ -177,21 +194,73 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
     });
   };
 
-  const handleSubmit = () => {
+  // Clear field error when user edits that field
+  const clearFieldError = (field: string) => {
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
+
+  const handleSubmit = async () => {
     // Validate sale price < regular price (if both provided)
     const price = parseFloat(form.price);
     const salePrice = form.salePrice ? parseFloat(form.salePrice) : undefined;
     if (salePrice !== undefined && !isNaN(price) && !isNaN(salePrice) && salePrice >= price) {
-      // Block save with invalid sale price — the admin must fix it
-      // This prevents silent data loss where salePrice is dropped without notice
       return;
     }
+
+    setSubmitting(true);
+    setFieldErrors({});
+    setGeneralError("");
+
     const finalForm = { ...form, rawFiles: pendingFiles };
-    if (isEdit && product) {
-      (props as ProductFormModalEditProps).onSubmit(product, finalForm);
-    } else {
-      (props as ProductFormModalProps).onSubmit(finalForm);
+
+    try {
+      let errors: FormFieldErrors | void;
+      if (isEdit && product) {
+        errors = await (props as ProductFormModalEditProps).onSubmit(product, finalForm);
+      } else {
+        errors = await (props as ProductFormModalProps).onSubmit(finalForm);
+      }
+
+      // If onSubmit returned field errors, show them
+      if (errors && Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        setSubmitting(false);
+        return;
+      }
+
+      // Success — show confirmation briefly, then close
+      setSuccess(true);
+      setTimeout(() => {
+        onClose();
+      }, 1200);
+    } catch (err: unknown) {
+      setSubmitting(false);
+      // Handle ProductsError with field errors
+      if (err && typeof err === "object" && "fields" in err) {
+        const appErr = err as { fields: FormFieldErrors; message: string };
+        if (appErr.fields && Object.keys(appErr.fields).length > 0) {
+          setFieldErrors(appErr.fields);
+        } else {
+          setGeneralError(appErr.message || "Failed to save product. Please try again.");
+        }
+      } else if (err instanceof Error) {
+        setGeneralError(err.message);
+      } else {
+        setGeneralError("Failed to save product. Please try again.");
+      }
     }
+  };
+
+  // Helper: get first error for a field
+  const getFieldError = (field: string): string | null => {
+    const errors = fieldErrors[field];
+    return errors && errors.length > 0 ? errors[0] : null;
   };
 
   const title = isEdit ? "Edit Product" : "Add New Product";
@@ -199,7 +268,40 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
   const submitLabel = isEdit ? "Save Changes" : "Add Product";
 
   const inputClass = "w-full px-3 py-2.5 rounded-xl border border-border bg-white dark:bg-dark-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-maroon/15 dark:focus:ring-gold/15 focus:border-maroon dark:focus:border-gold transition-all duration-200 shadow-sm hover:shadow-none ring-1 ring-black/[0.03] dark:ring-white/[0.03]";
+  const inputErrorClass = "w-full px-3 py-2.5 rounded-xl border border-red-400 dark:border-red-500 bg-white dark:bg-dark-bg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-red-300/30 transition-all duration-200 shadow-sm ring-1 ring-red-400/30";
   const labelClass = "block text-xs font-medium text-muted-foreground mb-1";
+  const errorTextClass = "text-xs text-red-500 mt-1 flex items-center gap-1";
+
+  // ─── Success overlay ───
+  if (success) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      >
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative bg-white dark:bg-dark-card rounded-2xl border border-border shadow-xl w-full max-w-sm p-8 flex flex-col items-center gap-4"
+        >
+          <div className="h-14 w-14 rounded-full bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center">
+            <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+          </div>
+          <h3 className="font-serif text-lg font-semibold text-foreground text-center">
+            {isEdit ? "Product Updated!" : "Product Added!"}
+          </h3>
+          <p className="text-sm text-muted-foreground text-center">
+            {isEdit
+              ? `"${form.name}" has been updated successfully.`
+              : `"${form.name}" has been added to your inventory.`}
+          </p>
+        </motion.div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -210,7 +312,7 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
     >
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={submitting ? undefined : onClose}
       />
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -225,11 +327,20 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
           </h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-muted/60 hover:shadow-xs transition-all cursor-pointer"
+            disabled={submitting}
+            className="p-1.5 rounded-lg hover:bg-muted/60 hover:shadow-xs transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
+
+        {/* General error banner */}
+        {generalError && (
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+            <p className="text-sm text-red-600 dark:text-red-400">{generalError}</p>
+          </div>
+        )}
 
         {/* Images */}
         <div>
@@ -253,10 +364,14 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
             <input
               type="text"
               value={form.name}
-              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-              className={inputClass}
+              onChange={(e) => { setForm((p) => ({ ...p, name: e.target.value })); clearFieldError("name_en"); }}
+              className={getFieldError("name_en") ? inputErrorClass : inputClass}
               placeholder="e.g. Royal Rose Symphony"
+              disabled={submitting}
             />
+            {getFieldError("name_en") && (
+              <p className={errorTextClass}><AlertCircle className="w-3 h-3" />{getFieldError("name_en")}</p>
+            )}
           </div>
 
           <div>
@@ -266,11 +381,15 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
             <input
               type="text"
               value={form.nameAr}
-              onChange={(e) => setForm((p) => ({ ...p, nameAr: e.target.value }))}
-              className={inputClass}
+              onChange={(e) => { setForm((p) => ({ ...p, nameAr: e.target.value })); clearFieldError("name_ar"); }}
+              className={getFieldError("name_ar") ? inputErrorClass : inputClass}
               placeholder="e.g. سمفونية الورد الملكي"
               dir="rtl"
+              disabled={submitting}
             />
+            {getFieldError("name_ar") && (
+              <p className={errorTextClass}><AlertCircle className="w-3 h-3" />{getFieldError("name_ar")}</p>
+            )}
           </div>
 
           {/* Row: Category + (Add: SKU | Edit: Price) */}
@@ -282,15 +401,25 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
               <div className="relative">
                 <select
                   value={form.category}
-                  onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
-                  className={`${inputClass} appearance-none cursor-pointer pr-8`}
+                  onChange={(e) => { setForm((p) => ({ ...p, category: e.target.value })); clearFieldError("category_id"); }}
+                  className={`${getFieldError("category_id") ? inputErrorClass : inputClass} appearance-none cursor-pointer pr-8`}
+                  disabled={submitting}
                 >
-                  {PRODUCT_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
+                  {categories.length > 0 ? (
+                    categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))
+                  ) : (
+                    PRODUCT_CATEGORIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))
+                  )}
                 </select>
                 <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               </div>
+              {getFieldError("category_id") && (
+                <p className={errorTextClass}><AlertCircle className="w-3 h-3" />{getFieldError("category_id")}</p>
+              )}
             </div>
             {isEdit ? (
               <div>
@@ -300,9 +429,13 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
                 <input
                   type="number"
                   value={form.price}
-                  onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
-                  className={inputClass}
+                  onChange={(e) => { setForm((p) => ({ ...p, price: e.target.value })); clearFieldError("price"); }}
+                  className={getFieldError("price") ? inputErrorClass : inputClass}
+                  disabled={submitting}
                 />
+                {getFieldError("price") && (
+                  <p className={errorTextClass}><AlertCircle className="w-3 h-3" />{getFieldError("price")}</p>
+                )}
               </div>
             ) : (
               <div>
@@ -312,10 +445,14 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
                 <input
                   type="text"
                   value={form.sku}
-                  onChange={(e) => setForm((p) => ({ ...p, sku: e.target.value }))}
-                  className={inputClass}
+                  onChange={(e) => { setForm((p) => ({ ...p, sku: e.target.value })); clearFieldError("sku"); }}
+                  className={getFieldError("sku") ? inputErrorClass : inputClass}
                   placeholder="HVF-XXX-000"
+                  disabled={submitting}
                 />
+                {getFieldError("sku") && (
+                  <p className={errorTextClass}><AlertCircle className="w-3 h-3" />{getFieldError("sku")}</p>
+                )}
               </div>
             )}
           </div>
@@ -331,9 +468,13 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
                   <input
                     type="number"
                     value={form.stock}
-                    onChange={(e) => setForm((p) => ({ ...p, stock: e.target.value }))}
-                    className={inputClass}
+                    onChange={(e) => { setForm((p) => ({ ...p, stock: e.target.value })); clearFieldError("stock"); }}
+                    className={getFieldError("stock") ? inputErrorClass : inputClass}
+                    disabled={submitting}
                   />
+                  {getFieldError("stock") && (
+                    <p className={errorTextClass}><AlertCircle className="w-3 h-3" />{getFieldError("stock")}</p>
+                  )}
                 </div>
                 <div className="flex items-end">
                   <label className="flex items-center gap-2 cursor-pointer px-3 py-2.5 rounded-xl border border-border bg-white dark:bg-dark-bg w-full shadow-sm ring-1 ring-black/[0.03] dark:ring-white/[0.03]">
@@ -342,6 +483,7 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
                       checked={form.soldOut}
                       onChange={(e) => setForm((p) => ({ ...p, soldOut: e.target.checked }))}
                       className="rounded border-border text-maroon dark:text-gold focus:ring-maroon dark:focus:ring-gold"
+                      disabled={submitting}
                     />
                     <span className="text-sm text-foreground">Sold Out</span>
                   </label>
@@ -356,10 +498,14 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
                   <input
                     type="number"
                     value={form.price}
-                    onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
-                    className={inputClass}
+                    onChange={(e) => { setForm((p) => ({ ...p, price: e.target.value })); clearFieldError("price"); }}
+                    className={getFieldError("price") ? inputErrorClass : inputClass}
                     placeholder="0"
+                    disabled={submitting}
                   />
+                  {getFieldError("price") && (
+                    <p className={errorTextClass}><AlertCircle className="w-3 h-3" />{getFieldError("price")}</p>
+                  )}
                 </div>
                 <div>
                   <label className={labelClass}>
@@ -368,10 +514,14 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
                   <input
                     type="number"
                     value={form.stock}
-                    onChange={(e) => setForm((p) => ({ ...p, stock: e.target.value }))}
-                    className={inputClass}
+                    onChange={(e) => { setForm((p) => ({ ...p, stock: e.target.value })); clearFieldError("stock"); }}
+                    className={getFieldError("stock") ? inputErrorClass : inputClass}
                     placeholder="0"
+                    disabled={submitting}
                   />
+                  {getFieldError("stock") && (
+                    <p className={errorTextClass}><AlertCircle className="w-3 h-3" />{getFieldError("stock")}</p>
+                  )}
                 </div>
               </>
             )}
@@ -385,10 +535,14 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
             <input
               type="number"
               value={form.salePrice}
-              onChange={(e) => setForm((p) => ({ ...p, salePrice: e.target.value }))}
-              className={inputClass}
+              onChange={(e) => { setForm((p) => ({ ...p, salePrice: e.target.value })); clearFieldError("sale_price"); }}
+              className={getFieldError("sale_price") ? inputErrorClass : inputClass}
               placeholder="Leave empty for no discount"
+              disabled={submitting}
             />
+            {getFieldError("sale_price") && (
+              <p className={errorTextClass}><AlertCircle className="w-3 h-3" />{getFieldError("sale_price")}</p>
+            )}
           </div>
 
           <div>
@@ -397,10 +551,11 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
             </label>
             <textarea
               value={form.description}
-              onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+              onChange={(e) => { setForm((p) => ({ ...p, description: e.target.value })); clearFieldError("description_en"); clearFieldError("description_ar"); }}
               rows={3}
-              className={`${inputClass} resize-none`}
+              className={`${getFieldError("description_en") ? inputErrorClass : inputClass} resize-none`}
               placeholder="Brief product description..."
+              disabled={submitting}
             />
           </div>
         </div>
@@ -409,16 +564,27 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
         <div className="flex items-center justify-end gap-2 pt-2">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-xs transition-all duration-200 cursor-pointer ring-1 ring-black/[0.02] dark:ring-white/[0.02]"
+            disabled={submitting}
+            className="px-4 py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted hover:shadow-xs transition-all duration-200 cursor-pointer ring-1 ring-black/[0.02] dark:ring-white/[0.02] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-maroon to-maroon-light text-white dark:from-gold dark:to-gold-light dark:text-dark-bg text-sm font-medium hover:opacity-90 transition-all duration-200 cursor-pointer inline-flex items-center gap-2 shadow-md hover:shadow-lg active:scale-[0.98] ring-1 ring-maroon/20 dark:ring-gold/20"
+            disabled={submitting}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-maroon to-maroon-light text-white dark:from-gold dark:to-gold-light dark:text-dark-bg text-sm font-medium hover:opacity-90 transition-all duration-200 cursor-pointer inline-flex items-center gap-2 shadow-md hover:shadow-lg active:scale-[0.98] ring-1 ring-maroon/20 dark:ring-gold/20 disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100"
           >
-            <SubmitIcon className="w-4 h-4" />
-            {submitLabel}
+            {submitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {isEdit ? "Saving..." : "Adding Product..."}
+              </>
+            ) : (
+              <>
+                <SubmitIcon className="w-4 h-4" />
+                {submitLabel}
+              </>
+            )}
           </button>
         </div>
       </motion.div>

@@ -11,12 +11,14 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { ProductGrid } from "./products-table";
-import { ProductFormModal, type ProductFormData } from "./product-form-modal";
+import { ProductFormModal, type ProductFormData, type FormFieldErrors } from "./product-form-modal";
 import { ProductHistoryDrawer } from "./product-history-drawer";
 import { useProductsFilters } from "./use-products-filters";
 import { useProductsStore, getStockStatus } from "@/store/product-store";
 import { StatsCard, SearchInput, FilterTabs } from "@/components/admin/ui/shared";
 import { PRODUCT_STATUS_CONFIG, PRODUCT_FILTER_TABS, PRODUCT_CATEGORIES } from "@/lib/constant";
+import { fetchCategories, type Category, ProductsError } from "@/services/product-service";
+import { useLanguageStore } from "@/store/language-store";
 import type { Product } from "@/types";
 import type { AdminProduct, FilterStatus } from "./products-types";
 
@@ -33,6 +35,7 @@ function toAdminProduct(p: Product): AdminProduct {
     name: p.name,
     nameAr: p.localeText?.ar?.name || p.name,
     category: p.category,
+    categoryId: p.categoryId ?? "",
     price: p.price,
     salePrice: p.salePrice,
     stock: p.stock,
@@ -58,6 +61,13 @@ export function ProductsPage() {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  // Fetch categories from API (for form dropdown with UUIDs)
+  const locale = useLanguageStore((s) => s.locale);
+  const [categories, setCategories] = useState<Category[]>([]);
+  useEffect(() => {
+    fetchCategories(locale).then(setCategories).catch(() => {});
+  }, [locale]);
 
   // Map store products → admin products
   const products = useMemo(() => storeProducts.map(toAdminProduct), [storeProducts]);
@@ -87,19 +97,18 @@ export function ProductsPage() {
     return "in_stock";
   };
 
-  const handleAddProduct = async (formData: ProductFormData) => {
+  const handleAddProduct = async (formData: ProductFormData): Promise<FormFieldErrors | void> => {
     // Validate required fields
-    if (!formData.name.trim()) return;
+    if (!formData.name.trim()) return { name_en: ["Product name is required."] };
     const price = parseFloat(formData.price);
     const stock = parseInt(formData.stock, 10);
-    if (isNaN(price) || price < 0) return;
-    if (isNaN(stock) || stock < 0) return;
+    if (isNaN(price) || price < 0) return { price: ["Price must be a valid number."] };
+    if (isNaN(stock) || stock < 0) return { stock: ["Stock must be a valid number."] };
     const salePrice = formData.salePrice ? parseFloat(formData.salePrice) : undefined;
-    if (salePrice !== undefined && (isNaN(salePrice) || salePrice < 0)) return;
-    // Warn if sale price >= regular price — but still allow the save (sale price is just dropped)
+    if (salePrice !== undefined && (isNaN(salePrice) || salePrice < 0)) return { sale_price: ["Sale price must be a valid number."] };
+    // Block if sale price >= regular price
     if (salePrice !== undefined && salePrice >= price) {
-      // Don't silently discard — show a visible warning to the admin
-      console.warn(`Sale price (${salePrice}) must be less than regular price (${price}). Sale price will not be applied.`);
+      return { sale_price: ["Sale price must be less than the regular price."] };
     }
     try {
       await storeAddProduct({
@@ -118,9 +127,13 @@ export function ProductsPage() {
           ar: { name: formData.nameAr.trim() || formData.name.trim(), description: formData.description },
         },
       }, formData.rawFiles);
-      setAddModalOpen(false);
-    } catch {
-      // Error is stored in product store — UI can display via store error state
+      // Success — no errors returned
+    } catch (err) {
+      // Extract field errors from ProductsError (e.g. duplicate SKU)
+      if (err instanceof ProductsError && err.code === "VALIDATION_ERROR" && err.fields) {
+        return err.fields as FormFieldErrors;
+      }
+      throw err;
     }
   };
 
@@ -128,16 +141,15 @@ export function ProductsPage() {
     setEditProduct(product);
   };
 
-  const handleSaveEdit = async (product: AdminProduct, editForm: ProductFormData) => {
+  const handleSaveEdit = async (product: AdminProduct, editForm: ProductFormData): Promise<FormFieldErrors | void> => {
     const newStock = parseInt(editForm.stock, 10);
     const newPrice = parseFloat(editForm.price);
-    if (isNaN(newPrice) || newPrice < 0) return;
-    if (isNaN(newStock) || newStock < 0) return;
+    if (isNaN(newPrice) || newPrice < 0) return { price: ["Price must be a valid number."] };
+    if (isNaN(newStock) || newStock < 0) return { stock: ["Stock must be a valid number."] };
     const salePrice = editForm.salePrice ? parseFloat(editForm.salePrice) : undefined;
-    if (salePrice !== undefined && (isNaN(salePrice) || salePrice < 0)) return;
-    // Warn if sale price >= regular price
+    if (salePrice !== undefined && (isNaN(salePrice) || salePrice < 0)) return { sale_price: ["Sale price must be a valid number."] };
     if (salePrice !== undefined && salePrice >= newPrice) {
-      console.warn(`Sale price (${salePrice}) must be less than regular price (${newPrice}). Sale price will not be applied.`);
+      return { sale_price: ["Sale price must be less than the regular price."] };
     }
     try {
       await storeUpdateProduct(product.id, {
@@ -156,9 +168,12 @@ export function ProductsPage() {
           ar: { name: editForm.nameAr.trim() || editForm.name.trim(), description: editForm.description },
         },
       }, editForm.rawFiles);
-      setEditProduct(null);
-    } catch {
-      // Error is stored in product store — UI can display via store error state
+      // Success — no errors returned
+    } catch (err) {
+      if (err instanceof ProductsError && err.code === "VALIDATION_ERROR" && err.fields) {
+        return err.fields as FormFieldErrors;
+      }
+      throw err;
     }
   };
 
@@ -227,7 +242,10 @@ export function ProductsPage() {
             className="appearance-none pl-3 pr-8 py-1.5 rounded-lg border border-border bg-white dark:bg-dark-card text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow cursor-pointer"
           >
             <option value="all">All Categories</option>
-            {PRODUCT_CATEGORIES.map((c) => (<option key={c} value={c}>{c}</option>))}
+            {categories.length > 0
+              ? categories.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))
+              : PRODUCT_CATEGORIES.map((c) => (<option key={c} value={c}>{c}</option>))
+            }
           </select>
           <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
         </div>
@@ -253,6 +271,7 @@ export function ProductsPage() {
         {addModalOpen && (
           <ProductFormModal
             mode="add"
+            categories={categories}
             onClose={() => setAddModalOpen(false)}
             onSubmit={handleAddProduct}
           />
@@ -265,6 +284,7 @@ export function ProductsPage() {
           <ProductFormModal
             mode="edit"
             product={editProduct}
+            categories={categories}
             onClose={() => setEditProduct(null)}
             onSubmit={handleSaveEdit}
           />
