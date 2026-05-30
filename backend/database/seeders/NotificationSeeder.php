@@ -10,84 +10,102 @@ class NotificationSeeder extends Seeder
 {
     public function run(): void
     {
-        $ahmed = User::where('email', 'user1@gmail.com')->first();
-        $fatima = User::where('email', 'user2@gmail.com')->first();
-        $omar = User::where('email', 'user3@gmail.com')->first();
+        $ahmed = User::where('email', 'ahmed@example.com')->first();
+        $fatima = User::where('email', 'fatima@example.com')->first();
+        $omar = User::where('email', 'omar@example.com')->first();
 
-        $notifications = [
-            // Customer notifications — Ahmed
-            [
-                'user_id' => $ahmed->id,
-                'type' => 'order_confirmed',
-                'title_en' => 'Order Confirmed',
-                'title_ar' => 'تم تأكيد الطلب',
-                'body_en' => 'Your order HAV-2026-0001 has been confirmed and is being prepared.',
-                'body_ar' => 'تم تأكيد طلبك HAV-2026-0001 ويتم تحضيره الآن.',
-                'data' => ['order_number' => 'HAV-2026-0001'],
-                'is_read' => true,
-                'read_at' => now()->subDays(5),
-            ],
-            [
-                'user_id' => $ahmed->id,
-                'type' => 'order_delivered',
-                'title_en' => 'Order Delivered',
-                'title_ar' => 'تم توصيل الطلب',
-                'body_en' => 'Your order HAV-2026-0001 has been delivered. Enjoy your flowers!',
-                'body_ar' => 'تم توصيل طلبك HAV-2026-0001. استمتع بزهورك!',
-                'data' => ['order_number' => 'HAV-2026-0001'],
-                'is_read' => true,
-                'read_at' => now()->subDays(3),
-            ],
-            [
-                'user_id' => $ahmed->id,
-                'type' => 'order_cancelled',
-                'title_en' => 'Order Cancelled',
-                'title_ar' => 'تم إلغاء الطلب',
-                'body_en' => 'Your order HAV-2026-0004 has been cancelled. Refund will be processed within 3-5 business days.',
-                'body_ar' => 'تم إلغاء طلبك HAV-2026-0004. سيتم معالجة الاسترداد خلال 3-5 أيام عمل.',
-                'data' => ['order_number' => 'HAV-2026-0004'],
-                'is_read' => false,
-                'read_at' => null,
-            ],
+        if (! $ahmed)  $this->command->warn('User ahmed@example.com not found — skipping their notifications.');
+        if (! $fatima) $this->command->warn('User fatima@example.com not found — skipping their notifications.');
+        if (! $omar)   $this->command->warn('User omar@example.com not found — skipping their notifications.');
 
-            // Customer notifications — Fatima
-            [
-                'user_id' => $fatima->id,
-                'type' => 'order_confirmed',
-                'title_en' => 'Order Confirmed',
-                'title_ar' => 'تم تأكيد الطلب',
-                'body_en' => 'Your order HAV-2026-0002 has been confirmed and is out for delivery.',
-                'body_ar' => 'تم تأكيد طلبك HAV-2026-0002 وهو في طريقه إليك.',
-                'data' => ['order_number' => 'HAV-2026-0002'],
-                'is_read' => true,
-                'read_at' => now()->subDay(),
-            ],
-            [
-                'user_id' => $fatima->id,
-                'type' => 'order_placed',
-                'title_en' => 'Order Placed',
-                'title_ar' => 'تم تقديم الطلب',
-                'body_en' => 'Your order HAV-2026-0005 has been placed successfully.',
-                'body_ar' => 'تم تقديم طلبك HAV-2026-0005 بنجاح.',
-                'data' => ['order_number' => 'HAV-2026-0005'],
-                'is_read' => false,
-                'read_at' => null,
-            ],
+        $notifications = [];
 
-            // Customer notifications — Omar
-            [
-                'user_id' => $omar->id,
-                'type' => 'order_placed',
-                'title_en' => 'Order Placed',
-                'title_ar' => 'تم تقديم الطلب',
-                'body_en' => 'Your order HAV-2026-0003 has been placed. We will confirm it shortly.',
-                'body_ar' => 'تم تقديم طلبك HAV-2026-0003. سنقوم بتأكيده قريباً.',
-                'data' => ['order_number' => 'HAV-2026-0003'],
-                'is_read' => false,
-                'read_at' => null,
-            ],
+        // Customer notifications — Ahmed
+        if ($ahmed) {
+            $notifications = array_merge($notifications, [
+                [
+                    'user_id' => $ahmed->id,
+                    'type' => 'order_confirmed',
+                    'title_en' => 'Order Confirmed',
+                    'title_ar' => 'تم تأكيد الطلب',
+                    'body_en' => 'Your order HAV-2026-0001 has been confirmed and is being prepared.',
+                    'body_ar' => 'تم تأكيد طلبك HAV-2026-0001 ويتم تحضيره الآن.',
+                    'data' => ['order_number' => 'HAV-2026-0001'],
+                    'is_read' => true,
+                    'read_at' => now()->subDays(5),
+                ],
+                [
+                    'user_id' => $ahmed->id,
+                    'type' => 'order_delivered',
+                    'title_en' => 'Order Delivered',
+                    'title_ar' => 'تم توصيل الطلب',
+                    'body_en' => 'Your order HAV-2026-0001 has been delivered. Enjoy your flowers!',
+                    'body_ar' => 'تم توصيل طلبك HAV-2026-0001. استمتع بزهورك!',
+                    'data' => ['order_number' => 'HAV-2026-0001'],
+                    'is_read' => true,
+                    'read_at' => now()->subDays(3),
+                ],
+                [
+                    'user_id' => $ahmed->id,
+                    'type' => 'order_cancelled',
+                    'title_en' => 'Order Cancelled',
+                    'title_ar' => 'تم إلغاء الطلب',
+                    'body_en' => 'Your order HAV-2026-0004 has been cancelled. Refund will be processed within 3-5 business days.',
+                    'body_ar' => 'تم إلغاء طلبك HAV-2026-0004. سيتم معالجة الاسترداد خلال 3-5 أيام عمل.',
+                    'data' => ['order_number' => 'HAV-2026-0004'],
+                    'is_read' => false,
+                    'read_at' => null,
+                ],
+            ]);
+        }
 
-            // Admin broadcast notifications (user_id = null)
+        // Customer notifications — Fatima
+        if ($fatima) {
+            $notifications = array_merge($notifications, [
+                [
+                    'user_id' => $fatima->id,
+                    'type' => 'order_confirmed',
+                    'title_en' => 'Order Confirmed',
+                    'title_ar' => 'تم تأكيد الطلب',
+                    'body_en' => 'Your order HAV-2026-0002 has been confirmed and is out for delivery.',
+                    'body_ar' => 'تم تأكيد طلبك HAV-2026-0002 وهو في طريقه إليك.',
+                    'data' => ['order_number' => 'HAV-2026-0002'],
+                    'is_read' => true,
+                    'read_at' => now()->subDay(),
+                ],
+                [
+                    'user_id' => $fatima->id,
+                    'type' => 'order_placed',
+                    'title_en' => 'Order Placed',
+                    'title_ar' => 'تم تقديم الطلب',
+                    'body_en' => 'Your order HAV-2026-0005 has been placed successfully.',
+                    'body_ar' => 'تم تقديم طلبك HAV-2026-0005 بنجاح.',
+                    'data' => ['order_number' => 'HAV-2026-0005'],
+                    'is_read' => false,
+                    'read_at' => null,
+                ],
+            ]);
+        }
+
+        // Customer notifications — Omar
+        if ($omar) {
+            $notifications = array_merge($notifications, [
+                [
+                    'user_id' => $omar->id,
+                    'type' => 'order_placed',
+                    'title_en' => 'Order Placed',
+                    'title_ar' => 'تم تقديم الطلب',
+                    'body_en' => 'Your order HAV-2026-0003 has been placed. We will confirm it shortly.',
+                    'body_ar' => 'تم تقديم طلبك HAV-2026-0003. سنقوم بتأكيده قريباً.',
+                    'data' => ['order_number' => 'HAV-2026-0003'],
+                    'is_read' => false,
+                    'read_at' => null,
+                ],
+            ]);
+        }
+
+        // Admin broadcast notifications (user_id = null)
+        $notifications = array_merge($notifications, [
             [
                 'user_id' => null,
                 'type' => 'new_review',
@@ -132,10 +150,14 @@ class NotificationSeeder extends Seeder
                 'is_read' => false,
                 'read_at' => null,
             ],
-        ];
+        ]);
 
+        $count = 0;
         foreach ($notifications as $notification) {
             Notification::create($notification);
+            $count++;
         }
+
+        $this->command->info("Created {$count} notifications.");
     }
 }

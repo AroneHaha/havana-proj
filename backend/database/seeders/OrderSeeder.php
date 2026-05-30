@@ -13,12 +13,17 @@ class OrderSeeder extends Seeder
 {
     public function run(): void
     {
-        $ahmed = User::where('email', 'user1@gmail.com')->first();
-        $fatima = User::where('email', 'user2@gmail.com')->first();
-        $omar = User::where('email', 'user3@gmail.com')->first();
+        $ahmed = User::where('email', 'ahmed@example.com')->first();
+        $fatima = User::where('email', 'fatima@example.com')->first();
+        $omar = User::where('email', 'omar@example.com')->first();
+        $admin = User::where('role', 'admin')->first();
+
+        if (! $ahmed)  $this->command->warn('User ahmed@example.com not found — skipping their orders.');
+        if (! $fatima) $this->command->warn('User fatima@example.com not found — skipping their orders.');
+        if (! $omar)   $this->command->warn('User omar@example.com not found — skipping their orders.');
+        if (! $admin)  $this->command->warn('Admin user not found — status history will have no changed_by.');
 
         $orders = [
-            // Order 1: Ahmed — Delivered (Eid gift)
             [
                 'user' => $ahmed,
                 'order_number' => 'HAV-2026-0001',
@@ -37,8 +42,6 @@ class OrderSeeder extends Seeder
                 'cancelled_at' => null,
                 'status_trail' => ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered'],
             ],
-
-            // Order 2: Fatima — Out for delivery (Romance gift)
             [
                 'user' => $fatima,
                 'order_number' => 'HAV-2026-0002',
@@ -51,14 +54,12 @@ class OrderSeeder extends Seeder
                 'shipping_phone' => '+965-5000-1002',
                 'notes' => 'Please ring the doorbell twice',
                 'payment_method' => 'cash_on_delivery',
-                'payment_status' => 'paid',
+                'payment_status' => 'pending',
                 'confirmed_at' => now()->subDays(1),
                 'delivered_at' => null,
                 'cancelled_at' => null,
                 'status_trail' => ['pending', 'confirmed', 'preparing', 'out_for_delivery'],
             ],
-
-            // Order 3: Omar — Pending (Wedding)
             [
                 'user' => $omar,
                 'order_number' => 'HAV-2026-0003',
@@ -76,8 +77,6 @@ class OrderSeeder extends Seeder
                 'cancelled_at' => null,
                 'status_trail' => ['pending'],
             ],
-
-            // Order 4: Ahmed — Cancelled (Birthday)
             [
                 'user' => $ahmed,
                 'order_number' => 'HAV-2026-0004',
@@ -89,14 +88,12 @@ class OrderSeeder extends Seeder
                 'shipping_phone' => '+965-5000-1001',
                 'notes' => null,
                 'payment_method' => 'cash_on_delivery',
-                'payment_status' => 'refunded',
+                'payment_status' => 'pending',
                 'confirmed_at' => null,
                 'delivered_at' => null,
                 'cancelled_at' => now()->subDays(2),
                 'status_trail' => ['pending', 'cancelled'],
             ],
-
-            // Order 5: Fatima — Preparing (Sympathy)
             [
                 'user' => $fatima,
                 'order_number' => 'HAV-2026-0005',
@@ -117,8 +114,14 @@ class OrderSeeder extends Seeder
             ],
         ];
 
+        $orderCount = 0;
+
         foreach ($orders as $orderData) {
-            // Calculate totals
+            if (! $orderData['user']) {
+                $this->command->warn("Skipping order {$orderData['order_number']} — user not found.");
+                continue;
+            }
+
             $subtotal = 0;
             $orderItems = [];
 
@@ -128,20 +131,21 @@ class OrderSeeder extends Seeder
                     $price = $product->effectivePrice();
                     $itemTotal = bcmul($price, (string) $item['quantity'], 3);
                     $subtotal = bcadd($subtotal, $itemTotal, 3);
-
-                    $orderItems[] = [
-                        'product' => $product,
-                        'quantity' => $item['quantity'],
-                        'price' => $price,
-                    ];
+                    $orderItems[] = ['product' => $product, 'quantity' => $item['quantity'], 'price' => $price];
+                } else {
+                    $this->command->warn("Product '{$item['slug']}' not found — skipping in order {$orderData['order_number']}.");
                 }
+            }
+
+            if (empty($orderItems)) {
+                $this->command->warn("Skipping order {$orderData['order_number']} — no valid items.");
+                continue;
             }
 
             $shippingCost = '2.000';
             $discount = '0.000';
             $total = bcadd($subtotal, $shippingCost, 3);
 
-            // Create order
             $order = Order::create([
                 'user_id' => $orderData['user']->id,
                 'order_number' => $orderData['order_number'],
@@ -160,7 +164,6 @@ class OrderSeeder extends Seeder
                 'cancelled_at' => $orderData['cancelled_at'],
             ]);
 
-            // Create order items (snapshot data)
             foreach ($orderItems as $itemData) {
                 OrderItem::create([
                     'order_id' => $order->id,
@@ -172,17 +175,19 @@ class OrderSeeder extends Seeder
                 ]);
             }
 
-            // Create status history trail
-            $admin = User::where('role', 'admin')->first();
             foreach ($orderData['status_trail'] as $index => $status) {
                 OrderStatusHistory::create([
                     'order_id' => $order->id,
                     'status' => $status,
-                    'changed_by' => $status === 'pending' ? null : $admin->id,
+                    'changed_by' => $status === 'pending' ? null : $admin?->id,
                     'note' => $status === 'pending' ? 'Order placed by customer' : "Status updated to {$status}",
                     'created_at' => now()->subDays(count($orderData['status_trail']) - $index),
                 ]);
             }
+
+            $orderCount++;
         }
+
+        $this->command->info("Created {$orderCount} orders with items and status history.");
     }
 }

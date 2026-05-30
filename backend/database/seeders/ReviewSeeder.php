@@ -11,84 +11,100 @@ class ReviewSeeder extends Seeder
 {
     public function run(): void
     {
-        $customers = User::where('role', 'customer')->get();
-
         $reviews = [
-            // Red Rose Bunch reviews
+            // Eid products
             [
-                'product_slug' => 'red-rose-bunch',
-                'user_email' => 'user1@gmail.com',
+                'product_slug' => 'noor-al-zahra-basket',
+                'user_email' => 'ahmed@example.com',
                 'rating' => 5,
-                'title' => 'Absolutely stunning!',
-                'comment' => 'The roses were fresh and beautifully arranged. My wife loved them!',
+                'title' => 'Stunning Eid centerpiece!',
+                'comment' => 'The basket was absolutely beautiful and made our Eid gathering so special. The sunflowers and orchids were fresh and vibrant.',
                 'visibility' => 'visible',
             ],
             [
-                'product_slug' => 'red-rose-bunch',
-                'user_email' => 'user2@gmail.com',
+                'product_slug' => 'desert-pearl-ensemble',
+                'user_email' => 'fatima@example.com',
+                'rating' => 5,
+                'title' => 'Pure Arabian luxury',
+                'comment' => 'The champagne roses with silver foliage looked incredible. Perfect for gifting VIP guests during Eid.',
+                'visibility' => 'visible',
+            ],
+            [
+                'product_slug' => 'golden-lantern-petals',
+                'user_email' => 'omar@example.com',
                 'rating' => 4,
-                'title' => 'Great quality',
-                'comment' => 'Beautiful flowers, delivery was on time. Would order again.',
+                'title' => 'Warm and cheerful',
+                'comment' => 'The yellow chrysanthemums really do look like glowing lanterns. Great value for the price.',
                 'visibility' => 'visible',
             ],
             [
-                'product_slug' => 'red-rose-bunch',
-                'user_email' => 'user3@gmail.com',
+                'product_slug' => 'moonlit-saffron-bloom',
+                'user_email' => 'noor@example.com',
                 'rating' => 3,
-                'title' => 'Decent but...',
-                'comment' => 'Flowers were nice but some petals were slightly damaged.',
+                'title' => 'Nice but smaller than expected',
+                'comment' => 'The flowers were beautiful but the arrangement was smaller than what was shown in the photos.',
                 'visibility' => 'pending',
             ],
 
-            // Sunshine Bouquet reviews
+            // Wedding products
             [
-                'product_slug' => 'sunshine-bouquet',
-                'user_email' => 'user4@gmail.com',
+                'product_slug' => 'royal-union-fleur',
+                'user_email' => 'sara@example.com',
                 'rating' => 5,
-                'title' => 'Perfect birthday gift',
-                'comment' => 'Bright and cheerful! Exactly what I wanted for my friend birthday.',
+                'title' => 'Worth every fils',
+                'comment' => 'The premium imported roses with the pearl wrap were absolutely breathtaking. Made our wedding unforgettable.',
+                'visibility' => 'visible',
+            ],
+            [
+                'product_slug' => 'ivory-vow-symphony',
+                'user_email' => 'fatima@example.com',
+                'rating' => 5,
+                'title' => 'Dream bridal bouquet',
+                'comment' => 'The peonies and baby\'s breath combination was pure elegance. Exactly what I envisioned for my wedding.',
                 'visibility' => 'visible',
             ],
 
-            // White Rose Box reviews
+            // Birthday products
             [
-                'product_slug' => 'white-rose-box',
-                'user_email' => 'user5@gmail.com',
+                'product_slug' => 'sunset-confetti-bloom',
+                'user_email' => 'ahmed@example.com',
+                'rating' => 4,
+                'title' => 'Birthday energy in a bouquet!',
+                'comment' => 'The orange roses and yellow tulips combination is so cheerful. My sister loved it for her birthday!',
+                'visibility' => 'visible',
+            ],
+
+            // Anniversary products
+            [
+                'product_slug' => 'eternal-flame-roses',
+                'user_email' => 'omar@example.com',
                 'rating' => 5,
-                'title' => 'Elegant and luxurious',
-                'comment' => 'The box presentation was amazing. Perfect for special occasions.',
+                'title' => 'Spoke louder than words',
+                'comment' => 'The deep red roses with silver accents were the perfect anniversary gift. My wife was speechless.',
                 'visibility' => 'visible',
             ],
             [
-                'product_slug' => 'white-rose-box',
-                'user_email' => 'user1@gmail.com',
+                'product_slug' => 'champagne-love-garden',
+                'user_email' => 'ahmed@example.com',
                 'rating' => 2,
-                'title' => 'Not worth the price',
-                'comment' => 'Expected more for the price. The box was smaller than shown in photos.',
+                'title' => 'Disappointing for the price',
+                'comment' => 'Expected more roses for 34 KWD. The arrangement looked sparse compared to the product photo.',
                 'visibility' => 'hidden',
             ],
 
-            // Orchid in Pot reviews
+            // Love & Romance products
             [
-                'product_slug' => 'orchid-in-pot',
-                'user_email' => 'user2@gmail.com',
+                'product_slug' => 'crimson-desire-bouquet',
+                'user_email' => 'noor@example.com',
                 'rating' => 5,
-                'title' => 'Lasted over a month!',
-                'comment' => 'The orchid is still blooming after 5 weeks. Amazing quality.',
-                'visibility' => 'visible',
-            ],
-
-            // 100 Red Roses Basket
-            [
-                'product_slug' => '100-red-roses-basket',
-                'user_email' => 'user3@gmail.com',
-                'rating' => 5,
-                'title' => 'Showstopper!',
-                'comment' => 'This basket made the entire event. Everyone was taking photos of it.',
+                'title' => 'The black wrap is everything',
+                'comment' => 'Such a bold and unique presentation! The black wrap with silver leaves made these red roses stand out.',
                 'visibility' => 'visible',
             ],
         ];
 
+        $count = 0;
+        $skipped = 0;
         foreach ($reviews as $review) {
             $product = Product::where('slug', $review['product_slug'])->first();
             $user = User::where('email', $review['user_email'])->first();
@@ -102,7 +118,16 @@ class ReviewSeeder extends Seeder
                     'comment' => $review['comment'],
                     'visibility' => $review['visibility'],
                 ]);
+                $count++;
+            } else {
+                $skipped++;
+                $reason = [];
+                if (! $product) $reason[] = "product '{$review['product_slug']}' not found";
+                if (! $user) $reason[] = "user '{$review['user_email']}' not found";
+                $this->command->warn('Skipped review: ' . implode(', ', $reason) . '.');
             }
         }
+
+        $this->command->info("Created {$count} reviews" . ($skipped ? ", skipped {$skipped}." : '.'));
     }
 }

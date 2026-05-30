@@ -11,8 +11,12 @@ class CartItemSeeder extends Seeder
 {
     public function run(): void
     {
-        // Ahmed's cart
-        $ahmed = User::where('email', 'user1@gmail.com')->first();
+        $ahmed = User::where('email', 'ahmed@example.com')->first();
+
+        if (! $ahmed) {
+            $this->command->warn('User ahmed@example.com not found — skipping cart items.');
+            return;
+        }
 
         $cartItems = [
             ['slug' => 'noor-al-zahra-basket', 'quantity' => 1],
@@ -20,6 +24,7 @@ class CartItemSeeder extends Seeder
             ['slug' => 'velvet-embrace-bouquet', 'quantity' => 1],
         ];
 
+        $count = 0;
         foreach ($cartItems as $item) {
             $product = Product::where('slug', $item['slug'])->first();
             if ($product) {
@@ -28,7 +33,12 @@ class CartItemSeeder extends Seeder
                     'product_id' => $product->id,
                     'quantity' => $item['quantity'],
                 ]);
+                $count++;
+            } else {
+                $this->command->warn("Product slug '{$item['slug']}' not found — skipping cart item.");
             }
         }
+
+        $this->command->info("Created {$count} cart items for Ahmed.");
     }
 }

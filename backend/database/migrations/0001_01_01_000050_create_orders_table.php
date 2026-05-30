@@ -17,7 +17,7 @@ return new class extends Migration
             $table->decimal('shipping_cost', 10, 3)->default(0);
             $table->decimal('discount', 10, 3)->default(0);
             $table->decimal('total', 10, 3);
-            $table->string('payment_method')->default('cash_on_delivery'); // cash_on_delivery is the only method
+            $table->string('payment_method')->default('cash_on_delivery'); // cash_on_delivery
             $table->string('payment_status')->default('pending'); // pending, paid, failed, refunded
             $table->text('shipping_address');
             $table->string('shipping_phone');
