@@ -1,14 +1,35 @@
-<?php 
+<?php
 
 namespace App\Http\Resources\Admin;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\CategoryResource;
 use App\Http\Resources\Admin\ReviewResource;
 
 class ProductResource extends JsonResource
 {
+    /**
+     * Transform a stored image path into a full URL.
+     * If the path is already a full URL (external image), return as-is.
+     * If it's a relative path (e.g. "products/abc.jpg"), prepend the storage URL.
+     */
+    private function resolveImageUrl(?string $path): ?string
+    {
+        if (!$path) return null;
+        if (str_starts_with($path, 'http')) return $path;
+        return Storage::disk('public')->url($path);
+    }
+
+    /**
+     * Resolve an array of image paths to full URLs.
+     */
+    private function resolveImageUrls(array $paths): array
+    {
+        return array_map(fn($p) => $this->resolveImageUrl($p) ?? $p, $paths);
+    }
+
     public function toArray(Request $request): array
     {
         return [
@@ -23,8 +44,8 @@ class ProductResource extends JsonResource
             'sale_price' => $this->sale_price ? (float) $this->sale_price : null,
             'effective_price' => (float) $this->effectivePrice(),
             'is_on_sale' => $this->isOnSale(),
-            'image' => $this->image,
-            'images' => $this->images ?? [],
+            'image' => $this->resolveImageUrl($this->image),
+            'images' => $this->resolveImageUrls($this->images ?? []),
             'sku' => $this->sku,
             'stock' => $this->stock,
             'in_stock' => $this->isInStock(),

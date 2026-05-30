@@ -9,6 +9,7 @@ use App\Models\Category;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -17,6 +18,13 @@ use Illuminate\Validation\Rule;
  *
  * All methods are admin-only (enforced by route middleware).
  * Handles both JSON and FormData (multipart) for store/update.
+ *
+ * Image handling:
+ *   - `image` field: single file upload → stored to public disk → URL saved in DB
+ *   - `images` field: array of file uploads → stored to public disk → URLs saved in DB
+ *   - `existing_images` field: array of URL strings to keep during update
+ *   - When sending via FormData: use `image` as file, `images[]` as files
+ *   - When sending via JSON: pass URL strings (backward compatible)
  */
 class ProductController extends \App\Http\Controllers\Controller
 {
@@ -113,9 +121,9 @@ class ProductController extends \App\Http\Controllers\Controller
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('products', 'slug')],
             'price' => ['required', 'numeric', 'min:0'],
             'sale_price' => ['nullable', 'numeric', 'min:0', 'lt:price'],
-            'image' => ['nullable', 'string', 'max:500'],
+            'image' => ['nullable', 'image', 'max:5120'], // 5MB max, must be image
             'images' => ['nullable', 'array'],
-            'images.*' => ['string', 'max:500'],
+            'images.*' => ['image', 'max:5120'], // Each image: 5MB max
             'sku' => ['nullable', 'string', 'max:100', Rule::unique('products', 'sku')],
             'stock' => ['required', 'integer', 'min:0'],
             'rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
@@ -137,6 +145,21 @@ class ProductController extends \App\Http\Controllers\Controller
         if (isset($validated['sale_price'])) {
             $validated['sale_price'] = bcmul((string) $validated['sale_price'], '1', 3);
         }
+
+        // ── Handle image uploads ──
+        // Single main image (file upload)
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('products', 'public');
+        }
+
+        // Multiple images (file uploads)
+        $imagePaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $imagePaths[] = $file->store('products', 'public');
+            }
+        }
+        $validated['images'] = !empty($imagePaths) ? $imagePaths : null;
 
         $product = Product::create($validated);
         $product->load('category', 'reviews');
@@ -170,9 +193,11 @@ class ProductController extends \App\Http\Controllers\Controller
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product->id)],
             'price' => ['sometimes', 'numeric', 'min:0'],
             'sale_price' => ['nullable', 'numeric', 'min:0'],
-            'image' => ['nullable', 'string', 'max:500'],
+            'image' => ['nullable', 'image', 'max:5120'], // 5MB max
             'images' => ['nullable', 'array'],
-            'images.*' => ['string', 'max:500'],
+            'images.*' => ['image', 'max:5120'], // Each image: 5MB max
+            'existing_images' => ['nullable', 'array'],
+            'existing_images.*' => ['string', 'max:500'], // URLs to keep
             'sku' => ['nullable', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product->id)],
             'stock' => ['sometimes', 'integer', 'min:0'],
             'rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
@@ -209,6 +234,44 @@ class ProductController extends \App\Http\Controllers\Controller
             if ($currentSalePrice !== null && bccomp((string) $currentSalePrice, (string) $validated['price'], 3) >= 0) {
                 $validated['sale_price'] = null;
             }
+        }
+
+        // ── Handle image uploads ──
+        // Single main image (file upload)
+        if ($request->hasFile('image')) {
+            // Delete old main image if it exists
+            if ($product->image) {
+                $this->deleteImageFile($product->image);
+            }
+            $validated['image'] = $request->file('image')->store('products', 'public');
+        }
+
+        // Multiple images: merge existing (kept) + newly uploaded
+        $finalImages = [];
+
+        // Keep existing images that the frontend says to preserve
+        $existingImages = $request->input('existing_images', []);
+        if (is_array($existingImages)) {
+            $finalImages = array_values(array_filter($existingImages, fn($url) => is_string($url) && !empty($url)));
+        }
+
+        // Append newly uploaded files
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $finalImages[] = $file->store('products', 'public');
+            }
+        }
+
+        // Only update images if any were provided (new or existing)
+        if (!empty($finalImages) || $request->hasFile('images') || $request->has('existing_images')) {
+            // Clean up old images that are no longer in the final list
+            $oldImages = $product->images ?? [];
+            foreach ($oldImages as $oldPath) {
+                if (!in_array($oldPath, $finalImages)) {
+                    $this->deleteImageFile($oldPath);
+                }
+            }
+            $validated['images'] = $finalImages;
         }
 
         $product->update($validated);
@@ -252,5 +315,23 @@ class ProductController extends \App\Http\Controllers\Controller
         }
 
         return $slug;
+    }
+
+    /**
+     * Delete an image file from the public disk.
+     * Handles both relative paths (products/abc.jpg) and full URLs.
+     */
+    private function deleteImageFile(string $path): void
+    {
+        // If it's a full URL, extract the path part
+        if (str_starts_with($path, 'http')) {
+            $parsed = parse_url($path);
+            $path = ltrim($parsed['path'] ?? '', '/storage/');
+        }
+
+        // Only delete if it's a local stored file (not an external URL)
+        if ($path && !str_starts_with($path, 'http') && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }
