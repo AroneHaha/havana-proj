@@ -12,6 +12,8 @@ import {
   Package,
   AlertTriangle,
   CheckCircle2,
+  ArrowRight,
+  Loader2,
 } from "lucide-react";
 import {
   type Order,
@@ -33,6 +35,12 @@ interface OrderDetailDrawerProps {
   locale: "en" | "ar";
 }
 
+type ConfirmModalType = "none" | "status" | "delivered" | "cancel";
+
+interface PendingStatusChange {
+  status: OrderStatus;
+}
+
 export function OrderDetailDrawer({
   order,
   open,
@@ -41,7 +49,9 @@ export function OrderDetailDrawer({
   t,
   locale,
 }: OrderDetailDrawerProps) {
-  const [showDeliveryConfirm, setShowDeliveryConfirm] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<ConfirmModalType>("none");
+  const [pendingChange, setPendingChange] = useState<PendingStatusChange | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   if (!order) return null;
 
@@ -85,18 +95,300 @@ export function OrderDetailDrawer({
     current: s === order.status,
   }));
 
+  // ── Confirmation flow ────────────────────────────────────────────────
+
   const handleAdvanceStatus = () => {
     if (!nextStatus) return;
     if (isNextDelivered) {
-      setShowDeliveryConfirm(true);
-      return;
+      // Delivered gets its own special modal with warning
+      setPendingChange({ status: "delivered" });
+      setConfirmModal("delivered");
+    } else {
+      // Other status transitions get a generic confirmation
+      setPendingChange({ status: nextStatus });
+      setConfirmModal("status");
     }
-    onUpdateStatus(order.id, nextStatus);
   };
 
-  const handleConfirmDelivery = () => {
-    onUpdateStatus(order.id, "delivered");
-    setShowDeliveryConfirm(false);
+  const handleCancelClick = () => {
+    setPendingChange({ status: "cancelled" });
+    setConfirmModal("cancel");
+  };
+
+  const handleConfirmAction = async () => {
+    if (!pendingChange || isUpdating) return;
+    setIsUpdating(true);
+    try {
+      await onUpdateStatus(order.id, pendingChange.status);
+      closeConfirmModal();
+      if (pendingChange.status === "cancelled") {
+        onClose();
+      }
+    } catch {
+      // Error is handled by the store — keep modal open so user can retry
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const closeConfirmModal = () => {
+    if (isUpdating) return; // Prevent closing while request is in flight
+    setConfirmModal("none");
+    setPendingChange(null);
+  };
+
+  // ── Confirmation modal content builders ──────────────────────────────
+
+  const getStatusLabel = (status: OrderStatus): string => {
+    return t[STATUS_I18N_KEY[status] as keyof typeof t] as string;
+  };
+
+  const renderConfirmModal = () => {
+    if (confirmModal === "none") return null;
+
+    const orderIdDisplay = order.orderNumber || order.id;
+
+    // ── Delivered confirmation (existing special design) ──
+    if (confirmModal === "delivered") {
+      return (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+            onClick={isUpdating ? undefined : closeConfirmModal}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          >
+            <div
+              className="bg-white dark:bg-dark-card rounded-2xl shadow-xl border border-border ring-1 ring-black/[0.03] dark:ring-white/[0.03] max-w-md w-full p-6 space-y-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center shrink-0">
+                  {isUpdating ? <Loader2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400 animate-spin" /> : <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">{t.confirmDeliveryTitle}</h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {t.confirmDeliveryMessage.replace("{id}", orderIdDisplay)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg p-3 border border-amber-100 dark:border-amber-900/20">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                  {t.confirmDeliveryWarning}
+                </p>
+              </div>
+              <div className="bg-inset rounded-lg p-3 space-y-2 border border-border">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t.orderID}</span>
+                  <span className="font-semibold text-foreground">#{orderIdDisplay}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t.customer}</span>
+                  <span className="font-medium text-foreground">{order.customer.name}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t.total}</span>
+                  <span className="font-bold text-maroon dark:text-gold">
+                    {formatPrice(order.total, locale)}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={closeConfirmModal}
+                  disabled={isUpdating}
+                  className="flex-1 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer ring-1 ring-black/[0.02] dark:ring-white/[0.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t.cancelBtn}
+                </button>
+                <button
+                  onClick={handleConfirmAction}
+                  disabled={isUpdating}
+                  className="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white text-sm font-medium transition-colors cursor-pointer shadow-sm ring-1 ring-emerald-500/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isUpdating && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {t.confirmDeliveryBtn}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      );
+    }
+
+    // ── Cancel confirmation ──
+    if (confirmModal === "cancel") {
+      return (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+            onClick={isUpdating ? undefined : closeConfirmModal}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          >
+            <div
+              className="bg-white dark:bg-dark-card rounded-2xl shadow-xl border border-border ring-1 ring-black/[0.03] dark:ring-white/[0.03] max-w-md w-full p-6 space-y-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+                  {isUpdating ? <Loader2 className="w-6 h-6 text-red-600 dark:text-red-400 animate-spin" /> : <X className="w-6 h-6 text-red-600 dark:text-red-400" />}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">{t.confirmCancelTitle}</h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {t.confirmCancelMessage.replace("{id}", orderIdDisplay)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg p-3 border border-amber-100 dark:border-amber-900/20">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                  {t.confirmDeliveryWarning.replace("delivered", "cancelled")}
+                </p>
+              </div>
+              <div className="bg-inset rounded-lg p-3 space-y-2 border border-border">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t.orderID}</span>
+                  <span className="font-semibold text-foreground">#{orderIdDisplay}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t.customer}</span>
+                  <span className="font-medium text-foreground">{order.customer.name}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t.total}</span>
+                  <span className="font-bold text-maroon dark:text-gold">
+                    {formatPrice(order.total, locale)}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={closeConfirmModal}
+                  disabled={isUpdating}
+                  className="flex-1 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer ring-1 ring-black/[0.02] dark:ring-white/[0.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t.cancelBtn}
+                </button>
+                <button
+                  onClick={handleConfirmAction}
+                  disabled={isUpdating}
+                  className="flex-1 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white text-sm font-medium transition-colors cursor-pointer shadow-sm ring-1 ring-red-500/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isUpdating && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {t.confirmCancelBtn}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      );
+    }
+
+    // ── Generic status change confirmation (confirmed, preparing, out_for_delivery) ──
+    if (confirmModal === "status" && pendingChange) {
+      const nextStatusLabel = getStatusLabel(pendingChange.status);
+      return (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+            onClick={isUpdating ? undefined : closeConfirmModal}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          >
+            <div
+              className="bg-white dark:bg-dark-card rounded-2xl shadow-xl border border-border ring-1 ring-black/[0.03] dark:ring-white/[0.03] max-w-md w-full p-6 space-y-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-maroon/10 dark:bg-gold/10 flex items-center justify-center shrink-0">
+                  {isUpdating ? <Loader2 className="w-6 h-6 text-maroon dark:text-gold animate-spin" /> : <ArrowRight className="w-6 h-6 text-maroon dark:text-gold" />}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">{t.confirmStatusTitle}</h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {t.confirmStatusMessage
+                      .replace("{id}", orderIdDisplay)
+                      .replace("{status}", nextStatusLabel)}
+                  </p>
+                </div>
+              </div>
+              <div className="bg-inset rounded-lg p-4 border border-border">
+                <div className="flex items-center justify-center gap-4">
+                  <span
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-full shadow-xs ${ORDER_STATUS_COLORS[order.status]}`}
+                  >
+                    {getStatusLabel(order.status)}
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-full shadow-xs ${ORDER_STATUS_COLORS[pendingChange.status]}`}
+                  >
+                    {nextStatusLabel}
+                  </span>
+                </div>
+              </div>
+              <div className="bg-inset rounded-lg p-3 space-y-2 border border-border">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t.orderID}</span>
+                  <span className="font-semibold text-foreground">#{orderIdDisplay}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t.customer}</span>
+                  <span className="font-medium text-foreground">{order.customer.name}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={closeConfirmModal}
+                  disabled={isUpdating}
+                  className="flex-1 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer ring-1 ring-black/[0.02] dark:ring-white/[0.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t.cancelBtn}
+                </button>
+                <button
+                  onClick={handleConfirmAction}
+                  disabled={isUpdating}
+                  className="flex-1 py-2.5 rounded-lg bg-maroon hover:bg-maroon-light dark:bg-gold dark:hover:bg-gold-dark text-white dark:text-dark-bg text-sm font-medium transition-colors cursor-pointer shadow-sm ring-1 ring-maroon/20 dark:ring-gold/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isUpdating && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {t.confirmStatusBtn}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -267,7 +559,7 @@ export function OrderDetailDrawer({
 
               {!isDelivered && !isCancelled && (
                 <button
-                  onClick={() => { onUpdateStatus(order.id, "cancelled"); onClose(); }}
+                  onClick={handleCancelClick}
                   className="w-full py-2.5 rounded-lg border-2 border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors cursor-pointer"
                 >
                   {t.cancelOrder}
@@ -276,54 +568,7 @@ export function OrderDetailDrawer({
             </div>
           </motion.div>
 
-          <AnimatePresence>
-            {showDeliveryConfirm && (
-              <>
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm" onClick={() => setShowDeliveryConfirm(false)} />
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                  transition={{ duration: 0.2 }}
-                  className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-                >
-                  <div className="bg-white dark:bg-dark-card rounded-2xl shadow-xl border border-border ring-1 ring-black/[0.03] dark:ring-white/[0.03] max-w-md w-full p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-foreground">{t.confirmDeliveryTitle}</h3>
-                        <p className="text-sm text-muted-foreground mt-0.5">{t.confirmDeliveryMessage.replace("{id}", order.orderNumber || order.id)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg p-3 border border-amber-100 dark:border-amber-900/20">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">{t.confirmDeliveryWarning}</p>
-                    </div>
-                    <div className="bg-inset rounded-lg p-3 space-y-2 border border-border">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">{t.orderID}</span>
-                        <span className="font-semibold text-foreground">#{order.orderNumber || order.id}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">{t.customer}</span>
-                        <span className="font-medium text-foreground">{order.customer.name}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">{t.total}</span>
-                        <span className="font-bold text-maroon dark:text-gold">{formatPrice(order.total, locale)}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <button onClick={() => setShowDeliveryConfirm(false)} className="flex-1 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer ring-1 ring-black/[0.02] dark:ring-white/[0.02]">{t.cancelBtn}</button>
-                      <button onClick={handleConfirmDelivery} className="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white text-sm font-medium transition-colors cursor-pointer shadow-sm ring-1 ring-emerald-500/20">{t.confirmDeliveryBtn}</button>
-                    </div>
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+          <AnimatePresence>{renderConfirmModal()}</AnimatePresence>
         </>
       )}
     </AnimatePresence>

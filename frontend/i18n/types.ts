@@ -393,6 +393,12 @@ export interface Translation {
       confirmDeliveryMessage: string;
       confirmDeliveryWarning: string;
       confirmDeliveryBtn: string;
+      confirmStatusTitle: string;
+      confirmStatusMessage: string;
+      confirmStatusBtn: string;
+      confirmCancelTitle: string;
+      confirmCancelMessage: string;
+      confirmCancelBtn: string;
       cancelBtn: string;
       dateFrom: string;
       dateTo: string;
