@@ -151,17 +151,42 @@ class ProductController extends \App\Http\Controllers\Controller
         // ── Handle image uploads ──
         $disk = $this->storageDisk();
 
+        Log::info('Product store: disk determined', ['disk' => $disk]);
+
         // Single main image (file upload)
         if ($request->hasFile('image')) {
-            $validated['image'] = $this->uploadFile($request->file('image'), $disk);
+            try {
+                $path = $request->file('image')->store('products', $disk);
+                Log::info('Product store: main image uploaded', ['path' => $path, 'disk' => $disk]);
+                $validated['image'] = $path;
+            } catch (\Throwable $e) {
+                Log::error('Product store: main image upload FAILED', [
+                    'disk' => $disk,
+                    'error' => $e->getMessage(),
+                    'class' => get_class($e),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                return $this->respondError('Image upload failed: ' . $e->getMessage(), 500);
+            }
         }
 
         // Multiple images (file uploads)
         $imagePaths = [];
         if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $file) {
-                $path = $this->uploadFile($file, $disk);
-                if ($path) $imagePaths[] = $path;
+            foreach ($request->file('images') as $i => $file) {
+                try {
+                    $path = $file->store('products', $disk);
+                    Log::info('Product store: gallery image uploaded', ['index' => $i, 'path' => $path, 'disk' => $disk]);
+                    if ($path) $imagePaths[] = $path;
+                } catch (\Throwable $e) {
+                    Log::error('Product store: gallery image upload FAILED', [
+                        'index' => $i,
+                        'disk' => $disk,
+                        'error' => $e->getMessage(),
+                        'class' => get_class($e),
+                    ]);
+                    return $this->respondError('Image upload failed: ' . $e->getMessage(), 500);
+                }
             }
         }
         $validated['images'] = !empty($imagePaths) ? $imagePaths : null;
@@ -249,13 +274,26 @@ class ProductController extends \App\Http\Controllers\Controller
         // ── Handle image uploads ──
         $disk = $this->storageDisk();
 
+        Log::info('Product update: disk determined', ['disk' => $disk]);
+
         // Single main image (file upload)
         if ($request->hasFile('image')) {
             // Delete old main image if it exists
             if ($product->image) {
                 $this->deleteImageFile($product->image);
             }
-            $validated['image'] = $this->uploadFile($request->file('image'), $disk);
+            try {
+                $path = $request->file('image')->store('products', $disk);
+                Log::info('Product update: main image uploaded', ['path' => $path, 'disk' => $disk]);
+                $validated['image'] = $path;
+            } catch (\Throwable $e) {
+                Log::error('Product update: main image upload FAILED', [
+                    'disk' => $disk,
+                    'error' => $e->getMessage(),
+                    'class' => get_class($e),
+                ]);
+                return $this->respondError('Image upload failed: ' . $e->getMessage(), 500);
+            }
         }
 
         // Multiple images: merge existing (kept) + newly uploaded
@@ -273,9 +311,20 @@ class ProductController extends \App\Http\Controllers\Controller
 
         // Append newly uploaded files
         if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $file) {
-                $path = $this->uploadFile($file, $disk);
-                if ($path) $finalImages[] = $path;
+            foreach ($request->file('images') as $i => $file) {
+                try {
+                    $path = $file->store('products', $disk);
+                    Log::info('Product update: gallery image uploaded', ['index' => $i, 'path' => $path, 'disk' => $disk]);
+                    if ($path) $finalImages[] = $path;
+                } catch (\Throwable $e) {
+                    Log::error('Product update: gallery image upload FAILED', [
+                        'index' => $i,
+                        'disk' => $disk,
+                        'error' => $e->getMessage(),
+                        'class' => get_class($e),
+                    ]);
+                    return $this->respondError('Image upload failed: ' . $e->getMessage(), 500);
+                }
             }
         }
 
@@ -344,46 +393,14 @@ class ProductController extends \App\Http\Controllers\Controller
      */
     private function storageDisk(): string
     {
-        return config('filesystems.disks.supabase.endpoint') ? 'supabase' : 'public';
-    }
+        $endpoint = config('filesystems.disks.supabase.endpoint');
+        $disk = $endpoint ? 'supabase' : 'public';
 
-    /**
-     * Upload a file with automatic fallback: tries Supabase first,
-     * falls back to local public disk if S3 fails.
-     *
-     * This prevents Supabase connectivity issues from breaking product creation.
-     * Logs the S3 error so it can be diagnosed while still allowing uploads to work.
-     */
-    private function uploadFile($file, string $preferredDisk): ?string
-    {
-        // If preferred disk is local, just use it directly
-        if ($preferredDisk === 'public') {
-            return $file->store('products', 'public');
+        if (!$endpoint) {
+            Log::warning('Supabase endpoint not configured — falling back to local public disk. Check SUPABASE_ENDPOINT in .env and run: php artisan config:clear');
         }
 
-        // Try Supabase S3 first
-        try {
-            $path = $file->store('products', $preferredDisk);
-            if ($path !== false && $path !== null) {
-                return $path;
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Supabase S3 upload failed, falling back to local disk', [
-                'error' => $e->getMessage(),
-                'file' => $file->getClientOriginalName(),
-            ]);
-        }
-
-        // Fallback: save to local public disk
-        try {
-            return $file->store('products', 'public');
-        } catch (\Throwable $e) {
-            Log::error('Local disk upload also failed', [
-                'error' => $e->getMessage(),
-                'file' => $file->getClientOriginalName(),
-            ]);
-            return null;
-        }
+        return $disk;
     }
 
     /**
