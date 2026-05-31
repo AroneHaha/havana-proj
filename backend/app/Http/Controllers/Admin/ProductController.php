@@ -114,92 +114,83 @@ class ProductController extends \App\Http\Controllers\Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'category_id' => ['required', 'uuid', Rule::exists('categories', 'id')],
-            'name_en' => ['required', 'string', 'max:255'],
-            'name_ar' => ['required', 'string', 'max:255'],
-            'description_en' => ['nullable', 'string'],
-            'description_ar' => ['nullable', 'string'],
-            'slug' => ['nullable', 'string', 'max:255', Rule::unique('products', 'slug')],
-            'price' => ['required', 'numeric', 'min:0'],
-            'sale_price' => ['nullable', 'numeric', 'min:0', 'lt:price'],
-            'image' => ['nullable', 'image', 'max:5120'], // 5MB max, must be image
-            'images' => ['nullable', 'array'],
-            'images.*' => ['image', 'max:5120'], // Each image: 5MB max
-            'sku' => ['nullable', 'string', 'max:100', Rule::unique('products', 'sku')],
-            'stock' => ['required', 'integer', 'min:0'],
-            'rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
-            'is_featured' => ['nullable', 'boolean'],
-            'is_best_seller' => ['nullable', 'boolean'],
-            'is_new' => ['nullable', 'boolean'],
-            'is_active' => ['nullable', 'boolean'],
-        ]);
+        try {
+            $validated = $request->validate([
+                'category_id' => ['required', 'uuid', Rule::exists('categories', 'id')],
+                'name_en' => ['required', 'string', 'max:255'],
+                'name_ar' => ['required', 'string', 'max:255'],
+                'description_en' => ['nullable', 'string'],
+                'description_ar' => ['nullable', 'string'],
+                'slug' => ['nullable', 'string', 'max:255', Rule::unique('products', 'slug')],
+                'price' => ['required', 'numeric', 'min:0'],
+                'sale_price' => ['nullable', 'numeric', 'min:0', 'lt:price'],
+                'image' => ['nullable', 'image', 'max:5120'],
+                'images' => ['nullable', 'array'],
+                'images.*' => ['image', 'max:5120'],
+                'sku' => ['nullable', 'string', 'max:100', Rule::unique('products', 'sku')],
+                'stock' => ['required', 'integer', 'min:0'],
+                'rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
+                'is_featured' => ['nullable', 'boolean'],
+                'is_best_seller' => ['nullable', 'boolean'],
+                'is_new' => ['nullable', 'boolean'],
+                'is_active' => ['nullable', 'boolean'],
+            ]);
 
-        // Auto-generate slug from name_en if not provided
-        if (empty($validated['slug'])) {
-            $validated['slug'] = $this->generateUniqueSlug($validated['name_en']);
-        }
-
-        // Cast numeric fields to string for bcmul precision
-        if (isset($validated['price'])) {
-            $validated['price'] = bcmul((string) $validated['price'], '1', 3);
-        }
-        if (isset($validated['sale_price'])) {
-            $validated['sale_price'] = bcmul((string) $validated['sale_price'], '1', 3);
-        }
-
-        // ── Handle image uploads ──
-        $disk = $this->storageDisk();
-
-        Log::info('Product store: disk determined', ['disk' => $disk]);
-
-        // Single main image (file upload)
-        if ($request->hasFile('image')) {
-            try {
-                $path = $request->file('image')->store('products', $disk);
-                Log::info('Product store: main image uploaded', ['path' => $path, 'disk' => $disk]);
-                $validated['image'] = $path;
-            } catch (\Throwable $e) {
-                Log::error('Product store: main image upload FAILED', [
-                    'disk' => $disk,
-                    'error' => $e->getMessage(),
-                    'class' => get_class($e),
-                    'trace' => $e->getTraceAsString(),
-                ]);
-                return $this->respondError('Image upload failed: ' . $e->getMessage(), 500);
+            // Auto-generate slug from name_en if not provided
+            if (empty($validated['slug'])) {
+                $validated['slug'] = $this->generateUniqueSlug($validated['name_en']);
             }
-        }
 
-        // Multiple images (file uploads)
-        $imagePaths = [];
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $i => $file) {
-                try {
-                    $path = $file->store('products', $disk);
-                    Log::info('Product store: gallery image uploaded', ['index' => $i, 'path' => $path, 'disk' => $disk]);
+            // Cast numeric fields to string for bcmul precision
+            if (isset($validated['price'])) {
+                $validated['price'] = bcmul((string) $validated['price'], '1', 3);
+            }
+            if (isset($validated['sale_price'])) {
+                $validated['sale_price'] = bcmul((string) $validated['sale_price'], '1', 3);
+            }
+
+            // ── Handle image uploads ──
+            $disk = $this->storageDisk();
+
+            // Single main image (file upload)
+            if ($request->hasFile('image')) {
+                $path = $this->uploadToDisk($request->file('image'), 'products', $disk);
+                $validated['image'] = $path;
+            }
+
+            // Multiple images (file uploads)
+            $imagePaths = [];
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $i => $file) {
+                    $path = $this->uploadToDisk($file, 'products', $disk);
                     if ($path) $imagePaths[] = $path;
-                } catch (\Throwable $e) {
-                    Log::error('Product store: gallery image upload FAILED', [
-                        'index' => $i,
-                        'disk' => $disk,
-                        'error' => $e->getMessage(),
-                        'class' => get_class($e),
-                    ]);
-                    return $this->respondError('Image upload failed: ' . $e->getMessage(), 500);
                 }
             }
+            $validated['images'] = !empty($imagePaths) ? $imagePaths : null;
+
+            // Auto-set main image from first gallery image if not explicitly provided
+            if (empty($validated['image']) && !empty($validated['images'])) {
+                $validated['image'] = $validated['images'][0];
+            }
+
+            $product = Product::create($validated);
+            $product->load('category', 'reviews');
+
+            return $this->respondCreated(new ProductResource($product), 'Product created successfully');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // Let Laravel handle validation errors normally (422)
+        } catch (\Throwable $e) {
+            Log::error('Product store: UNCAUGHT ERROR', [
+                'error' => $e->getMessage(),
+                'class' => get_class($e),
+                'file' => $e->getFile() . ':' . $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'message' => 'Failed to create product: ' . $e->getMessage(),
+                'error_class' => get_class($e),
+            ], 422);
         }
-        $validated['images'] = !empty($imagePaths) ? $imagePaths : null;
-
-        // Auto-set main image from first gallery image if not explicitly provided
-        if (empty($validated['image']) && !empty($validated['images'])) {
-            $validated['image'] = $validated['images'][0];
-        }
-
-        $product = Product::create($validated);
-        $product->load('category', 'reviews');
-
-        return $this->respondCreated(new ProductResource($product), 'Product created successfully');
     }
 
     /**
@@ -219,136 +210,123 @@ class ProductController extends \App\Http\Controllers\Controller
      */
     public function update(Request $request, Product $product): JsonResponse
     {
-        $validated = $request->validate([
-            'category_id' => ['sometimes', 'uuid', Rule::exists('categories', 'id')],
-            'name_en' => ['sometimes', 'string', 'max:255'],
-            'name_ar' => ['sometimes', 'string', 'max:255'],
-            'description_en' => ['nullable', 'string'],
-            'description_ar' => ['nullable', 'string'],
-            'slug' => ['nullable', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product->id)],
-            'price' => ['sometimes', 'numeric', 'min:0'],
-            'sale_price' => ['nullable', 'numeric', 'min:0'],
-            'image' => ['nullable', 'image', 'max:5120'], // 5MB max
-            'images' => ['nullable', 'array'],
-            'images.*' => ['image', 'max:5120'], // Each image: 5MB max
-            'existing_images' => ['nullable', 'array'],
-            'existing_images.*' => ['string', 'max:500'], // URLs to keep
-            'sku' => ['nullable', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product->id)],
-            'stock' => ['sometimes', 'integer', 'min:0'],
-            'rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
-            'is_featured' => ['nullable', 'boolean'],
-            'is_best_seller' => ['nullable', 'boolean'],
-            'is_new' => ['nullable', 'boolean'],
-            'is_active' => ['nullable', 'boolean'],
-        ]);
+        try {
+            $validated = $request->validate([
+                'category_id' => ['sometimes', 'uuid', Rule::exists('categories', 'id')],
+                'name_en' => ['sometimes', 'string', 'max:255'],
+                'name_ar' => ['sometimes', 'string', 'max:255'],
+                'description_en' => ['nullable', 'string'],
+                'description_ar' => ['nullable', 'string'],
+                'slug' => ['nullable', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product->id)],
+                'price' => ['sometimes', 'numeric', 'min:0'],
+                'sale_price' => ['nullable', 'numeric', 'min:0'],
+                'image' => ['nullable', 'image', 'max:5120'],
+                'images' => ['nullable', 'array'],
+                'images.*' => ['image', 'max:5120'],
+                'existing_images' => ['nullable', 'array'],
+                'existing_images.*' => ['string', 'max:500'],
+                'sku' => ['nullable', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product->id)],
+                'stock' => ['sometimes', 'integer', 'min:0'],
+                'rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
+                'is_featured' => ['nullable', 'boolean'],
+                'is_best_seller' => ['nullable', 'boolean'],
+                'is_new' => ['nullable', 'boolean'],
+                'is_active' => ['nullable', 'boolean'],
+            ]);
 
-        // Auto-generate slug from name_en if name_en changed and slug not provided
-        if (isset($validated['name_en']) && !isset($validated['slug'])) {
-            $validated['slug'] = $this->generateUniqueSlug($validated['name_en'], $product->id);
-        }
-
-        // Cast numeric fields to string for bcmul precision
-        if (isset($validated['price'])) {
-            $validated['price'] = bcmul((string) $validated['price'], '1', 3);
-        }
-        if (array_key_exists('sale_price', $validated) && $validated['sale_price'] !== null) {
-            $validated['sale_price'] = bcmul((string) $validated['sale_price'], '1', 3);
-        }
-
-        // Validate sale_price < price only when sale_price is explicitly provided
-        if (array_key_exists('sale_price', $validated) && $validated['sale_price'] !== null) {
-            $effectivePrice = $validated['price'] ?? $product->price;
-            if (bccomp((string) $validated['sale_price'], (string) $effectivePrice, 3) >= 0) {
-                return $this->respondError('Sale price must be less than the regular price', 422);
+            // Auto-generate slug from name_en if name_en changed and slug not provided
+            if (isset($validated['name_en']) && !isset($validated['slug'])) {
+                $validated['slug'] = $this->generateUniqueSlug($validated['name_en'], $product->id);
             }
-        }
 
-        // When price is updated but sale_price is not, auto-clear sale_price if it conflicts
-        if (isset($validated['price']) && !array_key_exists('sale_price', $validated)) {
-            $currentSalePrice = $product->sale_price;
-            if ($currentSalePrice !== null && bccomp((string) $currentSalePrice, (string) $validated['price'], 3) >= 0) {
-                $validated['sale_price'] = null;
+            // Cast numeric fields to string for bcmul precision
+            if (isset($validated['price'])) {
+                $validated['price'] = bcmul((string) $validated['price'], '1', 3);
             }
-        }
-
-        // ── Handle image uploads ──
-        $disk = $this->storageDisk();
-
-        Log::info('Product update: disk determined', ['disk' => $disk]);
-
-        // Single main image (file upload)
-        if ($request->hasFile('image')) {
-            // Delete old main image if it exists
-            if ($product->image) {
-                $this->deleteImageFile($product->image);
+            if (array_key_exists('sale_price', $validated) && $validated['sale_price'] !== null) {
+                $validated['sale_price'] = bcmul((string) $validated['sale_price'], '1', 3);
             }
-            try {
-                $path = $request->file('image')->store('products', $disk);
-                Log::info('Product update: main image uploaded', ['path' => $path, 'disk' => $disk]);
+
+            // Validate sale_price < price only when sale_price is explicitly provided
+            if (array_key_exists('sale_price', $validated) && $validated['sale_price'] !== null) {
+                $effectivePrice = $validated['price'] ?? $product->price;
+                if (bccomp((string) $validated['sale_price'], (string) $effectivePrice, 3) >= 0) {
+                    return $this->respondError('Sale price must be less than the regular price', 422);
+                }
+            }
+
+            // When price is updated but sale_price is not, auto-clear sale_price if it conflicts
+            if (isset($validated['price']) && !array_key_exists('sale_price', $validated)) {
+                $currentSalePrice = $product->sale_price;
+                if ($currentSalePrice !== null && bccomp((string) $currentSalePrice, (string) $validated['price'], 3) >= 0) {
+                    $validated['sale_price'] = null;
+                }
+            }
+
+            // ── Handle image uploads ──
+            $disk = $this->storageDisk();
+
+            // Single main image (file upload)
+            if ($request->hasFile('image')) {
+                if ($product->image) {
+                    $this->deleteImageFile($product->image);
+                }
+                $path = $this->uploadToDisk($request->file('image'), 'products', $disk);
                 $validated['image'] = $path;
-            } catch (\Throwable $e) {
-                Log::error('Product update: main image upload FAILED', [
-                    'disk' => $disk,
-                    'error' => $e->getMessage(),
-                    'class' => get_class($e),
-                ]);
-                return $this->respondError('Image upload failed: ' . $e->getMessage(), 500);
             }
-        }
 
-        // Multiple images: merge existing (kept) + newly uploaded
-        $finalImages = [];
+            // Multiple images: merge existing (kept) + newly uploaded
+            $finalImages = [];
 
-        // Keep existing images that the frontend says to preserve
-        // Normalize URLs to relative paths for consistent storage
-        $existingImages = $request->input('existing_images', []);
-        if (is_array($existingImages)) {
-            $finalImages = array_values(array_filter(
-                array_map(fn($url) => $this->normalizeImagePath($url), $existingImages),
-                fn($path) => !empty($path)
-            ));
-        }
+            $existingImages = $request->input('existing_images', []);
+            if (is_array($existingImages)) {
+                $finalImages = array_values(array_filter(
+                    array_map(fn($url) => $this->normalizeImagePath($url), $existingImages),
+                    fn($path) => !empty($path)
+                ));
+            }
 
-        // Append newly uploaded files
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $i => $file) {
-                try {
-                    $path = $file->store('products', $disk);
-                    Log::info('Product update: gallery image uploaded', ['index' => $i, 'path' => $path, 'disk' => $disk]);
+            // Append newly uploaded files
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $i => $file) {
+                    $path = $this->uploadToDisk($file, 'products', $disk);
                     if ($path) $finalImages[] = $path;
-                } catch (\Throwable $e) {
-                    Log::error('Product update: gallery image upload FAILED', [
-                        'index' => $i,
-                        'disk' => $disk,
-                        'error' => $e->getMessage(),
-                        'class' => get_class($e),
-                    ]);
-                    return $this->respondError('Image upload failed: ' . $e->getMessage(), 500);
                 }
             }
-        }
 
-        // Only update images if any were provided (new or existing)
-        if (!empty($finalImages) || $request->hasFile('images') || $request->has('existing_images')) {
-            // Clean up old images that are no longer in the final list
-            $oldImages = $product->images ?? [];
-            foreach ($oldImages as $oldPath) {
-                if (!in_array($oldPath, $finalImages)) {
-                    $this->deleteImageFile($oldPath);
+            // Only update images if any were provided (new or existing)
+            if (!empty($finalImages) || $request->hasFile('images') || $request->has('existing_images')) {
+                $oldImages = $product->images ?? [];
+                foreach ($oldImages as $oldPath) {
+                    if (!in_array($oldPath, $finalImages)) {
+                        $this->deleteImageFile($oldPath);
+                    }
+                }
+                $validated['images'] = $finalImages;
+
+                if (empty($validated['image']) && !empty($finalImages)) {
+                    $validated['image'] = $finalImages[0];
                 }
             }
-            $validated['images'] = $finalImages;
 
-            // Auto-set main image from first gallery image if not explicitly provided
-            if (empty($validated['image']) && !empty($finalImages)) {
-                $validated['image'] = $finalImages[0];
-            }
+            $product->update($validated);
+            $product->load('category', 'reviews');
+
+            return $this->respondWithData(new ProductResource($product), 'Product updated successfully');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::error('Product update: UNCAUGHT ERROR', [
+                'error' => $e->getMessage(),
+                'class' => get_class($e),
+                'file' => $e->getFile() . ':' . $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'message' => 'Failed to update product: ' . $e->getMessage(),
+                'error_class' => get_class($e),
+            ], 422);
         }
-
-        $product->update($validated);
-        $product->load('category', 'reviews');
-
-        return $this->respondWithData(new ProductResource($product), 'Product updated successfully');
     }
 
     /**
@@ -404,6 +382,67 @@ class ProductController extends \App\Http\Controllers\Controller
     }
 
     /**
+     * Upload a file to the specified disk with full error handling.
+     *
+     * Uses Storage::disk()->putFile() directly so we can catch the exact
+     * S3 error instead of relying on the silent false return from store().
+     *
+     * @throws \RuntimeException if the upload fails
+     */
+    private function uploadToDisk($file, string $directory, string $disk): string
+    {
+        $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
+        $path = $directory . '/' . $filename;
+
+        Log::info('Upload starting', [
+            'disk' => $disk,
+            'path' => $path,
+            'original_name' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+            'mime' => $file->getMimeType(),
+        ]);
+
+        try {
+            $stream = fopen($file->getPathname(), 'r');
+
+            if ($stream === false) {
+                throw new \RuntimeException('Could not open uploaded file for reading');
+            }
+
+            $success = Storage::disk($disk)->put($path, $stream, [
+                'ContentType' => $file->getMimeType(),
+            ]);
+
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+
+            if (!$success) {
+                throw new \RuntimeException("Storage::put() returned false for disk [{$disk}], path [{$path}]");
+            }
+
+            Log::info('Upload succeeded', ['disk' => $disk, 'path' => $path]);
+
+            return $path;
+        } catch (\Throwable $e) {
+            Log::error('Upload FAILED', [
+                'disk' => $disk,
+                'path' => $path,
+                'error' => $e->getMessage(),
+                'class' => get_class($e),
+                'file' => $e->getFile() . ':' . $e->getLine(),
+            ]);
+
+            // Re-throw so the controller's catch block returns the error to the frontend
+            throw new \RuntimeException(
+                'Image upload to Supabase Storage failed: ' . $e->getMessage(),
+                0,
+                $e
+            );
+        }
+    }
+
+    /**
      * Normalize an image path to a relative path for consistent DB storage.
      * Handles full Supabase URLs, local storage URLs, and already-relative paths.
      */
@@ -452,14 +491,30 @@ class ProductController extends \App\Http\Controllers\Controller
         if ($relativePath && str_starts_with($relativePath, 'http')) return;
 
         // Delete from the appropriate disk
-        if ($relativePath && Storage::disk($disk)->exists($relativePath)) {
-            Storage::disk($disk)->delete($relativePath);
+        try {
+            if ($relativePath && Storage::disk($disk)->exists($relativePath)) {
+                Storage::disk($disk)->delete($relativePath);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to delete image from primary disk', [
+                'disk' => $disk,
+                'path' => $relativePath,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         // Also try the other disk (migration fallback)
         $fallbackDisk = $disk === 'supabase' ? 'public' : 'supabase';
-        if ($relativePath && Storage::disk($fallbackDisk)->exists($relativePath)) {
-            Storage::disk($fallbackDisk)->delete($relativePath);
+        try {
+            if ($relativePath && Storage::disk($fallbackDisk)->exists($relativePath)) {
+                Storage::disk($fallbackDisk)->delete($relativePath);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to delete image from fallback disk', [
+                'disk' => $fallbackDisk,
+                'path' => $relativePath,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }

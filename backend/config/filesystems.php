@@ -8,8 +8,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you may specify the default filesystem disk that should be used
-    | by the framework. The "local" disk, as well as a variety of cloud
-    | based disks are available to your application for file storage.
+    | by the framework. All the "local" disk, as well as a variety of cloud
+    | based disks are available for your application for file storage.
     |
     */
 
@@ -20,7 +20,7 @@ return [
     | Filesystem Disks
     |--------------------------------------------------------------------------
     |
-    | Below you may configure as many filesystem disks as necessary, and you
+    | Here you may configure as many filesystem disks as necessary and you
     | may even configure multiple disks for the same driver. Examples for
     | most supported storage drivers are configured here for reference.
     |
@@ -56,7 +56,7 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => true,
+            'throw' => false,
             'report' => false,
         ],
 
@@ -70,7 +70,6 @@ return [
             'url' => env('SUPABASE_PUBLIC_URL'),
             'use_path_style_endpoint' => true,
             'throw' => true,
-            'report' => false,
         ],
 
     ],
