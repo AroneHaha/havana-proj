@@ -9,6 +9,7 @@ use App\Models\Category;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -152,14 +153,15 @@ class ProductController extends \App\Http\Controllers\Controller
 
         // Single main image (file upload)
         if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')->store('products', $disk);
+            $validated['image'] = $this->uploadFile($request->file('image'), $disk);
         }
 
         // Multiple images (file uploads)
         $imagePaths = [];
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $file) {
-                $imagePaths[] = $file->store('products', $disk);
+                $path = $this->uploadFile($file, $disk);
+                if ($path) $imagePaths[] = $path;
             }
         }
         $validated['images'] = !empty($imagePaths) ? $imagePaths : null;
@@ -253,7 +255,7 @@ class ProductController extends \App\Http\Controllers\Controller
             if ($product->image) {
                 $this->deleteImageFile($product->image);
             }
-            $validated['image'] = $request->file('image')->store('products', $disk);
+            $validated['image'] = $this->uploadFile($request->file('image'), $disk);
         }
 
         // Multiple images: merge existing (kept) + newly uploaded
@@ -272,7 +274,8 @@ class ProductController extends \App\Http\Controllers\Controller
         // Append newly uploaded files
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $file) {
-                $finalImages[] = $file->store('products', $disk);
+                $path = $this->uploadFile($file, $disk);
+                if ($path) $finalImages[] = $path;
             }
         }
 
@@ -342,6 +345,45 @@ class ProductController extends \App\Http\Controllers\Controller
     private function storageDisk(): string
     {
         return config('filesystems.disks.supabase.endpoint') ? 'supabase' : 'public';
+    }
+
+    /**
+     * Upload a file with automatic fallback: tries Supabase first,
+     * falls back to local public disk if S3 fails.
+     *
+     * This prevents Supabase connectivity issues from breaking product creation.
+     * Logs the S3 error so it can be diagnosed while still allowing uploads to work.
+     */
+    private function uploadFile($file, string $preferredDisk): ?string
+    {
+        // If preferred disk is local, just use it directly
+        if ($preferredDisk === 'public') {
+            return $file->store('products', 'public');
+        }
+
+        // Try Supabase S3 first
+        try {
+            $path = $file->store('products', $preferredDisk);
+            if ($path !== false && $path !== null) {
+                return $path;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Supabase S3 upload failed, falling back to local disk', [
+                'error' => $e->getMessage(),
+                'file' => $file->getClientOriginalName(),
+            ]);
+        }
+
+        // Fallback: save to local public disk
+        try {
+            return $file->store('products', 'public');
+        } catch (\Throwable $e) {
+            Log::error('Local disk upload also failed', [
+                'error' => $e->getMessage(),
+                'file' => $file->getClientOriginalName(),
+            ]);
+            return null;
+        }
     }
 
     /**
