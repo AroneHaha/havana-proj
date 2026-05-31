@@ -111,7 +111,7 @@ interface LaravelProductsResponse {
   };
 }
 
-function mapLaravelProduct(raw: LaravelProduct, locale: Locale): Product {
+export function mapLaravelProduct(raw: LaravelProduct, locale: Locale): Product {
   // Build localeText from the backend's separate locale fields
   const localeText: Record<string, { name: string; description: string }> = {};
   if (raw.name_en || raw.description_en) {

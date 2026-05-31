@@ -46,6 +46,10 @@ interface ProductsState {
   /** Refresh stats from service */
   fetchStats: () => Promise<void>;
 
+  // ─── Dashboard hydration ──────────────────────────────────────────
+  /** Hydrate stats from the combined dashboard summary response */
+  hydrateStatsFromSummary: (stats: ProductStats) => void;
+
   // ─── Actions ────────────────────────────────────────────────────────
   addProduct: (product: Omit<Product, "id" | "slug" | "rating" | "reviewCount" | "createdAt">, rawFiles?: File[]) => Promise<void>;
   updateProduct: (id: string, data: Partial<Product>, rawFiles?: File[]) => Promise<void>;
@@ -94,6 +98,10 @@ export const useProductsStore = create<ProductsState>()(
         } catch {
           // Stats are non-critical
         }
+      },
+
+      hydrateStatsFromSummary: (stats) => {
+        set({ stats });
       },
 
       addProduct: async (productData, rawFiles) => {

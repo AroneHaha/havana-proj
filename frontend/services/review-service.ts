@@ -108,7 +108,7 @@ interface LaravelReviewStatsResponse {
 
 // ─── Map Laravel review → Review ──────────────────────────────────────
 
-function mapLaravelReview(raw: LaravelReview): Review {
+export function mapLaravelReview(raw: LaravelReview): Review {
   // Build customer name from the backend's user object
   const user = raw.user;
   const customerName = user

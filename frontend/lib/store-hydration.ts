@@ -11,9 +11,10 @@
  *   3. fetchX() completes → store updates silently with fresh data
  */
 
-import { useOrdersStore } from "@/store/orders-store";
-import { useProductsStore } from "@/store/product-store";
-import { useReviewsStore } from "@/store/review-store";
+import { useOrdersStore, type OrderStats } from "@/store/orders-store";
+import { useProductsStore, type ProductStats } from "@/store/product-store";
+import { useReviewsStore, type ReviewStats } from "@/store/review-store";
+import { type DashboardSummary } from "@/services/dashboard-service";
 
 /**
  * Rehydrate all persisted stores from localStorage.
@@ -53,6 +54,16 @@ export async function hydrateAllStores(): Promise<void> {
   }
 
   await Promise.all(hydrations);
+}
+
+/**
+ * Hydrate stats into all 3 stores from a DashboardSummary response.
+ * Companion to hydrateAllStores — writes stats without triggering API calls.
+ */
+export function hydrateStoresFromSummary(summary: DashboardSummary): void {
+  useOrdersStore.getState().hydrateStatsFromSummary(summary.orders.stats as OrderStats);
+  useProductsStore.getState().hydrateStatsFromSummary(summary.products.stats as ProductStats);
+  useReviewsStore.getState().hydrateStatsFromSummary(summary.reviews.stats as ReviewStats);
 }
 
 /**

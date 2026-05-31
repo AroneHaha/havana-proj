@@ -49,6 +49,10 @@ interface ReviewsState {
   setFilters: (filters: Partial<ReviewFilters>) => void;
   resetFilters: () => void;
 
+  // ─── Dashboard hydration ──────────────────────────────────────────
+  /** Hydrate stats from the combined dashboard summary response */
+  hydrateStatsFromSummary: (stats: ReviewStats) => void;
+
   // ─── Actions ────────────────────────────────────────────────────────
   updateVisibility: (id: string, visibility: ReviewVisibility) => Promise<void>;
   deleteReview: (id: string) => Promise<void>;
@@ -91,6 +95,10 @@ export const useReviewsStore = create<ReviewsState>()(
         } catch {
           // Stats are non-critical
         }
+      },
+
+      hydrateStatsFromSummary: (stats) => {
+        set({ stats });
       },
 
       setFilters: (partial) => {

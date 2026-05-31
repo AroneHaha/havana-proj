@@ -54,6 +54,10 @@ interface OrdersState {
   /** Refresh stats from service */
   fetchStats: () => Promise<void>;
 
+  // ─── Dashboard hydration ──────────────────────────────────────────
+  /** Hydrate stats from the combined dashboard summary response */
+  hydrateStatsFromSummary: (stats: OrderStats) => void;
+
   // ─── Actions ────────────────────────────────────────────────────────
   updateOrderStatus: (id: string, status: OrderStatus) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
@@ -95,6 +99,10 @@ export const useOrdersStore = create<OrdersState>()(
         } catch {
           // Stats are non-critical — don't set error state
         }
+      },
+
+      hydrateStatsFromSummary: (stats) => {
+        set({ stats });
       },
 
       updateOrderStatus: async (id, status) => {

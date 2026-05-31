@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
@@ -26,6 +27,17 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ADMIN DASHBOARD — combined summary (1 API call instead of 5+)
+    // ═══════════════════════════════════════════════════════════════════
+
+    // GET /api/admin/dashboard/summary — all dashboard data in one request
+    // Returns: { orders: { stats, recent }, products: { stats, alerts }, reviews: { stats, recent } }
+    Route::get('/dashboard/summary', [AdminDashboardController::class, 'summary'])
+        ->name('admin.dashboard.summary');
+
+    // ═══════════════════════════════════════════════════════════════════
 
     // ═══════════════════════════════════════════════════════════════════
     // ADMIN PRODUCTS — from product-service.ts (✅ Web frontend verified)

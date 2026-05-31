@@ -20,6 +20,7 @@ import { useLanguageStore } from "@/store/language-store";
 import { useOrdersStore, STATUS_I18N_KEY } from "@/store/orders-store";
 import { useProductsStore, getStockStatus } from "@/store/product-store";
 import { useReviewsStore } from "@/store/review-store";
+import { useDashboardData } from "@/lib/use-dashboard-data";
 import { getDictionary } from "@/i18n";
 import { formatPrice } from "@/lib/format-price";
 import { ORDER_STATUS_COLORS } from "@/lib/constant";
@@ -37,29 +38,25 @@ export function AdminDashboard() {
   const ordersLoading = useOrdersStore((s) => s.loading);
   const orders = useOrdersStore((s) => s.orders);
   const orderStats = useOrdersStore((s) => s.stats);
-  const fetchOrders = useOrdersStore((s) => s.fetchOrders);
-  const fetchStats = useOrdersStore((s) => s.fetchStats);
 
   const productsLoading = useProductsStore((s) => s.loading);
   const products = useProductsStore((s) => s.products);
-  const fetchProducts = useProductsStore((s) => s.fetchProducts);
 
   const reviewsLoading = useReviewsStore((s) => s.loading);
   const reviews = useReviewsStore((s) => s.reviews);
   const reviewStats = useReviewsStore((s) => s.stats);
-  const fetchReviews = useReviewsStore((s) => s.fetchReviews);
-  const fetchReviewStats = useReviewsStore((s) => s.fetchStats);
 
-  const loading = ordersLoading || productsLoading || reviewsLoading;
+  // ─── Single-request dashboard data ──
+  const { loading: dashboardLoading, error: dashboardError } = useDashboardData();
 
-  // ─── Fetch on mount ──
+  const loading = ordersLoading || productsLoading || reviewsLoading || dashboardLoading;
+
+  // ─── Fetch list data on mount (stats are already hydrated by useDashboardData) ──
   useEffect(() => {
-    fetchOrders();
-    fetchStats();
-    fetchProducts();
-    fetchReviews();
-    fetchReviewStats();
-  }, [fetchOrders, fetchStats, fetchProducts, fetchReviews, fetchReviewStats]);
+    useOrdersStore.getState().fetchOrders();
+    useProductsStore.getState().fetchProducts();
+    useReviewsStore.getState().fetchReviews();
+  }, []);
 
 const totalRevenue = useMemo(() => {
     if (orderStats) return orderStats.totalRevenue ?? 0;

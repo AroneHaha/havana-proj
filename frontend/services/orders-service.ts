@@ -138,7 +138,7 @@ interface LaravelOrderItem {
  * The backend uses shipping_address/shipping_phone/shipping_cost
  * and nests user info in a user object, NOT a flat customer object.
  */
-interface LaravelOrder {
+export interface LaravelOrder {
   id: string;
   user_id?: string;
   order_number: string;
@@ -203,7 +203,7 @@ interface LaravelOrderStatsResponse {
 
 // ─── Map Laravel order → Order ────────────────────────────────────────
 
-function mapLaravelOrder(raw: LaravelOrder): Order {
+export function mapLaravelOrder(raw: LaravelOrder): Order {
   // Build customer from the backend's user object + shipping fields
   // Backend Admin\OrderResource has: user.first_name, user.last_name, user.email,
   // user.phone, shipping_address, shipping_phone
