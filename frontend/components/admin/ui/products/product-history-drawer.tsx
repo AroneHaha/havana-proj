@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -13,6 +13,7 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import { useOrdersStore } from "@/store/orders-store";
 import { useReviewsStore } from "@/store/review-store";
@@ -36,6 +37,8 @@ export function ProductHistoryDrawer({
 }: ProductHistoryDrawerProps) {
   const orders = useOrdersStore((s) => s.orders);
   const reviews = useReviewsStore((s) => s.reviews);
+  const fetchReviews = useReviewsStore((s) => s.fetchReviews);
+  const reviewsLoading = useReviewsStore((s) => s.loading);
 
   const itemsSold = useMemo(() => {
     if (!product) return 0;
@@ -72,6 +75,26 @@ export function ProductHistoryDrawer({
   // Reset carousel when product changes
   useEffect(() => { setActiveImg(0); }, [product?.id]);
 
+  // ─── Reviews lazy load + pagination ──
+  const REVIEW_PAGE_SIZE = 5;
+  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewsFetchedFor, setReviewsFetchedFor] = useState<string | null>(null);
+
+  // Lazy-fetch reviews for this product when drawer opens
+  useEffect(() => {
+    if (!open || !product?.id) return;
+    if (reviewsFetchedFor !== product.id) {
+      setReviewPage(1);
+      fetchReviews({ productId: product.id, page: 1, perPage: 200 } as any);
+      setReviewsFetchedFor(product.id);
+    }
+  }, [open, product?.id, reviewsFetchedFor, fetchReviews]);
+
+  // Reset when drawer closes
+  useEffect(() => {
+    if (!open) setReviewsFetchedFor(null);
+  }, [open]);
+
   const productReviews = useMemo(() => {
     if (!product) return [];
     return reviews.filter((r) => r.product.productId === product.id);
@@ -84,6 +107,8 @@ export function ProductHistoryDrawer({
       productReviews.length
     );
   }, [productReviews]);
+
+  const totalReviewPages = Math.max(1, Math.ceil(productReviews.length / REVIEW_PAGE_SIZE));
 
   if (!product) return null;
 
@@ -110,6 +135,9 @@ export function ProductHistoryDrawer({
       ))}
     </div>
   );
+
+  // Is currently fetching for THIS product?
+  const isFetching = reviewsLoading && productReviews.length === 0;
 
   return (
     <AnimatePresence>
@@ -299,48 +327,107 @@ export function ProductHistoryDrawer({
                   <MessageSquare className="w-4 h-4 text-maroon dark:text-gold" />
                   Reviews
                   <span className="text-xs font-normal text-muted-foreground">({productReviews.length})</span>
+                  {reviewsLoading && (
+                    <Loader2 className="w-3.5 h-3.5 text-maroon dark:text-gold animate-spin" />
+                  )}
                 </h3>
 
-                {productReviews.length === 0 ? (
+                {isFetching ? (
+                  /* Loading skeleton while fetching */
+                  <div className="space-y-2">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="bg-muted/50 dark:bg-[#111] rounded-xl p-3 space-y-2 animate-pulse">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-muted/60 dark:bg-white/5" />
+                            <div className="space-y-1">
+                              <div className="h-3 w-20 rounded bg-muted/60 dark:bg-white/5" />
+                              <div className="h-2 w-16 rounded bg-muted/60 dark:bg-white/5" />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-0.5">
+                            {Array.from({ length: 5 }).map((_, s) => (
+                              <div key={s} className="w-3.5 h-3.5 rounded bg-muted/60 dark:bg-white/5" />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-1 pl-9">
+                          <div className="h-2.5 w-full rounded bg-muted/60 dark:bg-white/5" />
+                          <div className="h-2.5 w-3/4 rounded bg-muted/60 dark:bg-white/5" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : productReviews.length === 0 ? (
                   <div className="bg-muted/50 dark:bg-[#111] rounded-xl p-6 text-center">
                     <MessageSquare className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
                     <p className="text-xs text-muted-foreground">No reviews found for this product</p>
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-72 overflow-y-auto">
-                    {productReviews.map((review) => (
-                      <div key={review.id} className="bg-muted/50 dark:bg-[#111] rounded-xl p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-maroon/10 dark:bg-gold/10 flex items-center justify-center">
-                              <User className="w-3.5 h-3.5 text-maroon dark:text-gold" />
+                  <>
+                    <div className="space-y-2 max-h-[620px] overflow-y-auto">
+                      {productReviews
+                        .slice((reviewPage - 1) * REVIEW_PAGE_SIZE, reviewPage * REVIEW_PAGE_SIZE)
+                        .map((review) => (
+                          <div key={review.id} className="bg-muted/50 dark:bg-[#111] rounded-xl p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-maroon/10 dark:bg-gold/10 flex items-center justify-center">
+                                  <User className="w-3.5 h-3.5 text-maroon dark:text-gold" />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-semibold text-foreground">{review.customerName}</p>
+                                  <p className="text-[10px] text-muted-foreground">{formatDate(review.createdAt)}</p>
+                                </div>
+                              </div>
+                              {renderStars(review.rating)}
                             </div>
-                            <div>
-                              <p className="text-xs font-semibold text-foreground">{review.customerName}</p>
-                              <p className="text-[10px] text-muted-foreground">{formatDate(review.createdAt)}</p>
+                            {review.title && (
+                              <p className="text-xs font-semibold text-foreground">{review.title}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground leading-relaxed">{review.comment}</p>
+                            <div className="flex items-center justify-between">
+                              <span className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                                review.visibility === "visible"
+                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                  : review.visibility === "hidden"
+                                  ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                  : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                              }`}>
+                                {review.visibility === "visible" ? "Visible" : review.visibility === "hidden" ? "Hidden" : "Pending"}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">{review.customerEmail}</span>
                             </div>
                           </div>
-                          {renderStars(review.rating)}
-                        </div>
-                        {review.title && (
-                          <p className="text-xs font-semibold text-foreground">{review.title}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground leading-relaxed">{review.comment}</p>
-                        <div className="flex items-center justify-between">
-                          <span className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                            review.visibility === "visible"
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                              : review.visibility === "hidden"
-                              ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                              : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                          }`}>
-                            {review.visibility === "visible" ? "Visible" : review.visibility === "hidden" ? "Hidden" : "Pending"}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">{review.customerEmail}</span>
+                        ))}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalReviewPages > 1 && (
+                      <div className="flex items-center justify-between mt-3 pt-2 border-t border-border">
+                        <span className="text-[10px] text-muted-foreground">
+                          {(reviewPage - 1) * REVIEW_PAGE_SIZE + 1}–{Math.min(reviewPage * REVIEW_PAGE_SIZE, productReviews.length)} of {productReviews.length}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setReviewPage((p) => Math.max(1, p - 1))}
+                            disabled={reviewPage === 1}
+                            className="p-1 rounded-md hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="text-[10px] text-muted-foreground font-medium tabular-nums">{reviewPage} / {totalReviewPages}</span>
+                          <button
+                            onClick={() => setReviewPage((p) => Math.min(totalReviewPages, p + 1))}
+                            disabled={reviewPage === totalReviewPages}
+                            className="p-1 rounded-md hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

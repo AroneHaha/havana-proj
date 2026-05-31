@@ -82,7 +82,19 @@ export const useReviewsStore = create<ReviewsState>()(
         try {
           const activeFilters = filters ?? get().filters;
           const result = await serviceFetchReviews(activeFilters);
-          set({ reviews: result.reviews, loading: false });
+
+          // ── Merge instead of replace ──
+          // When fetching with a productId filter (e.g. per-product lazy load),
+          // we MERGE the new reviews into the existing array so that switching
+          // products doesn't wipe out previously loaded reviews.
+          // When fetching ALL reviews (no productId filter), we replace entirely.
+          if (activeFilters?.productId) {
+            const existingIds = new Set(get().reviews.map((r) => r.id));
+            const newOnes = result.reviews.filter((r) => !existingIds.has(r.id));
+            set({ reviews: [...get().reviews, ...newOnes], loading: false });
+          } else {
+            set({ reviews: result.reviews, loading: false });
+          }
         } catch (err) {
           set({ error: getErrorMessage(err, "Failed to fetch reviews"), loading: false });
         }
