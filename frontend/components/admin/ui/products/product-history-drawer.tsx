@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -11,6 +11,8 @@ import {
   User,
   Edit3,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useOrdersStore } from "@/store/orders-store";
 import { useReviewsStore } from "@/store/review-store";
@@ -54,6 +56,21 @@ export function ProductHistoryDrawer({
         return sum + (match ? match.quantity * match.price : 0);
       }, 0);
   }, [orders, product]);
+
+  // ─── Carousel state ──
+  const allImages = product?.images ?? [];
+  const [activeImg, setActiveImg] = useState(0);
+
+  const goToImg = (dir: "prev" | "next") => {
+    setActiveImg((prev) =>
+      dir === "prev"
+        ? (prev - 1 + allImages.length) % allImages.length
+        : (prev + 1) % allImages.length
+    );
+  };
+
+  // Reset carousel when product changes
+  useEffect(() => { setActiveImg(0); }, [product?.id]);
 
   const productReviews = useMemo(() => {
     if (!product) return [];
@@ -126,40 +143,98 @@ export function ProductHistoryDrawer({
             </div>
 
             <div className="p-5 space-y-6">
-              {/* Product Info */}
-              <div className="flex gap-4">
-                <div className="w-24 h-24 rounded-xl bg-muted/30 flex-shrink-0 overflow-hidden flex items-center justify-center">
-                  {product.images[0] ? (
-                    <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <Package className="w-10 h-10 text-maroon/20 dark:text-gold/20" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold text-foreground leading-tight truncate">{product.name}</h3>
-                    {/* Edit + Delete — only on small screens */}
-                    <div className="flex items-center gap-1.5 sm:hidden shrink-0">
-                      <button
-                        onClick={() => onEdit(product)}
-                        className="p-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors cursor-pointer"
-                        title="Edit"
-                      >
-                        <Edit3 className="w-4 h-4 text-foreground" />
-                      </button>
-                      <button
-                        onClick={() => onDelete(product.id)}
-                        className="p-1.5 rounded-lg bg-red-500/90 hover:bg-red-500 transition-colors cursor-pointer"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4 text-white" />
-                      </button>
-                    </div>
+              {/* Image Carousel + Product Info */}
+              <div className="space-y-3">
+                {/* Main image */}
+                {allImages.length > 0 ? (
+                  <div className="relative aspect-[4/3] rounded-xl bg-muted/30 overflow-hidden group">
+                    <AnimatePresence mode="wait">
+                      <motion.img
+                        key={activeImg}
+                        src={allImages[activeImg]}
+                        alt={`${product.name} ${activeImg + 1}`}
+                        className="w-full h-full object-cover"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                      />
+                    </AnimatePresence>
+
+                    {/* Nav arrows */}
+                    {allImages.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => goToImg("prev")}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/30 hover:bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => goToImg("next")}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/30 hover:bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+
+                    {/* Counter */}
+                    {allImages.length > 1 && (
+                      <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/40 text-white text-[10px] font-medium">
+                        {activeImg + 1} / {allImages.length}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{product.nameAr}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{product.sku} &middot; {product.category}</p>
-                  <p className="text-lg font-bold text-maroon dark:text-gold mt-1">{formatPrice(product.salePrice ?? product.price)}</p>
+                ) : (
+                  <div className="aspect-[4/3] rounded-xl bg-muted/30 flex items-center justify-center">
+                    <Package className="w-12 h-12 text-maroon/20 dark:text-gold/20" />
+                  </div>
+                )}
+
+                {/* Thumbnails */}
+                {allImages.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {allImages.map((img, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveImg(idx)}
+                        className={`shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                          idx === activeImg
+                            ? "border-maroon dark:border-gold ring-1 ring-maroon/20 dark:ring-gold/20"
+                            : "border-border opacity-50 hover:opacity-100"
+                        }`}
+                      >
+                        <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Product text info */}
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-foreground leading-tight truncate">{product.name}</h3>
+                  {/* Edit + Delete — only on small screens */}
+                  <div className="flex items-center gap-1.5 sm:hidden shrink-0">
+                    <button
+                      onClick={() => onEdit(product)}
+                      className="p-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors cursor-pointer"
+                      title="Edit"
+                    >
+                      <Edit3 className="w-4 h-4 text-foreground" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(product.id)}
+                      className="p-1.5 rounded-lg bg-red-500/90 hover:bg-red-500 transition-colors cursor-pointer"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
                 </div>
+                <p className="text-xs text-muted-foreground">{product.nameAr}</p>
+                <p className="text-xs text-muted-foreground">{product.sku} &middot; {product.category}</p>
+                <p className="text-lg font-bold text-maroon dark:text-gold">{formatPrice(product.salePrice ?? product.price)}</p>
               </div>
 
               {/* Stats Cards */}
@@ -184,6 +259,38 @@ export function ProductHistoryDrawer({
                   <p className="text-lg font-bold text-foreground">{formatPrice(totalRevenue)}</p>
                   <p className="text-[10px] text-muted-foreground font-medium">Revenue</p>
                 </div>
+              </div>
+
+              {/* Product Details */}
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-0.5">Stock</p>
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${
+                      product.status === "in_stock"
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                        : product.status === "low_stock"
+                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        product.status === "in_stock" ? "bg-emerald-500" : product.status === "low_stock" ? "bg-yellow-500" : "bg-red-500"
+                      }`} />
+                      {product.status === "in_stock" ? "In Stock" : product.status === "low_stock" ? "Low Stock" : "Sold Out"}
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-1">{product.stock} units</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-0.5">Category</p>
+                    <p className="text-xs font-medium text-foreground capitalize">{product.category}</p>
+                  </div>
+                </div>
+                {product.description && (
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-0.5">Description</p>
+                    <p className="text-xs text-foreground leading-relaxed">{product.description}</p>
+                  </div>
+                )}
               </div>
 
               {/* Reviews */}

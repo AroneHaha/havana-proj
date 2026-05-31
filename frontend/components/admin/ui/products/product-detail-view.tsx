@@ -1,7 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { ArrowLeft, Star, Tag } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Star, Tag, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatPrice } from "@/lib/format-price";
 import type { Product } from "@/types";
 import { getStockStatus } from "@/store/product-store";
@@ -31,6 +32,18 @@ export function ProductDetailView({
   labels,
 }: ProductDetailViewProps) {
   const stockStatus = getStockStatus(product);
+
+  // ─── Carousel state ──
+  const allImages = [product.image, ...(product.images ?? [])];
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const goTo = (dir: "prev" | "next") => {
+    setActiveIndex((prev) =>
+      dir === "prev"
+        ? (prev - 1 + allImages.length) % allImages.length
+        : (prev + 1) % allImages.length
+    );
+  };
 
   const statusConfig: Record<string, { label: string; color: string; dot: string }> = {
     in_stock: { label: "In Stock", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400", dot: "bg-emerald-500" },
@@ -68,21 +81,64 @@ export function ProductDetailView({
         </h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left: Image */}
-          <div className="space-y-4">
-            <div className="aspect-square rounded-xl bg-muted/30 overflow-hidden">
-              <img
-                src={product.image}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
+          {/* Left: Image Carousel */}
+          <div className="space-y-3">
+            {/* Main image */}
+            <div className="relative aspect-square rounded-xl bg-muted/30 overflow-hidden group">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={activeIndex}
+                  src={allImages[activeIndex]}
+                  alt={`${product.name} ${activeIndex + 1}`}
+                  className="w-full h-full object-cover"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                />
+              </AnimatePresence>
+
+              {/* Nav arrows — only show when multiple images */}
+              {allImages.length > 1 && (
+                <>
+                  <button
+                    onClick={() => goTo("prev")}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/30 hover:bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => goTo("next")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/30 hover:bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+
+              {/* Image counter */}
+              {allImages.length > 1 && (
+                <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/40 text-white text-[10px] font-medium">
+                  {activeIndex + 1} / {allImages.length}
+                </div>
+              )}
             </div>
-            {(product.images && product.images.length > 0) && (
-              <div className="grid grid-cols-4 gap-2">
-                {product.images.map((img, idx) => (
-                  <div key={idx} className="aspect-square rounded-lg bg-muted/30 overflow-hidden">
+
+            {/* Thumbnails */}
+            {allImages.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {allImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveIndex(idx)}
+                    className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                      idx === activeIndex
+                      ? "border-maroon dark:border-gold ring-1 ring-maroon/20 dark:ring-gold/20"
+                      : "border-border ring-1 ring-black/[0.03] dark:ring-white/[0.03] opacity-60 hover:opacity-100"
+                    }`}
+                  >
                     <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
