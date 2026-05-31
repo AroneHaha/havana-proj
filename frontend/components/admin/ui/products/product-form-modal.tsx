@@ -116,8 +116,10 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
     rawFiles: [],
   });
 
-  // Track raw File objects alongside preview URLs
-  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  // Map from data-URI preview string → raw File object.
+  // Keyed by the base64 preview so that removing/adding images by index
+  // in form.images never desyncs from the actual File objects.
+  const [fileMap, setFileMap] = useState<Map<string, File>>(new Map());
 
   // Submission state
   const [submitting, setSubmitting] = useState(false);
@@ -148,25 +150,41 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
 
     if (validFiles.length === 0) return;
 
-    // Store raw File objects for FormData when API is live
-    setPendingFiles((prev) => [...prev, ...validFiles].slice(0, 5));
+    // Generate base64 previews for the UI and map each preview → File
+    const previews = await processFiles(
+      (() => { const dt = new DataTransfer(); validFiles.forEach((f) => dt.items.add(f)); return dt.files; })()
+    );
 
-    // Also generate base64 previews for the UI
-    const dt = new DataTransfer();
-    validFiles.forEach((f) => dt.items.add(f));
-    const newImages = await processFiles(dt.files);
+    setFileMap((prev) => {
+      const next = new Map(prev);
+      validFiles.forEach((file, i) => {
+        if (previews[i]) next.set(previews[i], file);
+      });
+      return next;
+    });
+
     setForm((p) => ({
       ...p,
-      images: [...p.images, ...newImages].slice(0, 5),
+      images: [...p.images, ...previews].slice(0, 5),
     }));
   };
 
   const handleImageRemove = (index: number) => {
-    setForm((p) => ({
-      ...p,
-      images: p.images.filter((_, i) => i !== index),
-    }));
-    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+    setForm((p) => {
+      const removed = p.images[index];
+      // Clean up the file map entry for the removed preview
+      if (removed && removed.startsWith("data:")) {
+        setFileMap((prev) => {
+          const next = new Map(prev);
+          next.delete(removed);
+          return next;
+        });
+      }
+      return {
+        ...p,
+        images: p.images.filter((_, i) => i !== index),
+      };
+    });
   };
 
   const handleImageReplace = async (index: number, files: FileList) => {
@@ -175,23 +193,24 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
     const fileArray = Array.from(files);
     const newImages = await processFiles(files);
 
+    if (newImages[0] && fileArray[0]) {
+      setFileMap((prev) => {
+        const next = new Map(prev);
+        // Remove the old preview entry if it was a data URI
+        const oldPreview = form.images[index];
+        if (oldPreview && oldPreview.startsWith("data:")) {
+          next.delete(oldPreview);
+        }
+        // Map the new preview to the new file
+        next.set(newImages[0], fileArray[0]);
+        return next;
+      });
+    }
+
     setForm((p) => ({
       ...p,
       images: p.images.map((img, i) => i === index ? newImages[0] : img),
     }));
-
-    setPendingFiles((prev) => {
-      // If replacing a slot that already had a pending file, swap it.
-      // Otherwise, we need to track that this pending file belongs to a
-      // specific index rather than being appended.
-      const updated = [...prev];
-      if (index < updated.length) {
-        updated[index] = fileArray[0];
-      } else {
-        updated.push(fileArray[0]);
-      }
-      return updated.slice(0, 5);
-    });
   };
 
   // Clear field error when user edits that field
@@ -217,7 +236,13 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
     setFieldErrors({});
     setGeneralError("");
 
-    const finalForm = { ...form, rawFiles: pendingFiles };
+    // Reconstruct rawFiles from form.images order using the fileMap.
+    // Only data-URI entries have corresponding File objects in the map.
+    const rawFiles = form.images
+      .map((img) => fileMap.get(img))
+      .filter((f): f is File => f != null);
+
+    const finalForm = { ...form, rawFiles };
 
     try {
       let errors: FormFieldErrors | void;

@@ -317,25 +317,35 @@ export async function createProduct(
       // No raw files — send as JSON
       // Backend expects name_en/name_ar/description_en/description_ar
       // (NOT name/description/locale_text)
+      // Note: Don't send `image`/`images` with URL strings — Laravel's `image`
+      // validation rule expects UploadedFile objects. Only send `existing_images`
+      // for URLs that should be preserved (e.g. when editing).
       const localeText = data.localeText ?? {};
+      const jsonBody: Record<string, unknown> = {
+        name_en: localeText.en?.name ?? data.name,
+        name_ar: localeText.ar?.name ?? data.name,
+        description_en: localeText.en?.description ?? data.description ?? "",
+        description_ar: localeText.ar?.description ?? data.description ?? "",
+        price: data.price,
+        sale_price: data.salePrice ?? null,
+        category_id: data.category,
+        stock: data.stock,
+        in_stock: data.stock > 0,
+        is_featured: data.isFeatured ?? false,
+        is_best_seller: data.isBestSeller ?? false,
+        is_new: data.isNew ?? false,
+      };
+      // Only include existing (non-data-URI) image URLs
+      const existingUrls = (data.images ?? []).filter(
+        (img: string) => !img.startsWith("data:")
+      );
+      if (existingUrls.length > 0) {
+        jsonBody.existing_images = existingUrls;
+      }
+
       const res = await productsFetch<{ data: LaravelProduct }>("/admin/products", {
         method: "POST",
-        body: JSON.stringify({
-          name_en: localeText.en?.name ?? data.name,
-          name_ar: localeText.ar?.name ?? data.name,
-          description_en: localeText.en?.description ?? data.description ?? "",
-          description_ar: localeText.ar?.description ?? data.description ?? "",
-          price: data.price,
-          sale_price: data.salePrice ?? null,
-          image: data.image,
-          images: data.images ?? [],
-          category_id: data.category,
-          stock: data.stock,
-          in_stock: data.stock > 0,
-          is_featured: data.isFeatured ?? false,
-          is_best_seller: data.isBestSeller ?? false,
-          is_new: data.isNew ?? false,
-        }),
+        body: JSON.stringify(jsonBody),
       });
       return mapLaravelProduct(res.data, locale);
     } catch (err) {
@@ -429,6 +439,12 @@ export async function updateProduct(
       // No raw files — send as JSON (PATCH)
       // Backend expects name_en/name_ar/description_en/description_ar
       // (NOT name/description/locale_text)
+      //
+      // IMPORTANT: Do NOT send `image` or `images` as URL strings in JSON.
+      // Laravel's validation rules require `image`/`images.*` to be UploadedFile
+      // objects — sending URL strings would cause a 422 validation error.
+      // Instead, send existing image URLs as `existing_images[]` which the
+      // backend validates as strings and preserves correctly.
       const body: Record<string, unknown> = {};
       const lt = data.localeText ?? {};
       if (data.name !== undefined) {
@@ -441,8 +457,14 @@ export async function updateProduct(
       }
       if (data.price !== undefined) body.price = data.price;
       if (data.salePrice !== undefined) body.sale_price = data.salePrice;
-      if (data.image !== undefined) body.image = data.image;
-      if (data.images !== undefined) body.images = data.images;
+      // Send existing image URLs via existing_images (validated as strings)
+      // NOT via image/images (which Laravel validates as file uploads)
+      const existingImageUrls = (data.images ?? []).filter(
+        (img: string) => !img.startsWith("data:")
+      );
+      if (existingImageUrls.length > 0) {
+        body.existing_images = existingImageUrls;
+      }
       if (data.category !== undefined) body.category_id = data.category;
       if (data.stock !== undefined) {
         body.stock = data.stock;
