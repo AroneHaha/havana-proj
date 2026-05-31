@@ -64,14 +64,42 @@ class OrderControllerTest extends TestCase
         ])->assertStatus(422);
     }
 
-    public function test_admin_can_cancel_order(): void
+    public function test_admin_can_cancel_pending_order(): void
+    {
+        $this->actingAsAdmin();
+        $order = Order::factory()->create(['status' => 'pending']);
+
+        $this->patchJson("/api/admin/orders/{$order->id}/cancel")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'cancelled');
+    }
+
+    public function test_admin_can_cancel_out_for_delivery_order(): void
+    {
+        $this->actingAsAdmin();
+        $order = Order::factory()->create(['status' => 'out_for_delivery']);
+
+        $this->patchJson("/api/admin/orders/{$order->id}/cancel")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'cancelled');
+    }
+
+    public function test_admin_cannot_cancel_confirmed_order(): void
     {
         $this->actingAsAdmin();
         $order = Order::factory()->create(['status' => 'confirmed']);
 
         $this->patchJson("/api/admin/orders/{$order->id}/cancel")
-            ->assertOk()
-            ->assertJsonPath('data.status', 'cancelled');
+            ->assertStatus(422);
+    }
+
+    public function test_admin_cannot_cancel_preparing_order(): void
+    {
+        $this->actingAsAdmin();
+        $order = Order::factory()->create(['status' => 'preparing']);
+
+        $this->patchJson("/api/admin/orders/{$order->id}/cancel")
+            ->assertStatus(422);
     }
 
     public function test_admin_can_filter_orders_by_status(): void

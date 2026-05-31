@@ -25,6 +25,11 @@ class UserSeeder extends Seeder
             ['first_name' => 'Omar', 'last_name' => 'Al-Ali', 'email' => 'omar@example.com', 'phone' => '+965-5000-1003'],
             ['first_name' => 'Noor', 'last_name' => 'Khalid', 'email' => 'noor@example.com', 'phone' => '+965-5000-1004'],
             ['first_name' => 'Sara', 'last_name' => 'Mohammed', 'email' => 'sara@example.com', 'phone' => '+965-5000-1005'],
+            ['first_name' => 'Layla', 'last_name' => 'Al-Rashidi', 'email' => 'layla@example.com', 'phone' => '+965-5000-1006'],
+            ['first_name' => 'Youssef', 'last_name' => 'Al-Harbi', 'email' => 'youssef@example.com', 'phone' => '+965-5000-1007'],
+            ['first_name' => 'Maryam', 'last_name' => 'Al-Otaibi', 'email' => 'maryam@example.com', 'phone' => '+965-5000-1008'],
+            ['first_name' => 'Khalid', 'last_name' => 'Al-Mutairi', 'email' => 'khalid@example.com', 'phone' => '+965-5000-1009'],
+            ['first_name' => 'Huda', 'last_name' => 'Al-Shammari', 'email' => 'huda@example.com', 'phone' => '+965-5000-1010'],
         ];
 
         foreach ($customers as $customer) {
@@ -39,6 +44,6 @@ class UserSeeder extends Seeder
             ]);
         }
 
-        $this->command->info('Created 1 admin + 5 customers = 6 users.');
+        $this->command->info('Created 1 admin + 10 customers = 11 users.');
     }
 }

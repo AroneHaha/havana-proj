@@ -611,9 +611,9 @@ export async function updateOrderStatus(
   }
 
   // Validate status transition
-  if (status === "cancelled" && order.status === "delivered") {
+  if (status === "cancelled" && !["pending", "out_for_delivery"].includes(order.status)) {
     throw new OrdersError(
-      "Cannot cancel a delivered order",
+      `Cannot cancel an order in '${order.status}' status`,
       "STATUS_CONFLICT"
     );
   }

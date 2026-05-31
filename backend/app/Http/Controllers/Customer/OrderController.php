@@ -78,8 +78,8 @@ class OrderController extends \App\Http\Controllers\Controller
             return $this->respondError('Order is already cancelled', 422);
         }
 
-        if (!in_array($order->status, ['pending', 'confirmed'])) {
-            return $this->respondError('Only pending or confirmed orders can be cancelled', 422);
+        if (!in_array($order->status, ['pending'])) {
+            return $this->respondError('Only pending orders can be cancelled', 422);
         }
 
         return DB::transaction(function () use ($order, $request) {

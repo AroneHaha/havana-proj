@@ -65,6 +65,9 @@ export function OrderDetailDrawer({
   const isCancelled = order.status === "cancelled";
   const isNextDelivered = nextStatus === "delivered";
 
+  // Cancel is only allowed for pending and out_for_delivery orders
+  const canCancel = order.status === "pending" || order.status === "out_for_delivery";
+
   const nextStatusBtnKey: Record<string, string> = {
     confirmed: "markConfirmed",
     preparing: "markPreparing",
@@ -557,7 +560,7 @@ export function OrderDetailDrawer({
                 </div>
               </div>
 
-              {!isDelivered && !isCancelled && (
+              {canCancel && (
                 <button
                   onClick={handleCancelClick}
                   className="w-full py-2.5 rounded-lg border-2 border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors cursor-pointer"

@@ -88,7 +88,7 @@ export function OrdersTable({
   };
 
   return (
-    <div className="bg-white dark:bg-dark-card rounded-2xl border border-border ring-1 ring-black/[0.03] dark:ring-white/[0.03] shadow-elevated overflow-hidden">
+    <div className="bg-white dark:bg-dark-card rounded-2xl border border-border ring-1 ring-black/[0.03] dark:ring-white/[0.03] shadow-elevated overflow-hidden flex-1 min-h-0 flex flex-col">
       {/* Date Range Bar — uses shared DateRangeBar */}
       <DateRangeBar
         dateFrom={dateFrom}
@@ -107,10 +107,11 @@ export function OrdersTable({
       />
 
       {/* Table */}
+      <div className="overflow-y-auto flex-1 min-h-0">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-border bg-inset">
+            <tr className="border-b border-border bg-inset sticky top-0 z-10">
               <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t.orderID}</th>
               <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t.customer}</th>
               <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">{t.items}</th>
@@ -204,6 +205,7 @@ export function OrdersTable({
             )}
           </tbody>
         </table>
+      </div>
       </div>
 
       {/* Pagination — uses shared Pagination */}

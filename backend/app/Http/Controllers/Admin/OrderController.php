@@ -26,8 +26,8 @@ class OrderController extends \App\Http\Controllers\Controller
      */
     private const STATUS_TRANSITIONS = [
         'pending' => ['confirmed', 'cancelled'],
-        'confirmed' => ['preparing', 'cancelled'],
-        'preparing' => ['out_for_delivery', 'cancelled'],
+        'confirmed' => ['preparing'],
+        'preparing' => ['out_for_delivery'],
         'out_for_delivery' => ['delivered', 'cancelled'],
         'delivered' => [],
         'cancelled' => [],

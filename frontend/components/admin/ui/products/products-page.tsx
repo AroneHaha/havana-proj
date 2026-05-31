@@ -7,8 +7,9 @@ import {
   Package,
   AlertTriangle,
   CheckCircle2,
-  XCircle,
   ChevronDown,
+  ArrowUpRight,
+  Layers,
 } from "lucide-react";
 import { ProductGrid } from "./products-table";
 import { ProductFormModal, type ProductFormData, type FormFieldErrors } from "./product-form-modal";
@@ -16,7 +17,7 @@ import { DeleteConfirmModal } from "./delete-confirm-modal";
 import { ProductHistoryDrawer } from "./product-history-drawer";
 import { useProductsFilters } from "./use-products-filters";
 import { useProductsStore, getStockStatus } from "@/store/product-store";
-import { StatsCard, SearchInput, FilterTabs } from "@/components/admin/ui/shared";
+import { SearchInput, FilterTabs } from "@/components/admin/ui/shared";
 import { PRODUCT_STATUS_CONFIG, PRODUCT_FILTER_TABS, PRODUCT_CATEGORIES } from "@/lib/constant";
 import { fetchCategories, type Category, ProductsError } from "@/services/product-service";
 import { useLanguageStore } from "@/store/language-store";
@@ -189,6 +190,9 @@ export function ProductsPage() {
     await storeDeleteProduct(id);
   };
 
+  // Stock health ratio for the hero card
+  const stockHealthRatio = totalProducts > 0 ? inStock / totalProducts : 0;
+
   // ─── Render ───
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -207,64 +211,184 @@ export function ProductsPage() {
         </button>
       </div>
 
-      {/* ─── Stats ─── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <StatsCard label="Total Products" value={loading ? "..." : totalProducts} icon={Package} color="text-blue-500" index={0} />
-        <StatsCard label="In Stock" value={loading ? "..." : inStock} icon={CheckCircle2} color="text-emerald-500" index={1} />
-        <StatsCard label="Low Stock" value={loading ? "..." : lowStock} icon={AlertTriangle} color="text-yellow-500" index={2} />
-        <StatsCard label="Sold Out" value={loading ? "..." : soldOut} icon={XCircle} color="text-red-500" index={3} />
-      </div>
+      {/* ─── Main Layout: Sidebar Stats + Product Workspace ─── */}
+      <div className="flex flex-col lg:flex-row gap-5 lg:h-[calc(100vh-13rem)]">
 
-      {/* ─── Search ─── */}
-      <div className="mb-4">
-        <SearchInput
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search by name, SKU, or category..."
-        />
-      </div>
+        {/* ═══════ LEFT SIDEBAR — Inventory Stats ═══════ */}
+        <motion.aside
+          initial={{ opacity: 0, x: -16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="lg:w-64 xl:w-72 shrink-0 lg:h-full"
+        >
+          <div className="flex flex-row lg:flex-col gap-4 lg:gap-4 lg:h-full">
 
-      {/* ─── Status Tabs + Category ─── */}
-      <div className="mb-6 flex items-center gap-3">
-        <FilterTabs
-          tabs={PRODUCT_FILTER_TABS.map((tab) => ({
-            key: tab.key,
-            label: tab.label,
-            count: tab.key === "all" ? products.length : products.filter((p) => p.status === tab.key).length,
-            dotColor: tab.key !== "all" ? PRODUCT_STATUS_CONFIG[tab.key]?.dot : undefined,
-          }))}
-          activeTab={activeFilter}
-          onTabChange={(key) => setActiveFilter(key as FilterStatus)}
-        />
+            {/* Hero Card — Total Products */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0 }}
+              className="flex-1 lg:flex-1 relative bg-gradient-to-br from-maroon to-maroon/80 dark:from-gold dark:to-amber-600 rounded-2xl p-5 lg:p-6 border border-border overflow-hidden flex flex-col justify-between"
+            >
+              <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/5 dark:bg-black/5" />
+              <div className="absolute -right-1 -top-1 w-14 h-14 rounded-full bg-white/5 dark:bg-black/5" />
 
-        {/* Category dropdown — far right */}
-        <div className="ml-auto relative">
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="appearance-none pl-3 pr-8 py-1.5 rounded-lg border border-border bg-white dark:bg-dark-card text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow cursor-pointer"
-          >
-            <option value="all">All Categories</option>
-            {categories.length > 0
-              ? categories.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))
-              : PRODUCT_CATEGORIES.map((c) => (<option key={c} value={c}>{c}</option>))
-            }
-          </select>
-          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-        </div>
-      </div>
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 rounded-xl bg-white/15 dark:bg-black/10">
+                    <Package className="h-4 w-4 text-white dark:text-dark-bg" />
+                  </div>
+                  <span className="text-xs font-medium text-white/70 dark:text-dark-bg/70 uppercase tracking-wider">Total Products</span>
+                </div>
+                <p className="text-2xl lg:text-3xl font-bold text-white dark:text-dark-bg tracking-tight">{loading ? "..." : totalProducts}</p>
+                <div className="mt-3 flex items-center gap-1.5">
+                  <ArrowUpRight className="w-3.5 h-3.5 text-emerald-300 dark:text-emerald-800" />
+                  <span className="text-xs text-white/60 dark:text-dark-bg/60">{Math.round(stockHealthRatio * 100)}% in stock</span>
+                </div>
+              </div>
+            </motion.div>
 
-      {/* ─── Product Grid ─── */}
-      <ProductGrid
-        products={filteredProducts}
-        onOpenEdit={handleOpenEdit}
-        onPreview={(product) => setPreviewProduct(product)}
-        onDelete={handleDeleteRequest}
-      />
+            {/* In Stock Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08 }}
+              className="flex-1 lg:flex-1 bg-white dark:bg-dark-card rounded-2xl p-5 lg:p-6 border border-border group hover:shadow-md transition-shadow duration-300 flex flex-col justify-between"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500">
+                  <CheckCircle2 className="h-4 w-4" />
+                </div>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">In Stock</span>
+              </div>
+              <p className="text-2xl lg:text-3xl font-bold text-foreground tracking-tight">{loading ? "..." : inStock}</p>
+              <div className="mt-3 h-1.5 rounded-full bg-muted/50 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-700 ease-out"
+                  style={{ width: `${totalProducts > 0 ? (inStock / totalProducts) * 100 : 0}%` }}
+                />
+              </div>
+            </motion.div>
 
-      {/* Footer count */}
-      <div className="mt-4 text-xs text-muted-foreground text-center">
-        Showing {filteredProducts.length} of {products.length} products
+            {/* Low Stock Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.16 }}
+              className="flex-1 lg:flex-1 bg-white dark:bg-dark-card rounded-2xl p-5 lg:p-6 border border-border group hover:shadow-md transition-shadow duration-300 flex flex-col justify-between"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-xl bg-yellow-50 dark:bg-yellow-900/20 text-yellow-500">
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Low Stock</span>
+              </div>
+              <p className="text-2xl lg:text-3xl font-bold text-foreground tracking-tight">{loading ? "..." : lowStock}</p>
+              <div className="mt-3 h-1.5 rounded-full bg-muted/50 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 transition-all duration-700 ease-out"
+                  style={{ width: `${totalProducts > 0 ? (lowStock / totalProducts) * 100 : 0}%` }}
+                />
+              </div>
+            </motion.div>
+
+            {/* Quick Filter Card — Status presets */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.24 }}
+              className="hidden lg:flex lg:flex-1 bg-white dark:bg-dark-card rounded-2xl p-5 border border-border flex-col justify-between"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <Layers className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Quick Filter</span>
+              </div>
+              <div className="space-y-1.5">
+                {PRODUCT_FILTER_TABS.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveFilter(tab.key as FilterStatus)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center justify-between ${
+                      activeFilter === tab.key
+                        ? "bg-maroon/10 dark:bg-gold/10 text-maroon dark:text-gold border border-maroon/20 dark:border-gold/20"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      {tab.key !== "all" && (
+                        <span className={`w-1.5 h-1.5 rounded-full ${PRODUCT_STATUS_CONFIG[tab.key]?.dot}`} />
+                      )}
+                      {tab.label}
+                    </span>
+                    <span className={`text-[10px] ${
+                      activeFilter === tab.key ? "text-maroon/60 dark:text-gold/60" : "text-muted-foreground/50"
+                    }`}>
+                      {tab.key === "all" ? products.length : products.filter((p) => p.status === tab.key).length}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </motion.aside>
+
+        {/* ═══════ RIGHT MAIN — Product Workspace ═══════ */}
+        <motion.div
+          initial={{ opacity: 0, x: 16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+          className="flex-1 min-w-0 lg:h-full lg:flex lg:flex-col lg:gap-4"
+        >
+          {/* Search + Category Row */}
+          <div className="bg-white dark:bg-dark-card rounded-2xl border border-border p-4 space-y-3">
+            {/* Mobile: filter tabs (sidebar handles desktop) */}
+            <div className="flex items-center gap-3 lg:hidden">
+              <FilterTabs
+                tabs={PRODUCT_FILTER_TABS.map((tab) => ({
+                  key: tab.key,
+                  label: tab.label,
+                  count: tab.key === "all" ? products.length : products.filter((p) => p.status === tab.key).length,
+                  dotColor: tab.key !== "all" ? PRODUCT_STATUS_CONFIG[tab.key]?.dot : undefined,
+                }))}
+                activeTab={activeFilter}
+                onTabChange={(key) => setActiveFilter(key as FilterStatus)}
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <SearchInput
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  placeholder="Search by name, SKU, or category..."
+                />
+              </div>
+
+              {/* Category dropdown */}
+              <div className="relative shrink-0">
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="appearance-none pl-3 pr-8 py-2 rounded-lg border border-border bg-white dark:bg-dark-card text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-maroon dark:focus:ring-gold transition-shadow cursor-pointer"
+                >
+                  <option value="all">All Categories</option>
+                  {categories.length > 0
+                    ? categories.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))
+                    : PRODUCT_CATEGORIES.map((c) => (<option key={c} value={c}>{c}</option>))
+                  }
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
+          </div>
+
+          {/* Product Grid — scrollable */}
+          <div className="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-dark-card rounded-2xl border border-border p-4">
+            <ProductGrid
+              products={filteredProducts}
+              onOpenEdit={handleOpenEdit}
+              onPreview={(product) => setPreviewProduct(product)}
+              onDelete={handleDeleteRequest}
+            />
+
+            {/* Footer count */}
+            <div className="mt-4 text-xs text-muted-foreground text-center">
+              Showing {filteredProducts.length} of {products.length} products
+            </div>
+          </div>
+        </motion.div>
       </div>
 
       {/* ─── Add Product Modal ─── */}
