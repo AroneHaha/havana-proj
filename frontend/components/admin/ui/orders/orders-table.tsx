@@ -1,10 +1,10 @@
 "use client";
 
-import { Eye, Trash2, ShoppingBag, CreditCard } from "lucide-react";
+import { Eye, Trash2, ShoppingBag, CreditCard, Loader2 } from "lucide-react";
 import { STATUS_I18N_KEY, type Order, type PaymentMethod } from "@/store/orders-store";
 import { formatPrice } from "@/lib/format-price";
 import type { Locale } from "@/i18n";
-import { ORDER_STATUS_COLORS, ORDER_STATUS_DOT_COLORS, DEFAULT_ITEMS_PER_PAGE } from "@/lib/constant";
+import { ORDER_STATUS_COLORS, ORDER_STATUS_DOT_COLORS } from "@/lib/constant";
 import { DateRangeBar } from "@/components/admin/ui/shared/date-range-bar";
 import { Pagination } from "@/components/admin/ui/shared/pagination";
 import type { OrdersT } from "./use-orders-data";
@@ -33,6 +33,7 @@ interface OrdersTableProps {
   t: OrdersT;
   locale: Locale;
   loading?: boolean;
+  isFetching?: boolean;
   paginatedOrders: Order[];
   filteredOrdersCount: number;
   currentPage: number;
@@ -58,6 +59,7 @@ export function OrdersTable({
   t,
   locale,
   loading = false,
+  isFetching = false,
   paginatedOrders,
   filteredOrdersCount,
   currentPage,
@@ -106,8 +108,8 @@ export function OrdersTable({
         }}
       />
 
-      {/* Table */}
-      <div className="overflow-y-auto flex-1 min-h-0">
+      {/* Table body — with loading overlay for page changes */}
+      <div className="overflow-y-auto flex-1 min-h-0 relative">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -206,14 +208,25 @@ export function OrdersTable({
           </tbody>
         </table>
       </div>
+
+      {/* Loading overlay — shown when fetching a new page (not initial load) */}
+      {isFetching && !loading && paginatedOrders.length > 0 && (
+        <div className="absolute inset-0 bg-white/60 dark:bg-dark-bg/60 backdrop-blur-[2px] flex items-center justify-center z-20 transition-opacity duration-200">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-dark-card shadow-lg border border-border">
+            <Loader2 className="w-4 h-4 text-maroon dark:text-gold animate-spin" />
+            <span className="text-xs font-medium text-muted-foreground">Loading...</span>
+          </div>
+        </div>
+      )}
       </div>
 
-      {/* Pagination — uses shared Pagination */}
-      {filteredOrdersCount > DEFAULT_ITEMS_PER_PAGE && (
+      {/* Pagination — always show when there are orders across pages */}
+      {filteredOrdersCount > 0 && totalPages > 1 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={(page) => setCurrentPage(page)}
+          disabled={isFetching}
           showingCount={paginatedOrders.length}
           totalCount={filteredOrdersCount}
           labels={{

@@ -22,6 +22,7 @@ export function AdminOrders() {
   const {
     t,
     loading,
+    isFetching,
     searchQuery, handleSearchChange,
     activeFilter, handleFilterChange,
     currentPage, setCurrentPage,
@@ -31,7 +32,7 @@ export function AdminOrders() {
     dateTo, handleDateToChange,
     activeDatePreset, hasDateFilter,
     filteredOrders, paginatedOrders, totalPages,
-    orders, statusCounts, totalRevenue, avgOrder,
+    totalOrders, orders, statusCounts, totalRevenue, avgOrder,
     handleViewOrder, handleUpdateStatus, handleDeleteOrder,
     handleDatePreset, clearDateFilter, exportCSV,
     formatDate, itemCount, getTabLabel,
@@ -39,8 +40,8 @@ export function AdminOrders() {
 
   const locale = useLanguageStore((s) => s.locale);
 
-  // Pending ratio for the hero card
-  const pendingRatio = orders.length > 0 ? statusCounts.pending / orders.length : 0;
+  // Pending ratio for the hero card (uses totalOrders from stats, not just current page)
+  const pendingRatio = totalOrders > 0 ? statusCounts.pending / totalOrders : 0;
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -88,7 +89,7 @@ export function AdminOrders() {
                 <p className="text-2xl lg:text-3xl font-bold text-white dark:text-dark-bg tracking-tight">{statusCounts.pending}</p>
                 <div className="mt-3 flex items-center gap-1.5">
                   <ArrowUpRight className="w-3.5 h-3.5 text-white/50 dark:text-dark-bg/50" />
-                  <span className="text-xs text-white/60 dark:text-dark-bg/60">{orders.length > 0 ? `${Math.round(pendingRatio * 100)}% of orders` : "No orders yet"}</span>
+                  <span className="text-xs text-white/60 dark:text-dark-bg/60">{totalOrders > 0 ? `${Math.round(pendingRatio * 100)}% of orders` : "No orders yet"}</span>
                 </div>
               </div>
             </motion.div>
@@ -108,7 +109,7 @@ export function AdminOrders() {
               <div className="mt-3 h-1.5 rounded-full bg-muted/50 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-700 ease-out"
-                  style={{ width: `${orders.length > 0 ? Math.min(100, (statusCounts.delivered / orders.length) * 100) : 0}%` }}
+                  style={{ width: `${totalOrders > 0 ? Math.min(100, (statusCounts.delivered / totalOrders) * 100) : 0}%` }}
                 />
               </div>
             </motion.div>
@@ -128,7 +129,7 @@ export function AdminOrders() {
               <div className="mt-3 h-1.5 rounded-full bg-muted/50 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-700 ease-out"
-                  style={{ width: `${totalRevenue > 0 ? Math.min(100, (avgOrder / totalRevenue) * 100 * orders.length) : 0}%` }}
+                  style={{ width: `${totalRevenue > 0 ? Math.min(100, (avgOrder / totalRevenue) * 100 * totalOrders) : 0}%` }}
                 />
               </div>
             </motion.div>
@@ -144,7 +145,7 @@ export function AdminOrders() {
               </div>
               <div className="space-y-1 overflow-y-auto flex-1">
                 {ORDER_FILTER_TABS.map((filter) => {
-                  const count = filter === "all" ? orders.length : statusCounts[filter];
+                  const count = filter === "all" ? totalOrders : statusCounts[filter];
                   const isActive = activeFilter === filter;
                   return (
                     <button
@@ -188,7 +189,7 @@ export function AdminOrders() {
             <div className="flex items-center gap-3 lg:hidden overflow-x-auto scrollbar-hide">
               <div className="flex gap-1.5 pb-1 min-w-max">
                 {ORDER_FILTER_TABS.map((filter) => {
-                  const count = filter === "all" ? orders.length : statusCounts[filter];
+                  const count = filter === "all" ? totalOrders : statusCounts[filter];
                   const isActive = activeFilter === filter;
                   return (
                     <button
@@ -230,8 +231,9 @@ export function AdminOrders() {
               t={t}
               locale={locale}
               loading={loading}
+              isFetching={isFetching}
               paginatedOrders={paginatedOrders}
-              filteredOrdersCount={filteredOrders.length}
+              filteredOrdersCount={totalOrders}
               currentPage={currentPage}
               totalPages={totalPages}
               setCurrentPage={setCurrentPage}

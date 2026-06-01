@@ -10,6 +10,12 @@
  *
  *   Stats (revenue, counts) are fetched from a dedicated endpoint —
  *   they reflect the full dataset, not just the current page.
+ *
+ *   Loading states:
+ *     - `loading`: true on initial fetch (no data yet) → full skeleton
+ *     - `isFetching`: true on every fetch including page changes → overlay
+ *   This lets the UI show a skeleton on first load and a lighter
+ *   loading overlay when navigating between pages.
  */
 
 import { create } from "zustand";
@@ -57,8 +63,10 @@ interface OrdersState {
   };
 
   stats: OrderStats | null;
-  /** Whether a fetch is in progress */
+  /** True on initial load when there's no data yet (show skeleton) */
   loading: boolean;
+  /** True on every fetch including page changes (show overlay) */
+  isFetching: boolean;
   /** Error from the last failed operation */
   error: string | null;
 
@@ -97,15 +105,21 @@ export const useOrdersStore = create<OrdersState>()(
       filters: {},
       stats: null,
       loading: false,
+      isFetching: false,
       error: null,
 
       fetchOrders: async (page?: number) => {
         const state = get();
         const targetPage = page ?? state.currentPage;
 
-        // SWR: If we already have data, fetch in background without spinner
         const hasData = state.orders.length > 0;
-        if (!hasData) set({ loading: true, error: null });
+        // On initial load: show full skeleton
+        // On page change: show overlay on existing data
+        set({
+          loading: !hasData,
+          isFetching: true,
+          error: null,
+        });
 
         try {
           const result = await serviceFetchOrders({
@@ -122,9 +136,14 @@ export const useOrdersStore = create<OrdersState>()(
             currentPage: result.currentPage,
             totalPages: result.lastPage,
             loading: false,
+            isFetching: false,
           });
         } catch (err) {
-          set({ error: getErrorMessage(err, "Failed to fetch orders"), loading: false });
+          set({
+            error: getErrorMessage(err, "Failed to fetch orders"),
+            loading: false,
+            isFetching: false,
+          });
         }
       },
 
@@ -143,7 +162,9 @@ export const useOrdersStore = create<OrdersState>()(
       },
 
       setPage: (page) => {
-        set({ currentPage: page });
+        // Don't update currentPage until the fetch completes —
+        // this prevents the page indicator from jumping ahead of the data.
+        // The fetch will set currentPage from the API response.
         get().fetchOrders(page);
       },
 

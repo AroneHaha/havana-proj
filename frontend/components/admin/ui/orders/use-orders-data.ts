@@ -1,30 +1,49 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   useOrdersStore,
   type OrderStatus,
   type PaymentMethod,
   STATUS_I18N_KEY,
   type Order,
+  ORDERS_PER_PAGE,
 } from "@/store/orders-store";
 import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
 import { useSearchFilter } from "@/components/admin/ui/shared/use-search-filter";
-import { usePagination } from "@/components/admin/ui/shared/use-pagination";
 import { useDateRangeFilter } from "@/components/admin/ui/shared/use-date-range-filter";
-import { ITEMS_PER_PAGE, type FilterStatus } from "./constants";
 import type { Translation } from "@/i18n/types";
 
+export type FilterStatus = "all" | OrderStatus;
+
+/**
+ * Hook that drives server-side pagination for the Orders module.
+ *
+ * Architecture:
+ *   - The Zustand store fetches ONE page at a time from the Laravel API.
+ *   - Filters (status, search, dateFrom, dateTo) are sent as query params
+ *     so the database does the filtering — no client-side re-filtering.
+ *   - Stats (revenue, counts) come from a dedicated /stats endpoint and
+ *     reflect the FULL dataset, not just the current page.
+ *   - Navigation triggers a new API call for that specific page.
+ */
 export function useOrdersData() {
   const locale = useLanguageStore((s) => s.locale);
   const dict = getDictionary(locale);
   const t = dict.admin.orders;
 
+  // ── Store state (server-paginated) ────────────────────────────────
   const orders = useOrdersStore((s) => s.orders);
   const loading = useOrdersStore((s) => s.loading);
+  const isFetching = useOrdersStore((s) => s.isFetching);
+  const totalOrders = useOrdersStore((s) => s.totalOrders);
+  const currentPage = useOrdersStore((s) => s.currentPage);
+  const totalPages = useOrdersStore((s) => s.totalPages);
   const storeFetchOrders = useOrdersStore((s) => s.fetchOrders);
   const storeFetchStats = useOrdersStore((s) => s.fetchStats);
+  const storeSetFilters = useOrdersStore((s) => s.setFilters);
+  const storeSetPage = useOrdersStore((s) => s.setPage);
   const updateOrderStatus = useOrdersStore((s) => s.updateOrderStatus);
   const deleteOrder = useOrdersStore((s) => s.deleteOrder);
   const getStatusCounts = useOrdersStore((s) => s.getStatusCounts);
@@ -36,85 +55,65 @@ export function useOrdersData() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  // ── Shared hooks for filter state ──────────────────────────────────
+  // ── Search + Date filters (local state, synced to store) ────────
   const search = useSearchFilter();
-
   const dateRange = useDateRangeFilter();
 
-  // Compute filtered orders first so we can pass the count to pagination
-  const filteredOrders = useMemo(() => {
-    let result = [...orders];
-    if (activeFilter !== "all") result = result.filter((o) => o.status === activeFilter);
-    if (search.searchQuery.trim()) {
-      const q = search.searchQuery.toLowerCase().trim();
-      result = result.filter(
-        (o) => (o.orderNumber || o.id).toLowerCase().includes(q) || o.customer.name.toLowerCase().includes(q) || o.customer.email.toLowerCase().includes(q) || o.customer.phone.includes(q)
-      );
-    }
-    if (dateRange.dateFrom) {
-      const from = new Date(dateRange.dateFrom); from.setHours(0, 0, 0, 0);
-      result = result.filter((o) => new Date(o.createdAt) >= from);
-    }
-    if (dateRange.dateTo) {
-      const to = new Date(dateRange.dateTo); to.setHours(23, 59, 59, 999);
-      result = result.filter((o) => new Date(o.createdAt) <= to);
-    }
-    result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return result;
-  }, [orders, activeFilter, search.searchQuery, dateRange.dateFrom, dateRange.dateTo]);
+  // Debounced search — update store filters after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      storeSetFilters({ search: search.searchQuery || undefined });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search.searchQuery, storeSetFilters]);
 
-  const pagination = usePagination({
-    totalItems: filteredOrders.length,
-    itemsPerPage: ITEMS_PER_PAGE,
-  });
+  // Date filter — sync to store immediately
+  useEffect(() => {
+    storeSetFilters({
+      dateFrom: dateRange.dateFrom || undefined,
+      dateTo: dateRange.dateTo || undefined,
+    });
+  }, [dateRange.dateFrom, dateRange.dateTo, storeSetFilters]);
 
-  // Wire up search/date changes to reset pagination (after pagination is defined)
-  // These refs ensure we reset page without stale closures
-  const handleSearchChange = useCallback((value: string) => {
-    search.setSearchQuery(value);
-    pagination.resetPage();
-  }, [search.setSearchQuery, pagination.resetPage]);
-
-  const handleDateFromChange = useCallback((value: string) => {
-    dateRange.setDateFrom(value);
-    pagination.resetPage();
-  }, [dateRange.setDateFrom, pagination.resetPage]);
-
-  const handleDateToChange = useCallback((value: string) => {
-    dateRange.setDateTo(value);
-    pagination.resetPage();
-  }, [dateRange.setDateTo, pagination.resetPage]);
-
-  const handleDatePreset = useCallback((preset: "today" | "7d" | "30d") => {
-    dateRange.applyPreset(preset);
-    pagination.resetPage();
-  }, [dateRange.applyPreset, pagination.resetPage]);
-
-  const clearDateFilter = useCallback(() => {
-    dateRange.clearDate();
-    pagination.resetPage();
-  }, [dateRange.clearDate, pagination.resetPage]);
-
+  // Initial fetch
   useEffect(() => {
     storeFetchOrders();
     storeFetchStats();
   }, [storeFetchOrders, storeFetchStats]);
 
+  // ── Filter handlers ──────────────────────────────────────────────
+  const handleFilterChange = useCallback((filter: FilterStatus) => {
+    setActiveFilter(filter);
+    storeSetFilters({ status: filter === "all" ? undefined : filter });
+  }, [storeSetFilters]);
+
+  const handleSearchChange = useCallback((value: string) => {
+    search.setSearchQuery(value);
+  }, [search.setSearchQuery]);
+
+  const handleDateFromChange = useCallback((value: string) => {
+    dateRange.setDateFrom(value);
+  }, [dateRange.setDateFrom]);
+
+  const handleDateToChange = useCallback((value: string) => {
+    dateRange.setDateTo(value);
+  }, [dateRange.setDateTo]);
+
+  const handleDatePreset = useCallback((preset: "today" | "7d" | "30d") => {
+    dateRange.applyPreset(preset);
+  }, [dateRange.applyPreset]);
+
+  const clearDateFilter = useCallback(() => {
+    dateRange.clearDate();
+    storeSetFilters({ dateFrom: undefined, dateTo: undefined });
+  }, [dateRange.clearDate, storeSetFilters]);
+
+  // ── Stats (from dedicated endpoint, covers FULL dataset) ──────────
   const statusCounts = getStatusCounts();
   const totalRevenue = getTotalRevenue();
   const avgOrder = getAverageOrderValue();
 
-  const paginatedOrders = pagination.paginate(filteredOrders);
-  const totalPages = pagination.totalPages;
-
-  // Update pagination total when filtered orders change
-  useEffect(() => {
-    if (pagination.currentPage > totalPages) {
-      pagination.setPage(totalPages);
-    }
-  }, [totalPages, pagination.currentPage, pagination.setPage]);
-
-  const handleFilterChange = (filter: FilterStatus) => { setActiveFilter(filter); pagination.resetPage(); };
+  // ── Actions ──────────────────────────────────────────────────────
   const handleViewOrder = (order: Order) => { setSelectedOrder(order); setDrawerOpen(true); };
 
   const handleUpdateStatus = async (id: string, status: OrderStatus) => {
@@ -131,14 +130,9 @@ export function useOrdersData() {
     } catch {}
   };
 
-  const getPaymentLabel = useCallback((_method: PaymentMethod) => {
-    // Cash on delivery is the only payment method
-    return "Cash on Delivery";
-  }, []);
-
   const exportCSV = () => {
     const headers = ["Order ID", "Customer", "Email", "Phone", "Items", "Subtotal", "Delivery Fee", "Total", "Status", "Payment", "Notes", "Created At"];
-    const rows = filteredOrders.map((o) => [o.orderNumber || o.id, o.customer.name, o.customer.email, o.customer.phone, o.items.map((i) => `${i.productName} x${i.quantity}`).join("; "), o.subtotal.toString(), o.deliveryFee.toString(), o.total.toString(), o.status, getPaymentLabel(o.paymentMethod), o.notes || "", o.createdAt]);
+    const rows = orders.map((o) => [o.orderNumber || o.id, o.customer.name, o.customer.email, o.customer.phone, o.items.map((i) => `${i.productName} x${i.quantity}`).join("; "), o.subtotal.toString(), o.deliveryFee.toString(), o.total.toString(), o.status, "Cash on Delivery", o.notes || "", o.createdAt]);
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -154,18 +148,28 @@ export function useOrdersData() {
     return t[STATUS_I18N_KEY[filter] as keyof typeof t] as string;
   };
 
+  // Active date preset for the UI
+  const activeDatePreset = dateRange.activePreset;
+  const hasDateFilter = dateRange.hasDateFilter;
+
   return {
     t,
     loading,
+    isFetching,
     searchQuery: search.searchQuery, handleSearchChange, handleClearSearch: search.clearSearch,
     activeFilter, handleFilterChange,
-    currentPage: pagination.currentPage, setCurrentPage: pagination.setPage,
+    currentPage, setCurrentPage: storeSetPage,
     selectedOrder, setSelectedOrder, drawerOpen, setDrawerOpen,
     deleteConfirm, setDeleteConfirm,
     dateFrom: dateRange.dateFrom, handleDateFromChange,
     dateTo: dateRange.dateTo, handleDateToChange,
-    activeDatePreset: dateRange.activePreset, hasDateFilter: dateRange.hasDateFilter,
-    filteredOrders, paginatedOrders, totalPages,
+    activeDatePreset, hasDateFilter,
+    // Orders from the current page only (server-paginated)
+    filteredOrders: orders,
+    paginatedOrders: orders,
+    filteredOrdersCount: totalOrders,
+    totalPages,
+    totalOrders,
     orders, statusCounts, totalRevenue, avgOrder,
     handleViewOrder, handleUpdateStatus, handleDeleteOrder,
     handleDatePreset, clearDateFilter, exportCSV,
