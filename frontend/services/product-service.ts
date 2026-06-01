@@ -1,8 +1,5 @@
 /**
- * Product Service — abstraction over API / mock data.
- *
- * • If NEXT_PUBLIC_API_URL is set AND the API responds, data comes from Laravel.
- * • Otherwise, seed data from lib/data.ts is used — zero config needed.
+ * Product Service — Laravel API only.
  *
  * Architecture (unified API client):
  *   - READ operations (storefront): use `publicFetch` (no auth required)
@@ -14,9 +11,8 @@
  */
 
 import { publicFetch, createServiceFetch } from "@/lib/api-client";
-import { API_BASE, type FieldErrors } from "@/lib/api-config";
+import { type FieldErrors } from "@/lib/api-config";
 import { AppError } from "@/lib/app-error";
-import { featuredProducts, bestSellerProducts } from "@/lib/data";
 import type { Product } from "@/types";
 import type { Locale } from "@/i18n";
 
@@ -150,48 +146,35 @@ export function mapLaravelProduct(raw: LaravelProduct, locale: Locale): Product 
 // ─── READ operations (public, storefront) ─────────────────────────────
 
 export async function getFeaturedProducts(locale: Locale): Promise<Product[]> {
-  // ── Try real API first ──
-  if (API_BASE) {
-    try {
-      const res = await publicFetch<LaravelProductsResponse>(
-        "/products?filter[is_featured]=1",
-        { locale }
-      );
-      return (res.data ?? []).map((p) => mapLaravelProduct(p, locale));
-    } catch (err) {
-      // When API is configured, errors must surface — never silently fall back to mock.
-      if (err instanceof ProductsError) throw err;
-      throw new ProductsError(
-        err instanceof Error ? err.message : "Failed to fetch products",
-        "NETWORK_ERROR"
-      );
-    }
+  try {
+    const res = await publicFetch<LaravelProductsResponse>(
+      "/products?filter[is_featured]=1",
+      { locale }
+    );
+    return (res.data ?? []).map((p) => mapLaravelProduct(p, locale));
+  } catch (err) {
+    if (err instanceof ProductsError) throw err;
+    throw new ProductsError(
+      err instanceof Error ? err.message : "Failed to fetch products",
+      "NETWORK_ERROR"
+    );
   }
-
-  // ── Mock (only when API_BASE is not configured) ──
-  return featuredProducts.map((p) => localizeProduct(p, locale));
 }
 
 export async function getBestSellerProducts(locale: Locale): Promise<Product[]> {
-  // ── Try real API first ──
-  if (API_BASE) {
-    try {
-      const res = await publicFetch<LaravelProductsResponse>(
-        "/products?filter[is_best_seller]=1",
-        { locale }
-      );
-      return (res.data ?? []).map((p) => mapLaravelProduct(p, locale));
-    } catch (err) {
-      if (err instanceof ProductsError) throw err;
-      throw new ProductsError(
-        err instanceof Error ? err.message : "Failed to fetch best sellers",
-        "NETWORK_ERROR"
-      );
-    }
+  try {
+    const res = await publicFetch<LaravelProductsResponse>(
+      "/products?filter[is_best_seller]=1",
+      { locale }
+    );
+    return (res.data ?? []).map((p) => mapLaravelProduct(p, locale));
+  } catch (err) {
+    if (err instanceof ProductsError) throw err;
+    throw new ProductsError(
+      err instanceof Error ? err.message : "Failed to fetch best sellers",
+      "NETWORK_ERROR"
+    );
   }
-
-  // ── Mock (only when API_BASE is not configured) ──
-  return bestSellerProducts.map((p) => localizeProduct(p, locale));
 }
 
 /**
@@ -202,179 +185,136 @@ export async function getProducts(
   page = 1,
   perPage = 12
 ): Promise<{ products: Product[]; total: number }> {
-  // ── Try real API first ──
-  if (API_BASE) {
-    try {
-      const res = await publicFetch<LaravelProductsResponse>(
-        `/products?page=${page}&per_page=${perPage}`,
-        { locale }
-      );
-      return {
-        products: (res.data ?? []).map((p) => mapLaravelProduct(p, locale)),
-        total: res.meta?.total ?? 0,
-      };
-    } catch (err) {
-      if (err instanceof ProductsError) throw err;
-      throw new ProductsError(
-        err instanceof Error ? err.message : "Failed to fetch products",
-        "NETWORK_ERROR"
-      );
-    }
+  try {
+    const res = await publicFetch<LaravelProductsResponse>(
+      `/products?page=${page}&per_page=${perPage}`,
+      { locale }
+    );
+    return {
+      products: (res.data ?? []).map((p) => mapLaravelProduct(p, locale)),
+      total: res.meta?.total ?? 0,
+    };
+  } catch (err) {
+    if (err instanceof ProductsError) throw err;
+    throw new ProductsError(
+      err instanceof Error ? err.message : "Failed to fetch products",
+      "NETWORK_ERROR"
+    );
   }
-
-  // ── Mock (only when API_BASE is not configured) ──
-  const all = [...featuredProducts, ...bestSellerProducts].map((p) =>
-    localizeProduct(p, locale)
-  );
-  return { products: all, total: all.length };
 }
 
 /**
  * Fetch a single product by ID.
- * Expected Laravel endpoint: GET /products/:id
  */
 export async function fetchProductById(
   id: string,
   locale: Locale = "en"
 ): Promise<Product | null> {
-  // ── Try real API first ──
-  if (API_BASE) {
-    try {
-      const res = await publicFetch<{ data: LaravelProduct }>(
-        `/products/${id}`,
-        { locale }
-      );
-      return mapLaravelProduct(res.data, locale);
-    } catch (err) {
-      if (err instanceof ProductsError) throw err;
-      throw new ProductsError(
-        err instanceof Error ? err.message : "Failed to fetch product",
-        "NETWORK_ERROR"
-      );
-    }
+  try {
+    const res = await publicFetch<{ data: LaravelProduct }>(
+      `/products/${id}`,
+      { locale }
+    );
+    return mapLaravelProduct(res.data, locale);
+  } catch (err) {
+    if (err instanceof ProductsError) throw err;
+    throw new ProductsError(
+      err instanceof Error ? err.message : "Failed to fetch product",
+      "NETWORK_ERROR"
+    );
   }
-
-  // ── Mock (only when API_BASE is not configured) ──
-  await new Promise((r) => setTimeout(r, 100));
-  const all = [...featuredProducts, ...bestSellerProducts];
-  const found = all.find((p) => p.id === id) ?? null;
-  return found ? localizeProduct(found, locale) : null;
 }
 
 // ─── WRITE operations (admin, authenticated) ───────────────────────────
 
 /**
  * Create a new product.
- * Expected Laravel endpoint: POST /admin/products
  */
 export async function createProduct(
   data: Omit<Product, "id" | "slug" | "rating" | "reviewCount" | "createdAt">,
   locale: Locale = "en",
   rawFiles?: File[]
 ): Promise<Product> {
-  // ── Try real API first ──
-  if (API_BASE) {
-    try {
-      // If we have raw files, use FormData (multipart/form-data) so Laravel
-      // receives actual file uploads in $_FILES instead of base64 JSON strings.
-      if (rawFiles && rawFiles.length > 0) {
-        const fd = new FormData();
-        // Backend expects name_en/name_ar/description_en/description_ar
-        // (NOT name/description/locale_text)
-        const localeText = data.localeText ?? {};
-        fd.append("name_en", localeText.en?.name ?? data.name);
-        fd.append("name_ar", localeText.ar?.name ?? data.name);
-        fd.append("description_en", localeText.en?.description ?? data.description ?? "");
-        fd.append("description_ar", localeText.ar?.description ?? data.description ?? "");
-        fd.append("price", String(data.price));
-        if (data.salePrice != null) fd.append("sale_price", String(data.salePrice));
-        fd.append("category_id", data.category);
-        fd.append("stock", String(data.stock));
-        fd.append("in_stock", String(data.stock > 0));
-        fd.append("is_featured", data.isFeatured ? "1" : "0");
-        fd.append("is_best_seller", data.isBestSeller ? "1" : "0");
-        fd.append("is_new", data.isNew ? "1" : "0");
-        if (data.sku) fd.append("sku", data.sku);
-        // New file uploads
-        rawFiles.forEach((file, i) => {
-          fd.append(`images[${i}]`, file);
-        });
-        // Existing image URLs (not data: URIs)
-        (data.images ?? []).forEach((img) => {
-          if (!img.startsWith("data:")) {
-            fd.append("existing_images[]", img);
-          }
-        });
-
-        const res = await productsFetch<{ data: LaravelProduct }>("/admin/products", {
-          method: "POST",
-          body: fd as unknown as BodyInit,
-          // Let the browser set Content-Type with boundary for FormData
-        });
-        return mapLaravelProduct(res.data, locale);
-      }
-
-      // No raw files — send as JSON
+  try {
+    // If we have raw files, use FormData (multipart/form-data) so Laravel
+    // receives actual file uploads in $_FILES instead of base64 JSON strings.
+    if (rawFiles && rawFiles.length > 0) {
+      const fd = new FormData();
       // Backend expects name_en/name_ar/description_en/description_ar
       // (NOT name/description/locale_text)
-      // Note: Don't send `image`/`images` with URL strings — Laravel's `image`
-      // validation rule expects UploadedFile objects. Only send `existing_images`
-      // for URLs that should be preserved (e.g. when editing).
       const localeText = data.localeText ?? {};
-      const jsonBody: Record<string, unknown> = {
-        name_en: localeText.en?.name ?? data.name,
-        name_ar: localeText.ar?.name ?? data.name,
-        description_en: localeText.en?.description ?? data.description ?? "",
-        description_ar: localeText.ar?.description ?? data.description ?? "",
-        price: data.price,
-        sale_price: data.salePrice ?? null,
-        category_id: data.category,
-        stock: data.stock,
-        in_stock: data.stock > 0,
-        is_featured: data.isFeatured ?? false,
-        is_best_seller: data.isBestSeller ?? false,
-        is_new: data.isNew ?? false,
-      };
-      // Only include existing (non-data-URI) image URLs
-      const existingUrls = (data.images ?? []).filter(
-        (img: string) => !img.startsWith("data:")
-      );
-      if (existingUrls.length > 0) {
-        jsonBody.existing_images = existingUrls;
-      }
+      fd.append("name_en", localeText.en?.name ?? data.name);
+      fd.append("name_ar", localeText.ar?.name ?? data.name);
+      fd.append("description_en", localeText.en?.description ?? data.description ?? "");
+      fd.append("description_ar", localeText.ar?.description ?? data.description ?? "");
+      fd.append("price", String(data.price));
+      if (data.salePrice != null) fd.append("sale_price", String(data.salePrice));
+      fd.append("category_id", data.category);
+      fd.append("stock", String(data.stock));
+      fd.append("in_stock", String(data.stock > 0));
+      fd.append("is_featured", data.isFeatured ? "1" : "0");
+      fd.append("is_best_seller", data.isBestSeller ? "1" : "0");
+      fd.append("is_new", data.isNew ? "1" : "0");
+      if (data.sku) fd.append("sku", data.sku);
+      // New file uploads
+      rawFiles.forEach((file, i) => {
+        fd.append(`images[${i}]`, file);
+      });
+      // Existing image URLs (not data: URIs)
+      (data.images ?? []).forEach((img) => {
+        if (!img.startsWith("data:")) {
+          fd.append("existing_images[]", img);
+        }
+      });
 
       const res = await productsFetch<{ data: LaravelProduct }>("/admin/products", {
         method: "POST",
-        body: JSON.stringify(jsonBody),
+        body: fd as unknown as BodyInit,
+        // Let the browser set Content-Type with boundary for FormData
       });
       return mapLaravelProduct(res.data, locale);
-    } catch (err) {
-      if (err instanceof ProductsError) throw err;
-      throw new ProductsError(
-        err instanceof Error ? err.message : "Failed to create product",
-        "NETWORK_ERROR"
-      );
     }
-  }
 
-  // ── Mock (only when API_BASE is not configured) ──
-  await new Promise((r) => setTimeout(r, 300));
-  const id = `prod_${Date.now()}`;
-  const slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  return {
-    ...data,
-    id,
-    slug,
-    inStock: data.stock > 0,
-    rating: 0,
-    reviewCount: 0,
-    createdAt: new Date().toISOString(),
-  };
+    // No raw files — send as JSON
+    const localeText = data.localeText ?? {};
+    const jsonBody: Record<string, unknown> = {
+      name_en: localeText.en?.name ?? data.name,
+      name_ar: localeText.ar?.name ?? data.name,
+      description_en: localeText.en?.description ?? data.description ?? "",
+      description_ar: localeText.ar?.description ?? data.description ?? "",
+      price: data.price,
+      sale_price: data.salePrice ?? null,
+      category_id: data.category,
+      stock: data.stock,
+      in_stock: data.stock > 0,
+      is_featured: data.isFeatured ?? false,
+      is_best_seller: data.isBestSeller ?? false,
+      is_new: data.isNew ?? false,
+    };
+    // Only include existing (non-data-URI) image URLs
+    const existingUrls = (data.images ?? []).filter(
+      (img: string) => !img.startsWith("data:")
+    );
+    if (existingUrls.length > 0) {
+      jsonBody.existing_images = existingUrls;
+    }
+
+    const res = await productsFetch<{ data: LaravelProduct }>("/admin/products", {
+      method: "POST",
+      body: JSON.stringify(jsonBody),
+    });
+    return mapLaravelProduct(res.data, locale);
+  } catch (err) {
+    if (err instanceof ProductsError) throw err;
+    throw new ProductsError(
+      err instanceof Error ? err.message : "Failed to create product",
+      "NETWORK_ERROR"
+    );
+  }
 }
 
 /**
  * Update an existing product.
- * Expected Laravel endpoint: PATCH /admin/products/:id
  */
 export async function updateProduct(
   id: string,
@@ -382,207 +322,151 @@ export async function updateProduct(
   locale: Locale = "en",
   rawFiles?: File[]
 ): Promise<Product> {
-  // ── Try real API first ──
-  if (API_BASE) {
-    try {
-      // If we have raw files, use FormData (multipart/form-data) so Laravel
-      // receives actual file uploads in $_FILES instead of base64 JSON strings.
-      if (rawFiles && rawFiles.length > 0) {
-        const fd = new FormData();
-        // Laravel method spoofing: FormData must be POST, but we add
-        // _method=PATCH so Laravel routes it to the PATCH handler.
-        fd.append("_method", "PATCH");
-        // Backend expects name_en/name_ar/description_en/description_ar
-        // (NOT name/description/locale_text)
-        const lt = data.localeText ?? {};
-        if (data.name !== undefined) {
-          fd.append("name_en", lt.en?.name ?? data.name);
-          fd.append("name_ar", lt.ar?.name ?? data.name);
-        }
-        if (data.description !== undefined) {
-          fd.append("description_en", lt.en?.description ?? data.description ?? "");
-          fd.append("description_ar", lt.ar?.description ?? data.description ?? "");
-        }
-        if (data.price !== undefined) fd.append("price", String(data.price));
-        if (data.salePrice !== undefined) fd.append("sale_price", String(data.salePrice));
-        if (data.category !== undefined) fd.append("category_id", data.category);
-        if (data.stock !== undefined) {
-          fd.append("stock", String(data.stock));
-          fd.append("in_stock", String(data.stock > 0));
-        }
-        if (data.isFeatured !== undefined) fd.append("is_featured", data.isFeatured ? "1" : "0");
-        if (data.isBestSeller !== undefined) fd.append("is_best_seller", data.isBestSeller ? "1" : "0");
-        if (data.isNew !== undefined) fd.append("is_new", data.isNew ? "1" : "0");
-        if (data.sku) fd.append("sku", data.sku);
-        // New file uploads
-        rawFiles.forEach((file, i) => {
-          fd.append(`images[${i}]`, file);
-        });
-        // Existing image URLs (not data: URIs) that should be kept
-        (data.images ?? []).forEach((img) => {
-          if (!img.startsWith("data:")) {
-            fd.append("existing_images[]", img);
-          }
-        });
-
-        const res = await productsFetch<{ data: LaravelProduct }>(
-          `/admin/products/${id}`,
-          {
-            method: "POST",
-            body: fd as unknown as BodyInit,
-            // Let the browser set Content-Type with boundary for FormData
-          }
-        );
-        return mapLaravelProduct(res.data, locale);
-      }
-
-      // No raw files — send as JSON (PATCH)
+  try {
+    // If we have raw files, use FormData (multipart/form-data) so Laravel
+    // receives actual file uploads in $_FILES instead of base64 JSON strings.
+    if (rawFiles && rawFiles.length > 0) {
+      const fd = new FormData();
+      // Laravel method spoofing: FormData must be POST, but we add
+      // _method=PATCH so Laravel routes it to the PATCH handler.
+      fd.append("_method", "PATCH");
       // Backend expects name_en/name_ar/description_en/description_ar
       // (NOT name/description/locale_text)
-      //
-      // IMPORTANT: Do NOT send `image` or `images` as URL strings in JSON.
-      // Laravel's validation rules require `image`/`images.*` to be UploadedFile
-      // objects — sending URL strings would cause a 422 validation error.
-      // Instead, send existing image URLs as `existing_images[]` which the
-      // backend validates as strings and preserves correctly.
-      const body: Record<string, unknown> = {};
       const lt = data.localeText ?? {};
       if (data.name !== undefined) {
-        body.name_en = lt.en?.name ?? data.name;
-        body.name_ar = lt.ar?.name ?? data.name;
+        fd.append("name_en", lt.en?.name ?? data.name);
+        fd.append("name_ar", lt.ar?.name ?? data.name);
       }
       if (data.description !== undefined) {
-        body.description_en = lt.en?.description ?? data.description ?? "";
-        body.description_ar = lt.ar?.description ?? data.description ?? "";
+        fd.append("description_en", lt.en?.description ?? data.description ?? "");
+        fd.append("description_ar", lt.ar?.description ?? data.description ?? "");
       }
-      if (data.price !== undefined) body.price = data.price;
-      if (data.salePrice !== undefined) body.sale_price = data.salePrice;
-      // Send existing image URLs via existing_images (validated as strings)
-      // NOT via image/images (which Laravel validates as file uploads)
-      const existingImageUrls = (data.images ?? []).filter(
-        (img: string) => !img.startsWith("data:")
-      );
-      if (existingImageUrls.length > 0) {
-        body.existing_images = existingImageUrls;
-      }
-      if (data.category !== undefined) body.category_id = data.category;
+      if (data.price !== undefined) fd.append("price", String(data.price));
+      if (data.salePrice !== undefined) fd.append("sale_price", String(data.salePrice));
+      if (data.category !== undefined) fd.append("category_id", data.category);
       if (data.stock !== undefined) {
-        body.stock = data.stock;
-        body.in_stock = data.stock > 0;
+        fd.append("stock", String(data.stock));
+        fd.append("in_stock", String(data.stock > 0));
       }
-      if (data.isFeatured !== undefined) body.is_featured = data.isFeatured;
-      if (data.isBestSeller !== undefined) body.is_best_seller = data.isBestSeller;
-      if (data.isNew !== undefined) body.is_new = data.isNew;
+      if (data.isFeatured !== undefined) fd.append("is_featured", data.isFeatured ? "1" : "0");
+      if (data.isBestSeller !== undefined) fd.append("is_best_seller", data.isBestSeller ? "1" : "0");
+      if (data.isNew !== undefined) fd.append("is_new", data.isNew ? "1" : "0");
+      if (data.sku) fd.append("sku", data.sku);
+      // New file uploads
+      rawFiles.forEach((file, i) => {
+        fd.append(`images[${i}]`, file);
+      });
+      // Existing image URLs (not data: URIs) that should be kept
+      (data.images ?? []).forEach((img) => {
+        if (!img.startsWith("data:")) {
+          fd.append("existing_images[]", img);
+        }
+      });
 
       const res = await productsFetch<{ data: LaravelProduct }>(
         `/admin/products/${id}`,
         {
-          method: "PATCH",
-          body: JSON.stringify(body),
+          method: "POST",
+          body: fd as unknown as BodyInit,
+          // Let the browser set Content-Type with boundary for FormData
         }
       );
       return mapLaravelProduct(res.data, locale);
-    } catch (err) {
-      if (err instanceof ProductsError) throw err;
-      throw new ProductsError(
-        err instanceof Error ? err.message : "Failed to update product",
-        "NETWORK_ERROR"
-      );
     }
+
+    // No raw files — send as JSON (PATCH)
+    // IMPORTANT: Do NOT send `image` or `images` as URL strings in JSON.
+    // Laravel's validation rules require `image`/`images.*` to be UploadedFile
+    // objects — sending URL strings would cause a 422 validation error.
+    // Instead, send existing image URLs as `existing_images[]` which the
+    // backend validates as strings and preserves correctly.
+    const body: Record<string, unknown> = {};
+    const lt = data.localeText ?? {};
+    if (data.name !== undefined) {
+      body.name_en = lt.en?.name ?? data.name;
+      body.name_ar = lt.ar?.name ?? data.name;
+    }
+    if (data.description !== undefined) {
+      body.description_en = lt.en?.description ?? data.description ?? "";
+      body.description_ar = lt.ar?.description ?? data.description ?? "";
+    }
+    if (data.price !== undefined) body.price = data.price;
+    if (data.salePrice !== undefined) body.sale_price = data.salePrice;
+    // Send existing image URLs via existing_images (validated as strings)
+    // NOT via image/images (which Laravel validates as file uploads)
+    const existingImageUrls = (data.images ?? []).filter(
+      (img: string) => !img.startsWith("data:")
+    );
+    if (existingImageUrls.length > 0) {
+      body.existing_images = existingImageUrls;
+    }
+    if (data.category !== undefined) body.category_id = data.category;
+    if (data.stock !== undefined) {
+      body.stock = data.stock;
+      body.in_stock = data.stock > 0;
+    }
+    if (data.isFeatured !== undefined) body.is_featured = data.isFeatured;
+    if (data.isBestSeller !== undefined) body.is_best_seller = data.isBestSeller;
+    if (data.isNew !== undefined) body.is_new = data.isNew;
+
+    const res = await productsFetch<{ data: LaravelProduct }>(
+      `/admin/products/${id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }
+    );
+    return mapLaravelProduct(res.data, locale);
+  } catch (err) {
+    if (err instanceof ProductsError) throw err;
+    throw new ProductsError(
+      err instanceof Error ? err.message : "Failed to update product",
+      "NETWORK_ERROR"
+    );
   }
-
-  // ── Mock (only when API_BASE is not configured) ──
-  await new Promise((r) => setTimeout(r, 300));
-
-  // Find in seed data
-  const allProducts = [...featuredProducts, ...bestSellerProducts];
-  const existing = allProducts.find((p) => p.id === id);
-  if (!existing) {
-    throw new ProductsError("Product not found", "NOT_FOUND");
-  }
-
-  const updated = { ...existing, ...data };
-  updated.inStock = updated.stock > 0;
-  return updated;
 }
 
 /**
  * Delete a product.
- * Expected Laravel endpoint: DELETE /admin/products/:id
  */
 export async function deleteProduct(id: string): Promise<boolean> {
-  // ── Try real API first ──
-  if (API_BASE) {
-    try {
-      await productsFetch<{ message: string }>(`/admin/products/${id}`, {
-        method: "DELETE",
-      });
-      return true;
-    } catch (err) {
-      if (err instanceof ProductsError) throw err;
-      throw new ProductsError(
-        err instanceof Error ? err.message : "Failed to delete product",
-        "NETWORK_ERROR"
-      );
-    }
+  try {
+    await productsFetch<{ message: string }>(`/admin/products/${id}`, {
+      method: "DELETE",
+    });
+    return true;
+  } catch (err) {
+    if (err instanceof ProductsError) throw err;
+    throw new ProductsError(
+      err instanceof Error ? err.message : "Failed to delete product",
+      "NETWORK_ERROR"
+    );
   }
-
-  // ── Mock (only when API_BASE is not configured) ──
-  await new Promise((r) => setTimeout(r, 200));
-
-  const allProducts = [...featuredProducts, ...bestSellerProducts];
-  const idx = allProducts.findIndex((p) => p.id === id);
-  if (idx === -1) {
-    throw new ProductsError("Product not found", "NOT_FOUND");
-  }
-  return true;
 }
 
 /**
  * Fetch product statistics for admin dashboard.
- * Expected Laravel endpoint: GET /admin/products/stats
  */
 export async function fetchProductStats(): Promise<ProductStats> {
-  // ── Try real API first ──
-  if (API_BASE) {
-    try {
-      const response = await productsFetch<LaravelStatsResponse>(
-        "/admin/products/stats"
-      );
-      // Backend respondWithStats() wraps in { data: {...} }
-      const data = response.data;
-      return {
-        totalProducts: data.total_products,
-        totalValue: data.total_value,
-        lowStockCount: data.low_stock_count,
-        outOfStockCount: data.out_of_stock_count,
-      };
-    } catch (err) {
-      if (err instanceof ProductsError) throw err;
-      throw new ProductsError(
-        err instanceof Error ? err.message : "Failed to fetch product stats",
-        "NETWORK_ERROR"
-      );
-    }
+  try {
+    const response = await productsFetch<LaravelStatsResponse>(
+      "/admin/products/stats"
+    );
+    // Backend respondWithStats() wraps in { data: {...} }
+    const data = response.data;
+    return {
+      totalProducts: data.total_products,
+      totalValue: data.total_value,
+      lowStockCount: data.low_stock_count,
+      outOfStockCount: data.out_of_stock_count,
+    };
+  } catch (err) {
+    if (err instanceof ProductsError) throw err;
+    throw new ProductsError(
+      err instanceof Error ? err.message : "Failed to fetch product stats",
+      "NETWORK_ERROR"
+    );
   }
-
-  // ── Mock (only when API_BASE is not configured) ──
-  await new Promise((r) => setTimeout(r, 100));
-
-  const allProducts = [...featuredProducts, ...bestSellerProducts];
-  const lowStock = allProducts.filter((p) => p.stock > 0 && p.stock < 10);
-  const outOfStock = allProducts.filter((p) => p.stock <= 0);
-  const totalValue = allProducts.reduce(
-    (sum, p) => sum + (p.salePrice ?? p.price) * p.stock,
-    0
-  );
-
-  return {
-    totalProducts: allProducts.length,
-    totalValue,
-    lowStockCount: lowStock.length,
-    outOfStockCount: outOfStock.length,
-  };
 }
 
 // ─── Types ────────────────────────────────────────────────────────────
@@ -635,33 +519,22 @@ interface LaravelCategory {
 /**
  * Fetch categories from the API. Used by the product form to
  * populate the category dropdown with real UUIDs.
- *
- * When API is not configured, returns the hardcoded PRODUCT_CATEGORIES
- * as a fallback (with synthetic IDs for mock mode).
  */
 export async function fetchCategories(locale: Locale = "en"): Promise<Category[]> {
-  if (API_BASE) {
-    try {
-      const res = await publicFetch<{ data: LaravelCategory[] }>("/categories", { locale });
-      return (res.data ?? []).map((c) => ({
-        id: c.id,
-        name: locale === "ar" ? c.name_ar : c.name_en,
-        nameEn: c.name_en,
-        nameAr: c.name_ar,
-        slug: c.slug,
-      }));
-    } catch {
-      // Fall through to mock fallback
-    }
+  try {
+    const res = await publicFetch<{ data: LaravelCategory[] }>("/categories", { locale });
+    return (res.data ?? []).map((c) => ({
+      id: c.id,
+      name: locale === "ar" ? c.name_ar : c.name_en,
+      nameEn: c.name_en,
+      nameAr: c.name_ar,
+      slug: c.slug,
+    }));
+  } catch (err) {
+    if (err instanceof ProductsError) throw err;
+    throw new ProductsError(
+      err instanceof Error ? err.message : "Failed to fetch categories",
+      "NETWORK_ERROR"
+    );
   }
-
-  // Mock fallback — no UUIDs, just use slug as ID
-  const { PRODUCT_CATEGORIES } = await import("@/lib/constant");
-  return PRODUCT_CATEGORIES.map((name, i) => ({
-    id: `cat-mock-${i}`,
-    name,
-    nameEn: name,
-    nameAr: name,
-    slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-  }));
 }

@@ -4,9 +4,7 @@
  * Architecture:
  *   1. All HTTP calls go through `createServiceFetch(CheckoutError, {...})` which
  *      attaches the JWT Authorization header and handles token refresh.
- *   2. When `NEXT_PUBLIC_API_URL` is not set (dev without backend),
- *      everything falls back to mock data — zero config needed.
- *   3. Error handling uses typed `CheckoutError` extending `AppError` for the UI.
+ *   2. Error handling uses typed `CheckoutError` extending `AppError` for the UI.
  *
  * Expected Laravel endpoints (Sanctum-protected):
  *   POST /checkout          → place order { items, customer, notes, payment_method }
@@ -15,7 +13,7 @@
  * Brand: Kuwait, KWD currency, +965 phone format.
  */
 
-import { API_BASE, type FieldErrors } from "@/lib/api-config";
+import { type FieldErrors } from "@/lib/api-config";
 import { AppError } from "@/lib/app-error";
 import { createServiceFetch } from "@/lib/service-fetch";
 
@@ -133,92 +131,58 @@ const checkoutFetch = createServiceFetch(CheckoutError, {
 
 /**
  * Verify cart items are still in stock before checkout.
- * When API is live, this hits GET /checkout/verify.
- * Otherwise simulates stock check (all available in mock).
  */
 export async function verifyStock(
   items: Array<{ productId: string; quantity: number }>
 ): Promise<StockVerification> {
-  // ── Try real API first ──
-  if (API_BASE) {
-    try {
-      const params = new URLSearchParams();
-      items.forEach((item) => {
-        params.append("items[]", `${item.productId}:${item.quantity}`);
-      });
+  try {
+    const params = new URLSearchParams();
+    items.forEach((item) => {
+      params.append("items[]", `${item.productId}:${item.quantity}`);
+    });
 
-      const data = await checkoutFetch<LaravelStockVerification>(
-        `/checkout/verify?${params.toString()}`
-      );
-      return mapLaravelStockVerification(data);
-    } catch (err) {
-      if (err instanceof CheckoutError) throw err;
-      // API is configured but call failed — do NOT silently fall back to mock.
-      // Conservative: assume stock check failed → treat as unavailable.
-      throw new CheckoutError(
-        err instanceof Error ? err.message : "Failed to verify stock",
-        "NETWORK_ERROR"
-      );
-    }
+    const data = await checkoutFetch<LaravelStockVerification>(
+      `/checkout/verify?${params.toString()}`
+    );
+    return mapLaravelStockVerification(data);
+  } catch (err) {
+    if (err instanceof CheckoutError) throw err;
+    // Conservative: assume stock check failed → treat as unavailable.
+    throw new CheckoutError(
+      err instanceof Error ? err.message : "Failed to verify stock",
+      "NETWORK_ERROR"
+    );
   }
-
-  // ── Mock (only when API_BASE is not configured) ──
-  await new Promise((r) => setTimeout(r, 200));
-
-  // In mock mode, assume everything is in stock
-  return {
-    allAvailable: true,
-    unavailableItems: [],
-  };
 }
 
 /**
  * Place an order.
- * When API is live, this hits POST /checkout with snake_case payload.
- * Otherwise simulates creating an order with a fake order number.
  */
 export async function placeOrder(payload: CheckoutPayload): Promise<CheckoutResult> {
-  // ── Try real API first ──
-  if (API_BASE) {
-    try {
-      const data = await checkoutFetch<LaravelCheckoutResponse>("/checkout", {
-        method: "POST",
-        body: JSON.stringify({
-          items: payload.items.map((item) => ({
-            product_id: item.productId,
-            quantity: item.quantity,
-          })),
-          customer: {
-            name: payload.customer.name,
-            email: payload.customer.email,
-            phone: payload.customer.phone,
-            address: payload.customer.address,
-          },
-          notes: payload.notes ?? null,
-          payment_method: payload.paymentMethod,
-        }),
-      });
-      return mapLaravelCheckoutResult(data.data);
-    } catch (err) {
-      if (err instanceof CheckoutError) throw err;
-      // API is configured but call failed — do NOT silently create a fake order.
-      throw new CheckoutError(
-        err instanceof Error ? err.message : "Failed to place order",
-        "NETWORK_ERROR"
-      );
-    }
+  try {
+    const data = await checkoutFetch<LaravelCheckoutResponse>("/checkout", {
+      method: "POST",
+      body: JSON.stringify({
+        items: payload.items.map((item) => ({
+          product_id: item.productId,
+          quantity: item.quantity,
+        })),
+        customer: {
+          name: payload.customer.name,
+          email: payload.customer.email,
+          phone: payload.customer.phone,
+          address: payload.customer.address,
+        },
+        notes: payload.notes ?? null,
+        payment_method: payload.paymentMethod,
+      }),
+    });
+    return mapLaravelCheckoutResult(data.data);
+  } catch (err) {
+    if (err instanceof CheckoutError) throw err;
+    throw new CheckoutError(
+      err instanceof Error ? err.message : "Failed to place order",
+      "NETWORK_ERROR"
+    );
   }
-
-  // ── Mock (only when API_BASE is not configured) ──
-  await new Promise((r) => setTimeout(r, 500));
-
-  const orderNumber = "HV-" + Date.now();
-  const total = payload.items.reduce((sum, item) => sum + 50 * item.quantity, 0); // Mock price
-
-  return {
-    orderId: `order-${Date.now()}`,
-    orderNumber,
-    total,
-    status: "pending",
-  };
 }

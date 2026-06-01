@@ -5,12 +5,9 @@
  *   - Single API call to /admin/dashboard/summary replaces 5 separate calls
  *   - The backend DashboardController returns all stats in one DB connection
  *   - This eliminates the Supabase cold-start penalty for each separate call
- *
- * When NEXT_PUBLIC_API_URL is not set, falls back to calling individual
- * services (mock mode) — same behavior as before.
  */
 
-import { API_BASE, type FieldErrors } from "@/lib/api-config";
+import { type FieldErrors } from "@/lib/api-config";
 import { AppError } from "@/lib/app-error";
 import { createServiceFetch } from "@/lib/service-fetch";
 import type { Order, OrderStats, OrderStatus } from "@/services/orders-service";
@@ -45,6 +42,8 @@ export interface DashboardOrderStats {
   totalRevenue: number;
   averageOrderValue: number;
   statusCounts: Record<OrderStatus, number>;
+  activeOrdersCount: number;
+  pendingOrdersCount: number;
 }
 
 export interface DashboardProductStats {
@@ -84,6 +83,8 @@ interface LaravelDashboardResponse {
         total_revenue: string;
         average_order_value: string;
         status_counts: Record<string, number>;
+        active_orders_count: number;
+        pending_orders_count: number;
       };
       recent: unknown[];
     };
@@ -123,6 +124,8 @@ function mapDashboardResponse(raw: LaravelDashboardResponse["data"]): DashboardS
         totalRevenue: Number(raw.orders.stats.total_revenue) || 0,
         averageOrderValue: Number(raw.orders.stats.average_order_value) || 0,
         statusCounts: raw.orders.stats.status_counts as Record<OrderStatus, number>,
+        activeOrdersCount: raw.orders.stats.active_orders_count ?? 0,
+        pendingOrdersCount: raw.orders.stats.pending_orders_count ?? 0,
       },
       recent: (raw.orders.recent as LaravelOrder[]).map(mapLaravelOrder),
     },
@@ -153,61 +156,16 @@ function mapDashboardResponse(raw: LaravelDashboardResponse["data"]): DashboardS
  * This is the FAST path — 1 DB connection instead of 5+.
  */
 export async function fetchDashboardSummary(): Promise<DashboardSummary> {
-  if (API_BASE) {
-    try {
-      const response = await dashboardFetch<LaravelDashboardResponse>(
-        "/admin/dashboard/summary"
-      );
-      return mapDashboardResponse(response.data);
-    } catch (err) {
-      if (err instanceof DashboardError) throw err;
-      throw new DashboardError(
-        err instanceof Error ? err.message : "Failed to fetch dashboard",
-        "NETWORK_ERROR"
-      );
-    }
+  try {
+    const response = await dashboardFetch<LaravelDashboardResponse>(
+      "/admin/dashboard/summary"
+    );
+    return mapDashboardResponse(response.data);
+  } catch (err) {
+    if (err instanceof DashboardError) throw err;
+    throw new DashboardError(
+      err instanceof Error ? err.message : "Failed to fetch dashboard",
+      "NETWORK_ERROR"
+    );
   }
-
-  // ── Mock fallback: use individual services (same as before) ──
-  const { fetchOrders, fetchOrderStats } = await import("@/services/orders-service");
-  const { getProducts, fetchProductStats } = await import("@/services/product-service");
-  const { fetchReviews, fetchReviewStats } = await import("@/services/review-service");
-
-  const [ordersData, orderStatsData, productsData, productStatsData, reviewsData, reviewStatsData] =
-    await Promise.all([
-      fetchOrders(),
-      fetchOrderStats(),
-      getProducts("en", 1, 50),
-      fetchProductStats(),
-      fetchReviews(),
-      fetchReviewStats(),
-    ]);
-
-  return {
-    orders: {
-      stats: {
-        totalRevenue: orderStatsData.totalRevenue,
-        averageOrderValue: orderStatsData.averageOrderValue,
-        statusCounts: orderStatsData.statusCounts,
-      },
-      recent: ordersData.orders.slice(0, 5),
-    },
-    products: {
-      stats: {
-        totalProducts: productStatsData.totalProducts,
-        totalValue: productStatsData.totalValue,
-        lowStockCount: productStatsData.lowStockCount,
-        outOfStockCount: productStatsData.outOfStockCount,
-      },
-      alerts: productsData.products,
-    },
-    reviews: {
-      stats: {
-        averageRating: reviewStatsData.averageRating,
-        totalReviews: reviewStatsData.totalReviews,
-        ratingDistribution: reviewStatsData.ratingDistribution,
-      },
-      recent: reviewsData.reviews.slice(0, 5),
-    },
-  };
 }

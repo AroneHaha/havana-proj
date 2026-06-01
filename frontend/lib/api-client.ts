@@ -109,5 +109,4 @@ export { createServiceFetch, serviceFetch } from "@/lib/service-fetch";
 export type { ServiceFetchConfig } from "@/lib/service-fetch";
 
 // NOTE: The old `isApiAvailable()` health-check function has been removed.
-// All services now use the consistent `if (API_BASE) { try { ... } catch { /* mock fallback */ } }`
-// pattern, which is simpler and avoids an extra network round-trip.
+// All services now call the API directly with proper error handling.

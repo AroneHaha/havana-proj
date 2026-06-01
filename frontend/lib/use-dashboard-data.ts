@@ -5,13 +5,18 @@
  * Hydrates all 3 stores (orders, products, reviews) with stats data.
  * Falls back to individual fetches if the summary endpoint fails.
  *
+ * Performance:
+ *   - Single API call on mount (dashboard summary)
+ *   - Stats hydrated into stores for other modules to use
+ *   - 5-minute cache — navigating away and back doesn't re-fetch
+ *
  * USAGE in dashboard page:
  *   const { loading, error, summary, retry } = useDashboardData();
  */
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useOrdersStore, type OrderStats } from "@/store/orders-store";
 import { useProductsStore, type ProductStats } from "@/store/product-store";
 import { useReviewsStore, type ReviewStats } from "@/store/review-store";
@@ -19,7 +24,6 @@ import {
   fetchDashboardSummary,
   type DashboardSummary,
 } from "@/services/dashboard-service";
-import { API_BASE } from "@/lib/api-config";
 
 interface DashboardDataState {
   /** Whether the initial load is in progress */
@@ -32,40 +36,29 @@ interface DashboardDataState {
   retry: () => void;
 }
 
-// Track whether we've already fetched on this session to avoid
-// re-fetching when the component remounts (React StrictMode, navigation)
-let sessionFetched = false;
+/** Cache the summary response for 5 minutes (matches page cache TTL) */
+let summaryCache: { summary: DashboardSummary; timestamp: number } | null = null;
+const SUMMARY_CACHE_TTL_MS = 5 * 60 * 1000;
 
 export function useDashboardData(): DashboardDataState {
-  const [loading, setLoading] = useState(!sessionFetched);
+  const [loading, setLoading] = useState(!summaryCache);
   const [error, setError] = useState<string | null>(null);
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const mountRef = useRef(false);
+  const [summary, setSummary] = useState<DashboardSummary | null>(
+    summaryCache?.summary ?? null
+  );
 
   const hydrateStores = useCallback((data: DashboardSummary) => {
     // Hydrate stats into all 3 stores without triggering API calls.
-    // Types match exactly: Dashboard*Stats fields are all `number`.
     useOrdersStore.getState().hydrateStatsFromSummary(data.orders.stats as OrderStats);
     useProductsStore.getState().hydrateStatsFromSummary(data.products.stats as ProductStats);
     useReviewsStore.getState().hydrateStatsFromSummary(data.reviews.stats as ReviewStats);
   }, []);
 
   const fetchSummary = useCallback(async () => {
-    if (!API_BASE) {
-      // No API configured — fall back to individual store fetches (mock mode)
-      setLoading(true);
-      try {
-        await Promise.allSettled([
-          useOrdersStore.getState().fetchOrders(),
-          useOrdersStore.getState().fetchStats(),
-          useProductsStore.getState().fetchProducts(),
-          useProductsStore.getState().fetchStats(),
-          useReviewsStore.getState().fetchReviews(),
-          useReviewsStore.getState().fetchStats(),
-        ]);
-      } catch {
-        // Individual stores handle their own errors
-      }
+    // ── Check cache first ──
+    if (summaryCache && Date.now() - summaryCache.timestamp < SUMMARY_CACHE_TTL_MS) {
+      setSummary(summaryCache.summary);
+      hydrateStores(summaryCache.summary);
       setLoading(false);
       return;
     }
@@ -75,9 +68,12 @@ export function useDashboardData(): DashboardDataState {
 
     try {
       const data = await fetchDashboardSummary();
+
       setSummary(data);
       hydrateStores(data);
-      sessionFetched = true;
+
+      // Cache the result
+      summaryCache = { summary: data, timestamp: Date.now() };
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to load dashboard";
@@ -96,16 +92,10 @@ export function useDashboardData(): DashboardDataState {
   }, [hydrateStores]);
 
   useEffect(() => {
-    if (mountRef.current) return; // StrictMode guard
-    mountRef.current = true;
-
-    if (sessionFetched) {
-      // Already fetched in this session — don't re-fetch
-      setLoading(false);
-      return;
-    }
-
     fetchSummary();
+    // NOTE: No cleanup abort here — aborting on unmount causes the
+    // dashboard to get stuck loading in React StrictMode (dev mode).
+    // The 5-min cache TTL prevents redundant fetches on remount.
   }, [fetchSummary]);
 
   return {
@@ -113,8 +103,17 @@ export function useDashboardData(): DashboardDataState {
     error,
     summary,
     retry: () => {
-      sessionFetched = false;
+      summaryCache = null;
       fetchSummary();
     },
   };
+}
+
+/**
+ * Invalidate the dashboard summary cache.
+ * Call this after any CRUD operation that changes dashboard data
+ * (e.g., order status change, product update, review visibility change).
+ */
+export function invalidateDashboardCache() {
+  summaryCache = null;
 }

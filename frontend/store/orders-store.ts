@@ -5,9 +5,7 @@
  *   Server-side pagination: the store fetches only the current page of
  *   orders from the Laravel API. Filters (status, search, date range)
  *   are sent as query params so the database does the heavy lifting.
- *   When NEXT_PUBLIC_API_URL is not set → uses mock data with
- *   client-side filtering/pagination as fallback.
- *
+
  *   Stats (revenue, counts) are fetched from a dedicated endpoint —
  *   they reflect the full dataset, not just the current page.
  *
@@ -16,6 +14,14 @@
  *     - `isFetching`: true on every fetch including page changes → overlay
  *   This lets the UI show a skeleton on first load and a lighter
  *   loading overlay when navigating between pages.
+ *
+ *   Performance:
+ *     - Request dedup: in-flight fetches are tracked by (page, filters)
+ *       to prevent duplicate API calls.
+ *     - AbortController: stale requests are cancelled when a new one
+ *       starts, preventing race conditions and stale data overwrites.
+ *     - Page cache: recently fetched pages are cached in-memory so
+ *       navigating back to a previous page is instant.
  */
 
 import { create } from "zustand";
@@ -35,6 +41,7 @@ import {
   PaymentMethod,
 } from "@/services/orders-service";
 import { getErrorMessage } from "@/lib/get-error-message";
+import { invalidateDashboardCache } from "@/lib/use-dashboard-data";
 
 // Re-export types and constants so components can import from the store
 export type { Order, OrderStatus, OrdersError, OrderStats };
@@ -43,6 +50,20 @@ export { ORDER_STATUS_FLOW, STATUS_I18N_KEY };
 
 /** Default items per page — matches Laravel's per_page */
 export const ORDERS_PER_PAGE = 10;
+
+/** Cache entry for a fetched page of orders */
+interface PageCacheEntry {
+  orders: Order[];
+  totalOrders: number;
+  totalPages: number;
+  timestamp: number;
+}
+
+/** How long a cached page is considered fresh (5 minutes) */
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+/** Max cached pages to keep (LRU-ish) */
+const MAX_CACHE_SIZE = 10;
 
 interface OrdersState {
   /** Orders for the current page only */
@@ -95,6 +116,44 @@ interface OrdersState {
   getAverageOrderValue: () => number;
 }
 
+// ─── In-flight request tracking (outside Zustand for non-reactive access) ───
+
+/** AbortController for the current in-flight fetch — cancels stale requests */
+let fetchAbortController: AbortController | null = null;
+
+/** Page cache: key = "page:status:search:dateFrom:dateTo" → cached response */
+const pageCache = new Map<string, PageCacheEntry>();
+
+/** Stats cache to avoid re-fetching on every mount */
+let statsCache: { stats: OrderStats; timestamp: number } | null = null;
+const STATS_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
+/**
+ * Build a cache key from page + filters.
+ * Orders with the same params should hit the cache.
+ */
+function buildCacheKey(
+  page: number,
+  filters: OrdersState["filters"]
+): string {
+  return `${page}:${filters.status ?? ""}:${filters.search ?? ""}:${filters.dateFrom ?? ""}:${filters.dateTo ?? ""}`;
+}
+
+/**
+ * Evict oldest entries if cache exceeds max size.
+ */
+function trimCache() {
+  if (pageCache.size <= MAX_CACHE_SIZE) return;
+  // Delete the oldest entries by timestamp
+  const entries = [...pageCache.entries()].sort(
+    (a, b) => a[1].timestamp - b[1].timestamp
+  );
+  const toDelete = entries.slice(0, entries.length - MAX_CACHE_SIZE);
+  for (const [key] of toDelete) {
+    pageCache.delete(key);
+  }
+}
+
 export const useOrdersStore = create<OrdersState>()(
   persist(
     (set, get) => ({
@@ -111,10 +170,32 @@ export const useOrdersStore = create<OrdersState>()(
       fetchOrders: async (page?: number) => {
         const state = get();
         const targetPage = page ?? state.currentPage;
+        const filters = state.filters;
+
+        // ── Check page cache first ──
+        const cacheKey = buildCacheKey(targetPage, filters);
+        const cached = pageCache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+          // Cache hit — update state instantly without API call
+          set({
+            orders: cached.orders,
+            totalOrders: cached.totalOrders,
+            currentPage: targetPage,
+            totalPages: cached.totalPages,
+            isFetching: false,
+            loading: false,
+          });
+          return;
+        }
+
+        // ── Abort any in-flight request ──
+        if (fetchAbortController) {
+          fetchAbortController.abort();
+        }
+        fetchAbortController = new AbortController();
+        const currentAbort = fetchAbortController;
 
         const hasData = state.orders.length > 0;
-        // On initial load: show full skeleton
-        // On page change: show overlay on existing data
         set({
           loading: !hasData,
           isFetching: true,
@@ -125,11 +206,24 @@ export const useOrdersStore = create<OrdersState>()(
           const result = await serviceFetchOrders({
             page: targetPage,
             perPage: ORDERS_PER_PAGE,
-            status: state.filters.status,
-            search: state.filters.search,
-            dateFrom: state.filters.dateFrom,
-            dateTo: state.filters.dateTo,
+            status: filters.status,
+            search: filters.search,
+            dateFrom: filters.dateFrom,
+            dateTo: filters.dateTo,
           });
+
+          // If this request was aborted, don't update state
+          if (currentAbort.signal.aborted) return;
+
+          // Cache the result
+          pageCache.set(cacheKey, {
+            orders: result.orders,
+            totalOrders: result.total,
+            totalPages: result.lastPage,
+            timestamp: Date.now(),
+          });
+          trimCache();
+
           set({
             orders: result.orders,
             totalOrders: result.total,
@@ -139,6 +233,9 @@ export const useOrdersStore = create<OrdersState>()(
             isFetching: false,
           });
         } catch (err) {
+          // Ignore aborted requests
+          if (currentAbort.signal.aborted) return;
+
           set({
             error: getErrorMessage(err, "Failed to fetch orders"),
             loading: false,
@@ -148,29 +245,33 @@ export const useOrdersStore = create<OrdersState>()(
       },
 
       setFilters: (newFilters) => {
-        set((state) => ({
-          filters: { ...state.filters, ...newFilters },
-          currentPage: 1,
-        }));
-        // Fetch page 1 with new filters
+        const merged = { ...get().filters, ...newFilters };
+        set({ filters: merged, currentPage: 1 });
+        // Clear page cache when filters change (old cache entries are stale)
+        pageCache.clear();
         get().fetchOrders(1);
       },
 
       clearFilters: () => {
         set({ filters: {}, currentPage: 1 });
+        pageCache.clear();
         get().fetchOrders(1);
       },
 
       setPage: (page) => {
-        // Don't update currentPage until the fetch completes —
-        // this prevents the page indicator from jumping ahead of the data.
-        // The fetch will set currentPage from the API response.
         get().fetchOrders(page);
       },
 
       fetchStats: async () => {
+        // Use cached stats if fresh
+        if (statsCache && Date.now() - statsCache.timestamp < STATS_CACHE_TTL_MS) {
+          set({ stats: statsCache.stats });
+          return;
+        }
+
         try {
           const stats = await serviceFetchStats();
+          statsCache = { stats, timestamp: Date.now() };
           set({ stats });
         } catch {
           // Stats are non-critical — don't set error state
@@ -178,6 +279,7 @@ export const useOrdersStore = create<OrdersState>()(
       },
 
       hydrateStatsFromSummary: (stats) => {
+        statsCache = { stats, timestamp: Date.now() };
         set({ stats });
       },
 
@@ -192,7 +294,12 @@ export const useOrdersStore = create<OrdersState>()(
               o.id === id ? updated : o
             ),
           }));
-          // Refresh stats after status change
+          // Invalidate page cache (order status changed)
+          pageCache.clear();
+          // Invalidate stats cache
+          statsCache = null;
+          // Invalidate dashboard cache (stats are stale now)
+          invalidateDashboardCache();
           get().fetchStats();
         } catch (err) {
           set({ error: getErrorMessage(err, "Failed to update order status") });
@@ -203,9 +310,13 @@ export const useOrdersStore = create<OrdersState>()(
       deleteOrder: async (id) => {
         try {
           await serviceDeleteOrder(id);
+          // Invalidate page cache (order deleted)
+          pageCache.clear();
+          statsCache = null;
+          // Invalidate dashboard cache (stats are stale now)
+          invalidateDashboardCache();
           // Re-fetch current page to get accurate data
           await get().fetchOrders();
-          // Refresh stats after deletion
           get().fetchStats();
         } catch (err) {
           set({ error: getErrorMessage(err, "Failed to delete order") });

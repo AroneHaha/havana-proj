@@ -4,7 +4,7 @@
  * Architecture:
  *   1. All cart mutations go through the cart-service layer.
  *      When NEXT_PUBLIC_API_URL is set AND user is authenticated → hits Laravel API.
- *      When not set / unauthenticated → uses mock fallback (localStorage cache).
+ *      When not set / unauthenticated → uses localStorage cache as fallback.
  *   2. The store interface stays the same regardless of data source.
  *      Components never import the service directly.
  *   3. `CartItem` still embeds a full `Product` object for component convenience
@@ -70,7 +70,7 @@ interface CartStore {
   error: string | null;
 
   // ─── Lifecycle ─────────────────────────────────────────────────────
-  /** Fetch cart from service (API or mock). Call on mount. */
+  /** Fetch cart from API. Call on mount. */
   fetchCart: () => Promise<void>;
 
   // ─── Actions ────────────────────────────────────────────────────────

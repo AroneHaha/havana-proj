@@ -28,7 +28,7 @@ const CHECK_INTERVAL_MS = 30_000; // 30 seconds
 
 export async function checkApiAvailability(): Promise<boolean> {
   if (!API_BASE) {
-    // No API URL configured → running in mock mode, not "unavailable"
+    // No API URL configured
     apiAvailable = false;
     return false;
   }
@@ -81,7 +81,7 @@ export function setApiAvailable(available: boolean): void {
  */
 export function getApiUnavailableMessage(): string {
   if (!API_BASE) {
-    return "API is not configured. Running in demo mode.";
+    return "API is not configured.";
   }
   return "Unable to connect to the server. Please ensure the backend is running and try again.";
 }

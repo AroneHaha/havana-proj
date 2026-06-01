@@ -14,7 +14,7 @@ import { SignupSuccessModal } from "@/components/auth/signup-success-modal";
 
 /**
  * Helper: map AuthError codes to i18n messages for signup.
- * Handles both mock and Laravel backend error codes.
+ * Handles Laravel backend error codes.
  */
 function getSignupErrorMessage(err: unknown, t: ReturnType<typeof getDictionary>): string {
   if (!(err instanceof AuthError)) {
