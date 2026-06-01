@@ -534,7 +534,7 @@ export async function fetchOrders(filters?: {
   );
 
   const page = filters?.page ?? 1;
-  const perPage = filters?.perPage ?? 50;
+  const perPage = filters?.perPage ?? 10;
   const start = (page - 1) * perPage;
   const paginated = result.slice(start, start + perPage);
 
