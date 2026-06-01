@@ -6,6 +6,7 @@ interface UIStore {
   isSearchOpen: boolean;
   isCheckoutOpen: boolean;
   isNotificationOpen: boolean;
+  isDiagramDrawerOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
@@ -20,6 +21,9 @@ interface UIStore {
   openNotification: () => void;
   closeNotification: () => void;
   toggleNotification: () => void;
+  openDiagramDrawer: () => void;
+  closeDiagramDrawer: () => void;
+  toggleDiagramDrawer: () => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -28,6 +32,7 @@ export const useUIStore = create<UIStore>((set) => ({
   isSearchOpen: false,
   isCheckoutOpen: false,
   isNotificationOpen: false,
+  isDiagramDrawerOpen: false,
   openCart: () => set({ isCartOpen: true }),
   closeCart: () => set({ isCartOpen: false }),
   toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
@@ -42,4 +47,7 @@ export const useUIStore = create<UIStore>((set) => ({
   openNotification: () => set({ isNotificationOpen: true }),
   closeNotification: () => set({ isNotificationOpen: false }),
   toggleNotification: () => set((state) => ({ isNotificationOpen: !state.isNotificationOpen })),
+  openDiagramDrawer: () => set({ isDiagramDrawerOpen: true }),
+  closeDiagramDrawer: () => set({ isDiagramDrawerOpen: false }),
+  toggleDiagramDrawer: () => set((state) => ({ isDiagramDrawerOpen: !state.isDiagramDrawerOpen })),
 }));
