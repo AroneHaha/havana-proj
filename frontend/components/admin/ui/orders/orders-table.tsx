@@ -85,12 +85,11 @@ export function OrdersTable({
   };
 
   const getPaymentLabel = (_method: PaymentMethod) => {
-    // Cash on delivery is the only payment method
     return t.cashOnDelivery;
   };
 
   return (
-    <div className="bg-white dark:bg-dark-card rounded-2xl border border-border ring-1 ring-black/[0.03] dark:ring-white/[0.03] shadow-elevated overflow-hidden flex-1 min-h-0 flex flex-col">
+    <div className="bg-white dark:bg-dark-card rounded-2xl border border-border ring-1 ring-black/[0.03] dark:ring-white/[0.03] shadow-elevated overflow-hidden flex-1 min-h-0 flex flex-col relative">
       {/* Date Range Bar — uses shared DateRangeBar */}
       <DateRangeBar
         dateFrom={dateFrom}
@@ -108,9 +107,8 @@ export function OrdersTable({
         }}
       />
 
-      {/* Table body — with loading overlay for page changes */}
-      <div className="overflow-y-auto flex-1 min-h-0 relative">
-      <div className="overflow-x-auto">
+      {/* Table body */}
+      <div className={`flex-1 min-h-0 ${isFetching && !loading ? "overflow-y-hidden overflow-x-hidden" : "overflow-y-auto overflow-x-auto"}`}>
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-inset sticky top-0 z-10">
@@ -209,17 +207,6 @@ export function OrdersTable({
         </table>
       </div>
 
-      {/* Loading overlay — shown when fetching a new page (not initial load) */}
-      {isFetching && !loading && paginatedOrders.length > 0 && (
-        <div className="absolute inset-0 bg-white/60 dark:bg-dark-bg/60 backdrop-blur-[2px] flex items-center justify-center z-20 transition-opacity duration-200">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-dark-card shadow-lg border border-border">
-            <Loader2 className="w-4 h-4 text-maroon dark:text-gold animate-spin" />
-            <span className="text-xs font-medium text-muted-foreground">Loading...</span>
-          </div>
-        </div>
-      )}
-      </div>
-
       {/* Pagination — always show when there are orders across pages */}
       {filteredOrdersCount > 0 && totalPages > 1 && (
         <Pagination
@@ -234,6 +221,15 @@ export function OrdersTable({
             page: t.page,
           }}
         />
+      )}
+
+      {/* Loading overlay — covers entire card (date bar + table + pagination) */}
+      {isFetching && !loading && paginatedOrders.length > 0 && (
+        <div className="absolute inset-0 bg-white/60 dark:bg-dark-card/60 backdrop-blur-[2px] flex items-center justify-center z-20 rounded-2xl">
+          <div className="flex items-center justify-center p-3 rounded-xl bg-white dark:bg-dark-card shadow-lg border border-border">
+            <Loader2 className="w-5 h-5 text-maroon dark:text-gold animate-spin" />
+          </div>
+        </div>
       )}
     </div>
   );

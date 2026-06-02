@@ -398,6 +398,7 @@ export interface Translation {
       confirmStatusBtn: string;
       confirmCancelTitle: string;
       confirmCancelMessage: string;
+      confirmCancelWarning: string;
       confirmCancelBtn: string;
       cancelBtn: string;
       dateFrom: string;

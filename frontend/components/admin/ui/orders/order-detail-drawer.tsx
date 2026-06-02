@@ -265,7 +265,7 @@ export function OrderDetailDrawer({
               <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg p-3 border border-amber-100 dark:border-amber-900/20">
                 <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                  {t.confirmDeliveryWarning.replace("delivered", "cancelled")}
+                  {t.confirmCancelWarning}
                 </p>
               </div>
               <div className="bg-inset rounded-lg p-3 space-y-2 border border-border">

@@ -70,6 +70,7 @@ export interface Order {
   customer: OrderCustomer;
   items: OrderItem[];
   subtotal: number;
+  discount: number;
   deliveryFee: number;
   total: number;
   status: OrderStatus;
@@ -222,6 +223,7 @@ export function mapLaravelOrder(raw: LaravelOrder): Order {
       price: item.price,
     })),
     subtotal: raw.subtotal,
+    discount: raw.discount ?? 0,
     deliveryFee: raw.shipping_cost,
     total: raw.total,
     status: raw.status,
