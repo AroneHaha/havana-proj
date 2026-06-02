@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Authentication Routes — from auth-service.ts
+| Authentication Routes — Havana Flower Shop
 |--------------------------------------------------------------------------
 |
 | These routes handle all authentication flows used by both the web admin
@@ -32,14 +32,15 @@ Route::prefix('auth')->group(function () {
     });
 
     // ─── Public (no auth required) ────────────────────────────────────
-    // Throttled to prevent abuse on login/register/forgot-password
+    // Throttled to prevent abuse on login/forgot-password
 
     Route::middleware('throttle:auth')->group(function () {
         Route::post('/login', [AuthController::class, 'login'])
             ->name('auth.login');
 
-        Route::post('/register', [AuthController::class, 'register'])
-            ->name('auth.register');
+        // DISABLED: Public registration closed — admin-only app.
+        // Route::post('/register', [AuthController::class, 'register'])
+        //     ->name('auth.register');
 
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
             ->name('auth.forgot-password');

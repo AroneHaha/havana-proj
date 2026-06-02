@@ -167,7 +167,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-[85vh] flex">
+    <div className="min-h-screen flex">
       {/* ── Left: Decorative panel (hidden on mobile) ── */}
       <div className="hidden lg:flex lg:w-[45%] relative overflow-hidden">
         {/* Background image */}
@@ -404,20 +404,6 @@ export function LoginPage() {
                   )}
                 </Button>
               </form>
-
-              {/* REMOVED: Divider + Google/Apple social login buttons */}
-
-              {/* Sign up link */}
-              <p className="mt-8 text-center text-sm text-muted-foreground">
-                {t.auth.login.noAccount}{" "}
-                <button
-                  type="button"
-                  onClick={() => router.push("/signup")}
-                  className="font-medium text-maroon dark:text-gold hover:underline cursor-pointer"
-                >
-                  {t.auth.login.createAccount}
-                </button>
-              </p>
             </>
           )}
         </motion.div>
