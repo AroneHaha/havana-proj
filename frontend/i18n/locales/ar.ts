@@ -491,12 +491,13 @@ const ar: Translation = {
       last7Days: "آخر ٧ أيام",
       last30Days: "آخر ٣٠ يوم",
     },
-    salesReviews: {
+        salesReviews: {
       title: "المبيعات",
       subtitle: "تتبع المبيعات المكتملة وتقييمات العملاء",
       search: "البحث بالرقم أو اسم العميل...",
-      totalRevenue: "إجمالي الإيرادات (هذا الشهر)",
-      totalOrders: "إجمالي الطلبات (اليوم)",
+      totalRevenue: "إجمالي الإيرادات",
+      avgPerOrder: "المتوسط لكل طلب",
+      totalOrders: "إجمالي الطلبات",
       productsSold: "المنتجات المباعة",
       allProducts: "جميع المنتجات",
       filterByProduct: "تصفية حسب المنتج",
@@ -537,6 +538,8 @@ const ar: Translation = {
       customDateRange: "مخصص",
       allYears: "كل السنوات",
       allMonths: "كل الأشهر",
+      discount: "الخصم",
+      deliveryAddress: "عنوان التوصيل",
     },
     products: {
       title: "المنتجات",

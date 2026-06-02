@@ -22,6 +22,10 @@ export function SalesReviewsPage() {
   const dict = getDictionary(locale);
   const t = dict.admin.salesReviews;
 
+  // ── Mounted guard — prevents flash of "no data" on first render ──
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const orders = useOrdersStore((s) => s.orders);
   const ordersLoading = useOrdersStore((s) => s.loading);
   const storeFetchOrders = useOrdersStore((s) => s.fetchOrders);
@@ -49,18 +53,24 @@ export function SalesReviewsPage() {
     setCurrentPage(1);
   }, []);
 
+  // Split into two useEffects to keep dep array sizes stable (HMR safety)
   useEffect(() => {
-    storeFetchOrders();
+    // Clear stale filters from Orders page so we fetch ALL orders (not just filtered ones)
+    useOrdersStore.getState().clearFilters();
+  }, []);
+
+  useEffect(() => {
     storeFetchReviews();
     storeFetchStats();
-  }, [storeFetchOrders, storeFetchReviews, storeFetchStats]);
+  }, [storeFetchReviews, storeFetchStats]);
 
-  const loading = ordersLoading || reviewsLoading;
+  // Force loading=true until component has mounted AND stores have fetched
+  const loading = !mounted || ordersLoading || reviewsLoading;
 
-  // All non-cancelled orders (sales), sorted newest first
+  // Only delivered orders count as actual sales — sorted newest first
   const salesOrders = useMemo(() => {
     return orders
-      .filter((o) => o.status !== "cancelled")
+      .filter((o) => o.status === "delivered")
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [orders]);
 
@@ -163,6 +173,8 @@ export function SalesReviewsPage() {
           reviewsFor: t.reviewsFor,
           quantity: t.quantity,
           noReviewsForProduct: t.noReviewsForProduct,
+          discount: t.discount,
+          deliveryAddress: t.deliveryAddress,
         }}
       />
     );

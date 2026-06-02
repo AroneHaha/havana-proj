@@ -27,6 +27,8 @@ interface SalesDetailViewProps {
     reviewsFor: string;
     quantity: string;
     noReviewsForProduct: string;
+    discount: string;
+    deliveryAddress: string;
   };
 }
 

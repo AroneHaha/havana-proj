@@ -145,7 +145,7 @@ export function AdminOrders() {
               </div>
               <div className="space-y-1 overflow-y-auto flex-1">
                 {ORDER_FILTER_TABS.map((filter) => {
-                  const count = filter === "all" ? totalOrders : statusCounts[filter];
+                  const count = filter === "all" ? Object.values(statusCounts).reduce((sum, c) => sum + c, 0) : statusCounts[filter];
                   const isActive = activeFilter === filter;
                   return (
                     <button
@@ -158,8 +158,10 @@ export function AdminOrders() {
                       }`}
                     >
                       <span className="flex items-center gap-2">
-                        {filter !== "all" && (
+                        {filter !== "all" ? (
                           <span className={`w-1.5 h-1.5 rounded-full ${ORDER_STATUS_DOT_COLORS[filter]}`} />
+                        ) : (
+                          <span className="w-1.5 h-1.5" />
                         )}
                         {getTabLabel(filter as FilterStatus)}
                       </span>
@@ -189,7 +191,7 @@ export function AdminOrders() {
             <div className="flex items-center gap-3 lg:hidden overflow-x-auto scrollbar-hide">
               <div className="flex gap-1.5 pb-1 min-w-max">
                 {ORDER_FILTER_TABS.map((filter) => {
-                  const count = filter === "all" ? totalOrders : statusCounts[filter];
+                  const count = filter === "all" ? Object.values(statusCounts).reduce((sum, c) => sum + c, 0) : statusCounts[filter];
                   const isActive = activeFilter === filter;
                   return (
                     <button

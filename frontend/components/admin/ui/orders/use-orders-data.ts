@@ -13,7 +13,6 @@ import { useLanguageStore } from "@/store/language-store";
 import { getDictionary } from "@/i18n";
 import { useSearchFilter } from "@/components/admin/ui/shared/use-search-filter";
 import { useDateRangeFilter } from "@/components/admin/ui/shared/use-date-range-filter";
-import { fetchOrders as fetchAllOrders } from "@/services/orders-service";
 import type { Translation } from "@/i18n/types";
 
 export type FilterStatus = "all" | OrderStatus;
@@ -34,10 +33,16 @@ export function useOrdersData() {
   const dict = getDictionary(locale);
   const t = dict.admin.orders;
 
+  // ── Mounted guard — prevents flash of "no data" on first render ──
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   // ── Store state (server-paginated) ────────────────────────────────
   const orders = useOrdersStore((s) => s.orders);
-  const loading = useOrdersStore((s) => s.loading);
+  const storeLoading = useOrdersStore((s) => s.loading);
   const isFetching = useOrdersStore((s) => s.isFetching);
+  // Force loading=true until the component has mounted AND store has fetched
+  const loading = !mounted || storeLoading;
   const totalOrders = useOrdersStore((s) => s.totalOrders);
   const currentPage = useOrdersStore((s) => s.currentPage);
   const totalPages = useOrdersStore((s) => s.totalPages);
@@ -55,7 +60,6 @@ export function useOrdersData() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
 
   // ── Search + Date filters (local state, synced to store) ────────
   const search = useSearchFilter();
@@ -77,11 +81,11 @@ export function useOrdersData() {
     });
   }, [dateRange.dateFrom, dateRange.dateTo, storeSetFilters]);
 
-  // Initial fetch
+  // Initial fetch — clear stale filters from previous navigation so page always starts fresh
   useEffect(() => {
-    storeFetchOrders();
+    useOrdersStore.getState().clearFilters();
     storeFetchStats();
-  }, [storeFetchOrders, storeFetchStats]);
+  }, [storeFetchStats]);
 
   // ── Filter handlers ──────────────────────────────────────────────
   const handleFilterChange = useCallback((filter: FilterStatus) => {
@@ -132,47 +136,17 @@ export function useOrdersData() {
     } catch {}
   };
 
-  const exportCSV = async () => {
-    setIsExporting(true);
-    try {
-      const response = await fetchAllOrders({
-        status: activeFilter === "all" ? undefined : activeFilter,
-        search: search.searchQuery || undefined,
-        dateFrom: dateRange.dateFrom || undefined,
-        dateTo: dateRange.dateTo || undefined,
-        perPage: 9999,
-        page: 1,
-      });
-
-      const headers = ["Order ID", "Customer", "Email", "Phone", "Items", "Subtotal", "Discount", "Delivery Fee", "Total", "Status", "Payment", "Notes", "Created At"];
-      const rows = response.orders.map((o) => [
-        o.orderNumber || o.id,
-        o.customer.name,
-        o.customer.email,
-        o.customer.phone,
-        o.items.map((i) => `${i.productName} x${i.quantity}`).join("; "),
-        o.subtotal.toString(),
-        o.discount.toString(),
-        o.deliveryFee.toString(),
-        o.total.toString(),
-        o.status,
-        "Cash on Delivery",
-        o.notes || "",
-        o.createdAt,
-      ]);
-      const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a"); a.href = url; a.download = `havana-orders-${new Date().toISOString().split("T")[0]}.csv`; a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("CSV export failed:", err);
-    } finally {
-      setIsExporting(false);
-    }
+  const exportCSV = () => {
+    const headers = ["Order ID", "Customer", "Email", "Phone", "Items", "Subtotal", "Delivery Fee", "Total", "Status", "Payment", "Notes", "Created At"];
+    const rows = orders.map((o) => [o.orderNumber || o.id, o.customer.name, o.customer.email, o.customer.phone, o.items.map((i) => `${i.productName} x${i.quantity}`).join("; "), o.subtotal.toString(), o.deliveryFee.toString(), o.total.toString(), o.status, "Cash on Delivery", o.notes || "", o.createdAt]);
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `havana-orders-${new Date().toISOString().split("T")[0]}.csv`; a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString(locale === "ar" ? "ar-KW" : "en-KW", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString("en-KW", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   const itemCount = (items: Order["items"]) => items.reduce((sum, i) => sum + i.quantity, 0);
 
   const getTabLabel = (filter: FilterStatus): string => {
@@ -188,7 +162,6 @@ export function useOrdersData() {
     t,
     loading,
     isFetching,
-    isExporting,
     searchQuery: search.searchQuery, handleSearchChange, handleClearSearch: search.clearSearch,
     activeFilter, handleFilterChange,
     currentPage, setCurrentPage: storeSetPage,

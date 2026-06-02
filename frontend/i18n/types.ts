@@ -367,6 +367,7 @@ export interface Translation {
       orderItems: string;
       paymentMethod: string;
       deliveryFee: string;
+      discount: string;
       subtotal: string;
       notes: string;
       noNotes: string;
@@ -409,11 +410,12 @@ export interface Translation {
       last7Days: string;
       last30Days: string;
     };
-    salesReviews: {
+       salesReviews: {
       title: string;
       subtitle: string;
       search: string;
       totalRevenue: string;
+      avgPerOrder: string;
       totalOrders: string;
       productsSold: string;
       allProducts: string;
@@ -455,6 +457,8 @@ export interface Translation {
       customDateRange: string;
       allYears: string;
       allMonths: string;
+      discount: string;
+      deliveryAddress: string;
     };
     products: {
       title: string;

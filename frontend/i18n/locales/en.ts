@@ -491,12 +491,13 @@ const en: Translation = {
       last7Days: "Last 7 Days",
       last30Days: "Last 30 Days",
     },
-    salesReviews: {
+       salesReviews: {
       title: "Sales",
       subtitle: "Track completed sales and customer reviews",
       search: "Search sales by ID or customer...",
-      totalRevenue: "Total Revenue (This Month)",
-      totalOrders: "Total Orders (Today)",
+      totalRevenue: "Total Revenue",
+      avgPerOrder: "Avg. per order",
+      totalOrders: "Total Orders",
       productsSold: "Products Sold",
       allProducts: "All Products",
       filterByProduct: "Filter by Product",
@@ -537,6 +538,8 @@ const en: Translation = {
       customDateRange: "Custom",
       allYears: "All Years",
       allMonths: "All Months",
+      discount: "Discount",
+      deliveryAddress: "Delivery Address",
     },
     products: {
       title: "Products",

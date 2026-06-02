@@ -5,7 +5,7 @@
  *   Server-side pagination: the store fetches only the current page of
  *   orders from the Laravel API. Filters (status, search, date range)
  *   are sent as query params so the database does the heavy lifting.
-
+ *
  *   Stats (revenue, counts) are fetched from a dedicated endpoint —
  *   they reflect the full dataset, not just the current page.
  *
@@ -163,7 +163,7 @@ export const useOrdersStore = create<OrdersState>()(
       totalPages: 1,
       filters: {},
       stats: null,
-      loading: false,
+      loading: true,
       isFetching: false,
       error: null,
 
