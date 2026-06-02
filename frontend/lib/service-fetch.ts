@@ -45,14 +45,7 @@ export async function serviceFetch<T>(
     if (err && typeof err === "object" && "code" in err) {
       const authErr = err as { code: string; message: string; fields?: FieldErrors };
       if (authErr.code === "VALIDATION_ERROR") {
-        // FIX: Only map to VALIDATION_ERROR if there are actual field errors.
-        // An empty fields {} means the backend returned a non-validation error
-        // (e.g. a 500 server error) — map to UNKNOWN instead.
-        if (authErr.fields && Object.keys(authErr.fields).length > 0) {
-          throw new ErrorClass(authErr.message, config.validationCode, authErr.fields);
-        }
-        // No field errors — this is a server error, not a validation error
-        throw new ErrorClass(authErr.message || "Server error occurred", "UNKNOWN");
+        throw new ErrorClass(authErr.message, config.validationCode, authErr.fields ?? {});
       }
       if (authErr.code === "TOKEN_EXPIRED") {
         throw new ErrorClass("Session expired. Please sign in again.", config.tokenExpiredCode);

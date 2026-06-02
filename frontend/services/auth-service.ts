@@ -307,11 +307,19 @@ async function handleResponse<T>(res: Response): Promise<T> {
     throw new AuthError("Invalid credentials", "INVALID_CREDENTIALS");
   }
 
-  // ── Other errors ──
-  throw new AuthError(
-    `Request failed: ${res.status} ${res.statusText}`,
-    "UNKNOWN"
-  );
+  // ── All other errors (403, 404, 409, 500, etc.) ──
+  // Read the backend's error message from the response body
+  try {
+    const body = await res.json();
+    const message = body.message || body.error || `Request failed: ${res.status} ${res.statusText}`;
+    throw new AuthError(message, "UNKNOWN");
+  } catch (err) {
+    if (err instanceof AuthError) throw err;
+    throw new AuthError(
+      `Request failed: ${res.status} ${res.statusText}`,
+      "UNKNOWN"
+    );
+  }
 }
 
 async function tryRefreshToken(): Promise<boolean> {

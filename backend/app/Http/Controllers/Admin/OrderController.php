@@ -173,6 +173,13 @@ class OrderController extends \App\Http\Controllers\Controller
 
             $order->update($updateData);
 
+            // Restore stock when transitioning to cancelled
+            if ($newStatus === 'cancelled') {
+                foreach ($order->items as $item) {
+                    $item->product?->increment('stock', $item->quantity);
+                }
+            }
+
             // Record in status history
             OrderStatusHistory::create([
                 'order_id' => $order->id,
@@ -212,6 +219,11 @@ class OrderController extends \App\Http\Controllers\Controller
                 'status' => 'cancelled',
                 'cancelled_at' => now(),
             ]);
+
+            // Restore stock for each order item (same logic as Customer\OrderController::cancel)
+            foreach ($order->items as $item) {
+                $item->product?->increment('stock', $item->quantity);
+            }
 
             OrderStatusHistory::create([
                 'order_id' => $order->id,
