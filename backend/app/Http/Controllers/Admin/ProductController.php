@@ -123,10 +123,10 @@ class ProductController extends \App\Http\Controllers\Controller
                 'description_ar' => ['nullable', 'string'],
                 'slug' => ['nullable', 'string', 'max:255', Rule::unique('products', 'slug')],
                 'price' => ['required', 'numeric', 'min:0'],
-                'sale_price' => ['nullable', 'numeric', 'min:0', 'lt:price'],
+                'sale_price' => ['nullable', 'numeric', 'min:0'],
                 'image' => ['nullable', 'image', 'max:5120'],
-                'images' => ['nullable', 'array'],
-                'images.*' => ['image', 'max:5120'],
+                'images' => ['required', 'array', 'min:1'],
+                'images.*' => ['required', 'image', 'max:5120'],
                 'sku' => ['nullable', 'string', 'max:100', Rule::unique('products', 'sku')],
                 'stock' => ['required', 'integer', 'min:0'],
                 'rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
@@ -149,21 +149,31 @@ class ProductController extends \App\Http\Controllers\Controller
                 $validated['sale_price'] = bcmul((string) $validated['sale_price'], '1', 3);
             }
 
-            // ── Handle image uploads ──
+            // ── Handle image uploads (non-fatal with disk fallback) ──
             $disk = $this->storageDisk();
+            $uploadWarnings = [];
 
             // Single main image (file upload)
             if ($request->hasFile('image')) {
-                $path = $this->uploadToDisk($request->file('image'), 'products', $disk);
-                $validated['image'] = $path;
+                $path = $this->uploadToDiskWithFallback($request->file('image'), 'products', $disk);
+                if ($path) {
+                    $validated['image'] = $path;
+                } else {
+                    $validated['image'] = null; // FIX: Clear the UploadedFile object on failure
+                    $uploadWarnings[] = 'Failed to upload main image';
+                }
             }
 
             // Multiple images (file uploads)
             $imagePaths = [];
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $i => $file) {
-                    $path = $this->uploadToDisk($file, 'products', $disk);
-                    if ($path) $imagePaths[] = $path;
+                    $path = $this->uploadToDiskWithFallback($file, 'products', $disk);
+                    if ($path) {
+                        $imagePaths[] = $path;
+                    } else {
+                        $uploadWarnings[] = "Failed to upload image #" . ($i + 1);
+                    }
                 }
             }
             $validated['images'] = !empty($imagePaths) ? $imagePaths : null;
@@ -176,7 +186,17 @@ class ProductController extends \App\Http\Controllers\Controller
             $product = Product::create($validated);
             $product->load('category', 'reviews');
 
-            return $this->respondCreated(new ProductResource($product), 'Product created successfully');
+            $response = $this->respondCreated(new ProductResource($product), 'Product created successfully');
+
+            // Append upload warnings to the response if any
+            if (!empty($uploadWarnings)) {
+                $data = json_decode($response->getContent(), true);
+                $data['warnings'] = $uploadWarnings;
+                $data['message'] = 'Product created successfully, but some images failed to upload. You can add them later by editing the product.';
+                $response->setData($data);
+            }
+
+            return $response;
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e; // Let Laravel handle validation errors normally (422)
         } catch (\Throwable $e) {
@@ -186,10 +206,12 @@ class ProductController extends \App\Http\Controllers\Controller
                 'file' => $e->getFile() . ':' . $e->getLine(),
                 'trace' => $e->getTraceAsString(),
             ]);
+            // FIX: Return 500 (server error), not 422 (validation error)
+            // so the frontend can distinguish between validation failures and server crashes
             return response()->json([
                 'message' => 'Failed to create product: ' . $e->getMessage(),
                 'error_class' => get_class($e),
-            ], 422);
+            ], 500);
         }
     }
 
@@ -211,27 +233,29 @@ class ProductController extends \App\Http\Controllers\Controller
     public function update(Request $request, Product $product): JsonResponse
     {
         try {
+            // FIX: All rules now use 'sometimes' so missing fields are NOT
+            // evaluated — prevents nulling out fields the frontend didn't send.
             $validated = $request->validate([
-                'category_id' => ['sometimes', 'uuid', Rule::exists('categories', 'id')],
-                'name_en' => ['sometimes', 'string', 'max:255'],
-                'name_ar' => ['sometimes', 'string', 'max:255'],
-                'description_en' => ['nullable', 'string'],
-                'description_ar' => ['nullable', 'string'],
-                'slug' => ['nullable', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product->id)],
-                'price' => ['sometimes', 'numeric', 'min:0'],
-                'sale_price' => ['nullable', 'numeric', 'min:0'],
-                'image' => ['nullable', 'image', 'max:5120'],
-                'images' => ['nullable', 'array'],
-                'images.*' => ['image', 'max:5120'],
-                'existing_images' => ['nullable', 'array'],
+                'category_id'   => ['sometimes', 'uuid', Rule::exists('categories', 'id')],
+                'name_en'       => ['sometimes', 'string', 'max:255'],
+                'name_ar'       => ['sometimes', 'string', 'max:255'],
+                'description_en'  => ['sometimes', 'nullable', 'string'],
+                'description_ar'  => ['sometimes', 'nullable', 'string'],
+                'slug'            => ['sometimes', 'nullable', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product->id)],
+                'price'           => ['sometimes', 'numeric', 'min:0'],
+                'sale_price'      => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'image'           => ['sometimes', 'nullable', 'image', 'max:5120'],
+                'images'          => ['sometimes', 'nullable', 'array'],
+                'images.*'        => ['image', 'max:5120'],
+                'existing_images' => ['sometimes', 'nullable', 'array'],
                 'existing_images.*' => ['string', 'max:500'],
-                'sku' => ['nullable', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product->id)],
-                'stock' => ['sometimes', 'integer', 'min:0'],
-                'rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
-                'is_featured' => ['nullable', 'boolean'],
-                'is_best_seller' => ['nullable', 'boolean'],
-                'is_new' => ['nullable', 'boolean'],
-                'is_active' => ['nullable', 'boolean'],
+                'sku'             => ['sometimes', 'nullable', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product->id)],
+                'stock'           => ['sometimes', 'integer', 'min:0'],
+                'rating'          => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:5'],
+                'is_featured'     => ['sometimes', 'nullable', 'boolean'],
+                'is_best_seller'  => ['sometimes', 'nullable', 'boolean'],
+                'is_new'          => ['sometimes', 'nullable', 'boolean'],
+                'is_active'       => ['sometimes', 'nullable', 'boolean'],
             ]);
 
             // Auto-generate slug from name_en if name_en changed and slug not provided
@@ -263,16 +287,22 @@ class ProductController extends \App\Http\Controllers\Controller
                 }
             }
 
-            // ── Handle image uploads ──
+            // ── Handle image uploads (non-fatal with disk fallback) ──
             $disk = $this->storageDisk();
+            $uploadWarnings = [];
 
             // Single main image (file upload)
             if ($request->hasFile('image')) {
                 if ($product->image) {
                     $this->deleteImageFile($product->image);
                 }
-                $path = $this->uploadToDisk($request->file('image'), 'products', $disk);
-                $validated['image'] = $path;
+                $path = $this->uploadToDiskWithFallback($request->file('image'), 'products', $disk);
+                if ($path) {
+                    $validated['image'] = $path;
+                } else {
+                    $validated['image'] = null; // FIX: Clear the UploadedFile object on failure
+                    $uploadWarnings[] = 'Failed to upload main image';
+                }
             }
 
             // Multiple images: merge existing (kept) + newly uploaded
@@ -286,11 +316,15 @@ class ProductController extends \App\Http\Controllers\Controller
                 ));
             }
 
-            // Append newly uploaded files
+            // Append newly uploaded files (non-fatal)
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $i => $file) {
-                    $path = $this->uploadToDisk($file, 'products', $disk);
-                    if ($path) $finalImages[] = $path;
+                    $path = $this->uploadToDiskWithFallback($file, 'products', $disk);
+                    if ($path) {
+                        $finalImages[] = $path;
+                    } else {
+                        $uploadWarnings[] = "Failed to upload image #" . ($i + 1);
+                    }
                 }
             }
 
@@ -312,7 +346,17 @@ class ProductController extends \App\Http\Controllers\Controller
             $product->update($validated);
             $product->load('category', 'reviews');
 
-            return $this->respondWithData(new ProductResource($product), 'Product updated successfully');
+            $response = $this->respondWithData(new ProductResource($product), 'Product updated successfully');
+
+            // Append upload warnings to the response if any
+            if (!empty($uploadWarnings)) {
+                $data = json_decode($response->getContent(), true);
+                $data['warnings'] = $uploadWarnings;
+                $data['message'] = 'Product updated successfully, but some images failed to upload.';
+                $response->setData($data);
+            }
+
+            return $response;
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {
@@ -322,10 +366,11 @@ class ProductController extends \App\Http\Controllers\Controller
                 'file' => $e->getFile() . ':' . $e->getLine(),
                 'trace' => $e->getTraceAsString(),
             ]);
+            // FIX: Return 500 (server error), not 422 (validation error)
             return response()->json([
                 'message' => 'Failed to update product: ' . $e->getMessage(),
                 'error_class' => get_class($e),
-            ], 422);
+            ], 500);
         }
     }
 
@@ -382,6 +427,67 @@ class ProductController extends \App\Http\Controllers\Controller
     }
 
     /**
+     * Upload a file to the specified disk with automatic fallback.
+     *
+     * Tries the primary disk first (Supabase), then falls back to the
+     * secondary disk (local public). If both fail, returns null — the
+     * caller can still create/update the product without images.
+     *
+     * This makes image uploads NON-FATAL: a Supabase misconfiguration
+     * will not block product creation/editing.
+     */
+    private function uploadToDiskWithFallback(\Illuminate\Http\UploadedFile $file, string $directory, string $primaryDisk): ?string
+    {
+        $fallbackDisk = $primaryDisk === 'supabase' ? 'public' : 'supabase';
+        $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
+        $path = $directory . '/' . $filename;
+
+        Log::info('Upload starting', [
+            'primary' => $primaryDisk,
+            'fallback' => $fallbackDisk,
+            'path' => $path,
+            'original_name' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+            'mime' => $file->getMimeType(),
+        ]);
+
+        foreach ([$primaryDisk, $fallbackDisk] as $disk) {
+            try {
+                $stream = fopen($file->getPathname(), 'r');
+
+                if ($stream === false) {
+                    Log::warning('Could not open uploaded file', ['path' => $path]);
+                    continue;
+                }
+
+                $success = Storage::disk($disk)->put($path, $stream, [
+                    'ContentType' => $file->getMimeType(),
+                ]);
+
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
+
+                if ($success) {
+                    Log::info('Upload succeeded', ['disk' => $disk, 'path' => $path]);
+                    return $path;
+                }
+
+                Log::warning('Storage::put() returned false', ['disk' => $disk, 'path' => $path]);
+            } catch (\Throwable $e) {
+                Log::warning('Upload failed on disk, trying next', [
+                    'disk' => $disk,
+                    'path' => $path,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        Log::error('Upload FAILED on all disks', ['path' => $path]);
+        return null;
+    }
+
+    /**
      * Upload a file to the specified disk with full error handling.
      *
      * Uses Storage::disk()->putFile() directly so we can catch the exact
@@ -389,7 +495,7 @@ class ProductController extends \App\Http\Controllers\Controller
      *
      * @throws \RuntimeException if the upload fails
      */
-    private function uploadToDisk($file, string $directory, string $disk): string
+    private function uploadToDisk(\Illuminate\Http\UploadedFile $file, string $directory, string $disk): string
     {
         $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
         $path = $directory . '/' . $filename;

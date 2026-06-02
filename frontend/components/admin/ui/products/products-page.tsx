@@ -27,9 +27,6 @@ import type { AdminProduct, FilterStatus } from "./products-types";
 // ─── Re-export for convenience (types now live in products-types.ts) ───
 export type { AdminProduct, FilterStatus } from "./products-types";
 
-// CATEGORIES is now PRODUCT_CATEGORIES in @/lib/constant
-// statusConfig is now PRODUCT_STATUS_CONFIG in @/lib/constant
-
 // ─── Mapper: Product (store) → AdminProduct (UI) ───
 function toAdminProduct(p: Product): AdminProduct {
   return {
@@ -44,6 +41,7 @@ function toAdminProduct(p: Product): AdminProduct {
     status: getStockStatus(p),
     images: p.images && p.images.length > 0 ? p.images : (p.image ? [p.image] : []),
     description: p.description,
+    descriptionAr: p.localeText?.ar?.description || p.description,
     sku: p.sku || "",
     soldOut: p.stock <= 0,
     createdAt: p.createdAt?.split("T")[0] || "",
@@ -99,9 +97,9 @@ export function ProductsPage() {
     return "in_stock";
   };
 
-  const handleAddProduct = async (formData: ProductFormData): Promise<FormFieldErrors | void> => {
-    // Validate required fields
+    const handleAddProduct = async (formData: ProductFormData): Promise<FormFieldErrors | void> => {
     if (!formData.name.trim()) return { name_en: ["Product name is required."] };
+    if (formData.images.length === 0) return { images: ["At least one product image is required."] };
     const price = parseFloat(formData.price);
     const stock = parseInt(formData.stock, 10);
     if (isNaN(price) || price < 0) return { price: ["Price must be a valid number."] };
@@ -126,7 +124,7 @@ export function ProductsPage() {
         sku: formData.sku.trim() || `HVF-${Date.now().toString(36).toUpperCase()}`,
         localeText: {
           en: { name: formData.name.trim(), description: formData.description },
-          ar: { name: formData.nameAr.trim() || formData.name.trim(), description: formData.description },
+          ar: { name: formData.nameAr.trim() || formData.name.trim(), description: formData.descriptionAr.trim() || formData.description },
         },
       }, formData.rawFiles);
       // Success — no errors returned
@@ -167,7 +165,7 @@ export function ProductsPage() {
         sku: product.sku,
         localeText: {
           en: { name: editForm.name.trim(), description: editForm.description },
-          ar: { name: editForm.nameAr.trim() || editForm.name.trim(), description: editForm.description },
+          ar: { name: editForm.nameAr.trim() || editForm.name.trim(), description: editForm.descriptionAr.trim() || editForm.description },
         },
       }, editForm.rawFiles);
       // Success — no errors returned
@@ -234,7 +232,7 @@ export function ProductsPage() {
               <div className="relative">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="p-2 rounded-xl bg-white/15 dark:bg-black/10">
-                    <Package className="h-4 w-4 text-white dark:text-dark-bg" />
+                    <Package className="h-4 h-4 text-white dark:text-dark-bg" />
                   </div>
                   <span className="text-xs font-medium text-white/70 dark:text-dark-bg/70 uppercase tracking-wider">Total Products</span>
                 </div>
@@ -253,7 +251,7 @@ export function ProductsPage() {
             >
               <div className="flex items-center gap-2 mb-3">
                 <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500">
-                  <CheckCircle2 className="h-4 w-4" />
+                  <CheckCircle2 className="h-4 h-4" />
                 </div>
                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">In Stock</span>
               </div>
@@ -273,7 +271,7 @@ export function ProductsPage() {
             >
               <div className="flex items-center gap-2 mb-3">
                 <div className="p-2 rounded-xl bg-yellow-50 dark:bg-yellow-900/20 text-yellow-500">
-                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTriangle className="h-4 h-4" />
                 </div>
                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Low Stock</span>
               </div>
@@ -292,7 +290,7 @@ export function ProductsPage() {
               className="hidden lg:flex lg:flex-1 bg-white dark:bg-dark-card rounded-2xl p-5 border border-border flex-col justify-between"
             >
               <div className="flex items-center gap-2 mb-3">
-                <Layers className="h-4 w-4 text-muted-foreground" />
+                <Layers className="h-4 h-4 text-muted-foreground" />
                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Quick Filter</span>
               </div>
               <div className="space-y-1.5">

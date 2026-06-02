@@ -40,7 +40,7 @@ export function buildProductFormData(
   fd.append("price", formData.price);
   fd.append("stock", formData.stock);
   fd.append("description_en", formData.description);
-  fd.append("description_ar", formData.description);
+  fd.append("description_ar", formData.descriptionAr);
   if (formData.salePrice) fd.append("sale_price", formData.salePrice);
   if (formData.sku) fd.append("sku", formData.sku);
   if (formData.soldOut) fd.append("sold_out", "1");
@@ -65,6 +65,7 @@ export interface ProductFormData {
   price: string;
   stock: string;
   description: string;
+  descriptionAr: string;
   sku: string;
   soldOut: boolean;
   salePrice: string;
@@ -109,6 +110,7 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
     price: product?.price?.toString() ?? "",
     stock: product?.stock?.toString() ?? "",
     description: product?.description ?? "",
+    descriptionAr: product?.descriptionAr ?? "",
     sku: product?.sku ?? "",
     soldOut: product?.soldOut ?? false,
     salePrice: product?.salePrice?.toString() ?? "",
@@ -244,7 +246,7 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
 
     const finalForm = { ...form, rawFiles };
 
-    try {
+     try {
       let errors: FormFieldErrors | void;
       if (isEdit && product) {
         errors = await (props as ProductFormModalEditProps).onSubmit(product, finalForm);
@@ -255,6 +257,12 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
       // If onSubmit returned field errors, show them
       if (errors && Object.keys(errors).length > 0) {
         setFieldErrors(errors);
+        setSubmitting(false);
+        return;
+      }
+
+       if (errors && Object.keys(errors).length === 0) {
+        setGeneralError("Server error: failed to save product. Check your backend logs.");
         setSubmitting(false);
         return;
       }
@@ -370,7 +378,7 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
         {/* Images */}
         <div>
           <label className={labelClass}>
-            Product Images
+            Product Images <span className="text-red-500">*</span>
           </label>
           <ImageUploader
             images={form.images}
@@ -378,6 +386,9 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
             onRemove={handleImageRemove}
             onReplace={handleImageReplace}
           />
+          {getFieldError("images") && (
+            <p className={errorTextClass}><AlertCircle className="w-3 h-3" />{getFieldError("images")}</p>
+          )}
         </div>
 
         {/* Form Fields */}
@@ -572,14 +583,29 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
 
           <div>
             <label className={labelClass}>
-              Description
+              Description (English)
             </label>
             <textarea
               value={form.description}
-              onChange={(e) => { setForm((p) => ({ ...p, description: e.target.value })); clearFieldError("description_en"); clearFieldError("description_ar"); }}
+              onChange={(e) => { setForm((p) => ({ ...p, description: e.target.value })); clearFieldError("description_en"); }}
               rows={3}
               className={`${getFieldError("description_en") ? inputErrorClass : inputClass} resize-none`}
-              placeholder="Brief product description..."
+              placeholder="Brief product description in English..."
+              disabled={submitting}
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>
+              Description (Arabic)
+            </label>
+            <textarea
+              value={form.descriptionAr}
+              onChange={(e) => { setForm((p) => ({ ...p, descriptionAr: e.target.value })); clearFieldError("description_ar"); }}
+              rows={3}
+              className={`${getFieldError("description_ar") ? inputErrorClass : inputClass} resize-none`}
+              placeholder="وصف مختصر للمنتج باللغة العربية..."
+              dir="rtl"
               disabled={submitting}
             />
           </div>
