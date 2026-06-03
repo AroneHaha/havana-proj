@@ -307,8 +307,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
     throw new AuthError("Invalid credentials", "INVALID_CREDENTIALS");
   }
 
-  // ── All other errors (403, 404, 409, 500, etc.) ──
-  // Read the backend's error message from the response body
+
   try {
     const body = await res.json();
     const message = body.message || body.error || `Request failed: ${res.status} ${res.statusText}`;

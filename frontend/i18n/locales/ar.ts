@@ -357,6 +357,7 @@ const ar: Translation = {
       minutesAgo: "منذ {count} دقيقة",
       hoursAgo: "منذ {count} ساعة",
       yesterday: "أمس",
+      viewAll: "عرض الكل",
     },
     dashboard: {
       title: "لوحة التحكم",

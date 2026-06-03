@@ -276,6 +276,7 @@ export interface Translation {
       minutesAgo: string;
       hoursAgo: string;
       yesterday: string;
+      viewAll: string;
     };
     dashboard: {
       title: string;
