@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Check, CheckCheck } from "lucide-react";
+import { Bell, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNotificationStore } from "@/store/notification-store";
 import { useLanguageStore } from "@/store/language-store";
@@ -28,7 +28,7 @@ export function NotificationDropdown({
   const loading = useNotificationStore((s) => s.loading);
   const fetchNotifications = useNotificationStore((s) => s.fetchNotifications);
   const storeMarkAsRead = useNotificationStore((s) => s.markAsRead);
-  const storeMarkAllAsRead = useNotificationStore((s) => s.markAllAsRead);
+  const storeDeleteRead = useNotificationStore((s) => s.deleteReadNotifications);
   const fetchUnreadCount = useNotificationStore((s) => s.fetchUnreadCount);
 
   // ── Load notifications when opened ─────────────────────────────────
@@ -114,14 +114,16 @@ export function NotificationDropdown({
     [router, onClose, storeMarkAsRead]
   );
 
-  // ── Mark all as read ──────────────────────────────────────────────
-  const handleMarkAllRead = useCallback(async () => {
+  // ── Delete read notifications ──────────────────────────────────────
+  const handleDeleteRead = useCallback(async () => {
     try {
-      await storeMarkAllAsRead();
+      await storeDeleteRead();
+      await fetchNotifications();
+      await fetchUnreadCount();
     } catch (e) {
-      console.error("Failed to mark all as read", e);
+      console.error("Failed to delete read notifications", e);
     }
-  }, [storeMarkAllAsRead]);
+  }, [storeDeleteRead, fetchNotifications, fetchUnreadCount]);
 
   // ── Time ago helper ────────────────────────────────────────────────
   function timeAgo(dateStr: string): string {
@@ -157,6 +159,9 @@ export function NotificationDropdown({
     }
   }
 
+  // ── How many are read? ────────────────────────────────────────────
+  const readCount = notifications.filter((n) => n.isRead).length;
+
   // ── Render ─────────────────────────────────────────────────────────
   if (!open) return null;
 
@@ -169,23 +174,14 @@ export function NotificationDropdown({
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
 
-        {unreadCount > 0 && (
+        {readCount > 0 && (
           <button
-            onClick={handleMarkAllRead}
+            onClick={handleDeleteRead}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium transition-colors disabled:opacity-50 cursor-pointer"
           >
-            {loading ? (
-              <>
-                <Check className="h-3.5 w-3.5 animate-pulse" />
-                Clearing…
-              </>
-            ) : (
-              <>
-                <CheckCheck className="h-3.5 w-3.5" />
-                Mark all read
-              </>
-            )}
+            <Trash2 className="h-3.5 w-3.5" />
+            Clear read ({readCount})
           </button>
         )}
       </div>

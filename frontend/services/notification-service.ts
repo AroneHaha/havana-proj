@@ -125,3 +125,13 @@ export async function fetchUnreadCount(): Promise<number> {
     throw new NotificationError(err instanceof Error ? err.message : "Failed to fetch unread count", "NETWORK_ERROR");
   }
 }
+
+export async function deleteReadNotifications(): Promise<boolean> {
+  try {
+    await notificationsFetch<{ message: string }>("/admin/notifications/delete-read", { method: "DELETE" });
+    return true;
+  } catch (err) {
+    if (err instanceof NotificationError) throw err;
+    throw new NotificationError(err instanceof Error ? err.message : "Failed to delete read notifications", "NETWORK_ERROR");
+  }
+}

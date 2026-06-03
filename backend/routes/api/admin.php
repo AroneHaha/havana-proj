@@ -171,7 +171,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     });
 
     // ═══════════════════════════════════════════════════════════════════
-    // ADMIN NOTIFICATIONS — (🔮 Not in web frontend yet, needed for push)
+    // ADMIN NOTIFICATIONS
     // ═══════════════════════════════════════════════════════════════════
 
     Route::prefix('notifications')->group(function () {
@@ -193,6 +193,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
         // POST /api/admin/notifications/read-all — mark all as read for logged-in admin
         Route::post('/read-all', [AdminNotificationController::class, 'markAllAsRead'])
             ->name('admin.notifications.read-all');
+
+        // DELETE /api/admin/notifications/delete-read — delete all read notifications
+        Route::delete('/delete-read', [AdminNotificationController::class, 'deleteRead'])
+            ->name('admin.notifications.delete-read');
 
         // GET /api/admin/notifications — list sent notifications (paginated)
         // Query: type, is_read, date_from, date_to, page, per_page

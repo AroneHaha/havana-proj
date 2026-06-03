@@ -9,6 +9,7 @@ import {
   markAsRead as serviceMarkAsRead,
   markAllAsRead as serviceMarkAllAsRead,
   fetchUnreadCount as serviceFetchUnreadCount,
+  deleteReadNotifications as serviceDeleteReadNotifications,
   type AdminNotification,
 } from "@/services/notification-service";
 import { getErrorMessage } from "@/lib/get-error-message";
@@ -24,6 +25,7 @@ interface NotificationState {
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   fetchUnreadCount: () => Promise<void>;
+  deleteReadNotifications: () => Promise<void>;
 }
 
 export const useNotificationStore = create<NotificationState>()((set, get) => ({
@@ -79,6 +81,18 @@ export const useNotificationStore = create<NotificationState>()((set, get) => ({
       set({ unreadCount: count });
     } catch (err) {
       set({ error: getErrorMessage(err, "Failed to fetch unread count") });
+    }
+  },
+
+  deleteReadNotifications: async () => {
+    set((state) => ({
+      notifications: state.notifications.filter((n) => !n.isRead),
+    }));
+    try {
+      await serviceDeleteReadNotifications();
+    } catch (err) {
+      get().fetchNotifications();
+      set({ error: getErrorMessage(err, "Failed to delete read notifications") });
     }
   },
 }));

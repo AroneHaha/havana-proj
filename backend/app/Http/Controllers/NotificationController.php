@@ -1,101 +1,113 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
-use App\Http\Concerns\RespondsTrait;
-use App\Http\Resources\NotificationResource;
+use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/**
- * NotificationController — Customer notification management.
- *
- * Authenticated users (both admin and customer) can view their notifications,
- * mark them as read, and check unread counts.
- * Used primarily by the Android customer app.
- */
 class NotificationController extends Controller
 {
-    use RespondsTrait;
-
     /**
-     * GET /api/notifications
-     * List the authenticated user's notifications (paginated).
+     * List all notifications for the authenticated admin user.
      */
     public function index(Request $request): JsonResponse
     {
-        $query = $request->user()->notifications();
+        $query = Notification::where('notifiable_id', $request->user()->id)
+            ->where('notifiable_type', get_class($request->user()))
+            ->orderByDesc('created_at');
 
-        // Filter by unread only
-        if (filter_var($request->query('unread_only'), FILTER_VALIDATE_BOOLEAN)) {
-            $query->where('is_read', false);
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
         }
 
-        // Filter by type
-        if ($type = $request->query('type')) {
-            $query->where('type', $type);
+        if ($request->has('is_read')) {
+            $isRead = $request->boolean('is_read');
+            $query->where('read_at', $isRead ? '!=' : '=', null);
         }
 
-        $perPage = (int) ($request->query('per_page', 15));
-        $notifications = $query->orderByDesc('created_at')->paginate($perPage);
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
 
-        return response()->json([
-            'data' => NotificationResource::collection($notifications->items()),
-            'meta' => [
-                'current_page' => $notifications->currentPage(),
-                'last_page' => $notifications->lastPage(),
-                'per_page' => $notifications->perPage(),
-                'total' => $notifications->total(),
-                'from' => $notifications->firstItem(),
-                'to' => $notifications->lastItem(),
-            ],
-        ]);
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $perPage = $request->integer('per_page', 15);
+        $notifications = $query->paginate($perPage);
+
+        return response()->json($notifications);
     }
 
     /**
-     * PATCH /api/notifications/{notification}/read
-     * Mark a single notification as read.
-     */
-    public function markAsRead(Request $request, Notification $notification): JsonResponse
-    {
-        if ($notification->user_id !== $request->user()->id) {
-            return $this->respondForbidden('This notification does not belong to you');
-        }
-
-        if (!$notification->is_read) {
-            $notification->markAsRead();
-        }
-
-        return $this->respondWithData(new NotificationResource($notification));
-    }
-
-    /**
-     * POST /api/notifications/read-all
-     * Mark all of the user's notifications as read.
-     */
-    public function markAllAsRead(Request $request): JsonResponse
-    {
-        $request->user()->notifications()
-            ->where('is_read', false)
-            ->update([
-                'is_read' => true,
-                'read_at' => now(),
-            ]);
-
-        return $this->respondWithMessage('All notifications marked as read');
-    }
-
-    /**
-     * GET /api/notifications/unread-count
-     * Get the count of unread notifications.
+     * Get unread notification count.
      */
     public function unreadCount(Request $request): JsonResponse
     {
-        $count = $request->user()->notifications()
-            ->where('is_read', false)
+        $count = Notification::where('notifiable_id', $request->user()->id)
+            ->where('notifiable_type', get_class($request->user()))
+            ->whereNull('read_at')
             ->count();
 
-        return $this->respondWithData(['unread_count' => $count]);
+        return response()->json(['data' => ['unread_count' => $count]]);
+    }
+
+    /**
+     * Mark a single notification as read.
+     */
+    public function markAsRead(Request $request, string $notification): JsonResponse
+    {
+        $notification = Notification::where('id', $notification)
+            ->where('notifiable_id', $request->user()->id)
+            ->where('notifiable_type', get_class($request->user()))
+            ->firstOrFail();
+
+        $notification->markAsRead();
+
+        return response()->json(['data' => $notification]);
+    }
+
+    /**
+     * Mark all notifications as read.
+     */
+    public function markAllAsRead(Request $request): JsonResponse
+    {
+        Notification::where('notifiable_id', $request->user()->id)
+            ->where('notifiable_type', get_class($request->user()))
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        return response()->json(['message' => 'All notifications marked as read.']);
+    }
+
+    /**
+     * Delete all read notifications for the authenticated user.
+     */
+    public function deleteRead(Request $request): JsonResponse
+    {
+        $deleted = Notification::where('notifiable_id', $request->user()->id)
+            ->where('notifiable_type', get_class($request->user()))
+            ->whereNotNull('read_at')
+            ->delete();
+
+        return response()->json([
+            'message' => "{$deleted} read notification(s) deleted.",
+        ]);
+    }
+      /**
+     * Delete a single notification.
+     */
+    public function destroy(Request $request, string $notification): JsonResponse
+    {
+        $notification = Notification::where('id', $notification)
+            ->where('notifiable_id', $request->user()->id)
+            ->where('notifiable_type', get_class($request->user()))
+            ->firstOrFail();
+
+        $notification->delete();
+
+        return response()->json(['message' => 'Notification deleted.']);
     }
 }
