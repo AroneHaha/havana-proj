@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import {
   DollarSign,
   TrendingUp,
@@ -19,6 +20,7 @@ import { OrderDetailDrawer } from "./order-detail-drawer";
 import type { FilterStatus } from "./constants";
 
 export function AdminOrders() {
+  const router = useRouter();
   const {
     t,
     loading,
@@ -261,7 +263,7 @@ export function AdminOrders() {
       <OrderDetailDrawer
         order={selectedOrder}
         open={drawerOpen}
-        onClose={() => { setDrawerOpen(false); setSelectedOrder(null); }}
+        onClose={() => { setDrawerOpen(false); setSelectedOrder(null); router.replace("/orders", { scroll: false }); }}
         onUpdateStatus={handleUpdateStatus}
         t={t}
         locale={locale}

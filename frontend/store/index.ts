@@ -6,3 +6,4 @@ export { useProductsStore, getStockStatus, type ProductStockStatus } from "./pro
 export type { ProductsError, ProductStats } from "./product-store";
 export { useOrdersStore } from "./orders-store";
 export { useReviewsStore } from "./review-store";
+export { useSalesStore } from "./sales-store";

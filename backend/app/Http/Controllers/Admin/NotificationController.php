@@ -134,6 +134,57 @@ class NotificationController extends \App\Http\Controllers\Controller
     }
 
     /**
+     * GET /api/admin/notifications/unread-count
+     * Returns the count of unread notifications for the authenticated admin user.
+     */
+    public function unreadCount(Request $request): JsonResponse
+    {
+        $count = Notification::where('user_id', $request->user()->id)
+            ->where('is_read', false)
+            ->count();
+
+        return response()->json([
+            'data' => [
+                'unread_count' => $count,
+            ],
+        ]);
+    }
+
+    /**
+     * PATCH /api/admin/notifications/{notification}/read
+     * Mark a single notification as read.
+     */
+    public function markAsRead(Notification $notification): JsonResponse
+    {
+        if (! $notification->is_read) {
+            $notification->update([
+                'is_read' => true,
+                'read_at' => now(),
+            ]);
+        }
+
+        return response()->json([
+            'data' => new NotificationResource($notification),
+        ]);
+    }
+
+    /**
+     * POST /api/admin/notifications/read-all
+     * Mark ALL notifications as read for the authenticated admin user.
+     */
+    public function markAllAsRead(Request $request): JsonResponse
+    {
+        Notification::where('user_id', $request->user()->id)
+            ->where('is_read', false)
+            ->update([
+                'is_read' => true,
+                'read_at' => now(),
+            ]);
+
+        return $this->respondWithMessage('All notifications marked as read');
+    }
+
+    /**
      * DELETE /api/admin/notifications/{notification}
      * Delete a notification.
      */

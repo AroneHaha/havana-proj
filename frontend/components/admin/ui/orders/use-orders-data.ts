@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   useOrdersStore,
   type OrderStatus,
@@ -29,6 +30,7 @@ export type FilterStatus = "all" | OrderStatus;
  *   - Navigation triggers a new API call for that specific page.
  */
 export function useOrdersData() {
+  const searchParams = useSearchParams();
   const locale = useLanguageStore((s) => s.locale);
   const dict = getDictionary(locale);
   const t = dict.admin.orders;
@@ -60,6 +62,32 @@ export function useOrdersData() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // ── Auto-open drawer from ?open=ORDER_ID URL param (notification click) ──
+  useEffect(() => {
+    const openId = searchParams.get("open");
+    if (!openId) return;
+
+    // Try to find the order in the current page first
+    const found = orders.find((o) => o.id === openId);
+    if (found) {
+      setSelectedOrder(found);
+      setDrawerOpen(true);
+      return;
+    }
+
+    // Not on current page — fetch it individually
+    (async () => {
+      try {
+        const { fetchOrderById } = await import("@/services/orders-service");
+        const order = await fetchOrderById(openId);
+        setSelectedOrder(order);
+        setDrawerOpen(true);
+      } catch {
+        // Order may not exist or API error — silently ignore
+      }
+    })();
+  }, [searchParams, orders]);
 
   // ── Search + Date filters (local state, synced to store) ────────
   const search = useSearchFilter();
@@ -170,7 +198,6 @@ export function useOrdersData() {
     dateFrom: dateRange.dateFrom, handleDateFromChange,
     dateTo: dateRange.dateTo, handleDateToChange,
     activeDatePreset, hasDateFilter,
-    // Orders from the current page only (server-paginated)
     filteredOrders: orders,
     paginatedOrders: orders,
     filteredOrdersCount: totalOrders,

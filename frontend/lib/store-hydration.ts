@@ -14,6 +14,7 @@
 import { useOrdersStore, type OrderStats } from "@/store/orders-store";
 import { useProductsStore, type ProductStats } from "@/store/product-store";
 import { useReviewsStore, type ReviewStats } from "@/store/review-store";
+import { useSalesStore } from "@/store/sales-store";
 import { type DashboardSummary } from "@/services/dashboard-service";
 
 /**
@@ -48,6 +49,15 @@ export async function hydrateAllStores(): Promise<void> {
     hydrations.push(
       new Promise<void>((resolve) => {
         useReviewsStore.persist.rehydrate();
+        resolve();
+      })
+    );
+  }
+
+  if (useSalesStore.persist.rehydrate) {
+    hydrations.push(
+      new Promise<void>((resolve) => {
+        useSalesStore.persist.rehydrate();
         resolve();
       })
     );
@@ -100,6 +110,7 @@ export async function prefetchRoute(path: string): Promise<void> {
 
     case "/sales-reviews":
       await Promise.allSettled([
+        useSalesStore.getState().fetchSales(),
         useReviewsStore.getState().fetchReviews(),
         useReviewsStore.getState().fetchStats(),
       ]);

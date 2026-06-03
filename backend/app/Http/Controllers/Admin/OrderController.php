@@ -43,6 +43,117 @@ class OrderController extends \App\Http\Controllers\Controller
     ];
 
     /**
+     * GET /api/admin/orders/sales
+     * Sales-specific endpoint: only delivered/confirmed/preparing/out_for_delivery orders,
+     * with aggregated stats, available years for filtering, and product dropdown options.
+     *
+     * Frontend source: sales-service.ts → useSalesStore → SalesReviewsPage
+     */
+    public function sales(Request $request): JsonResponse
+    {
+        // Base query — exclude cancelled + pending (pending = not yet a sale)
+        $baseQuery = Order::whereNotIn('status', ['cancelled', 'pending']);
+
+        // ── Build a clone for stats (no eager-loading needed) ──
+        $statsQuery = clone $baseQuery;
+
+        // Date filters applied to ALL queries
+        if ($dateFrom = $request->query('date_from')) {
+            $baseQuery->where('created_at', '>=', $dateFrom);
+            $statsQuery->where('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo = $request->query('date_to')) {
+            $baseQuery->where('created_at', '<=', $dateTo);
+            $statsQuery->where('created_at', '<=', $dateTo);
+        }
+
+        // Year / month filters
+        if ($year = $request->query('year')) {
+            $baseQuery->whereYear('created_at', $year);
+            $statsQuery->whereYear('created_at', $year);
+        }
+        if ($month = $request->query('month')) {
+            $baseQuery->whereMonth('created_at', $month);
+            $statsQuery->whereMonth('created_at', $month);
+        }
+
+        // Search filter (order number / phone / customer name-email)
+        if ($search = $request->query('search')) {
+            $baseQuery->where(function ($q) use ($search) {
+                $q->where('order_number', 'LIKE', "%{$search}%")
+                    ->orWhere('shipping_phone', 'LIKE', "%{$search}%")
+                    ->orWhereHas('user', function ($q) use ($search) {
+                        $q->where('first_name', 'LIKE', "%{$search}%")
+                            ->orWhere('last_name', 'LIKE', "%{$search}%")
+                            ->orWhere('email', 'LIKE', "%{$search}%");
+                    });
+            });
+        }
+
+        // Filter by specific product (via order items)
+        if ($productId = $request->query('product_id')) {
+            $baseQuery->whereHas('items', function ($q) use ($productId) {
+                $q->where('product_id', $productId);
+            });
+        }
+
+        // ── Aggregate stats ──
+        $totalRevenue = (clone $statsQuery)
+            ->selectRaw('COALESCE(SUM(total), 0) as total_revenue')
+            ->value('total_revenue');
+
+        $totalOrders = (clone $statsQuery)->count();
+
+        $productsSold = (clone $statsQuery)
+            ->selectRaw('COALESCE(SUM(items.quantity), 0) as products_sold')
+            ->join('order_items as items', 'items.order_id', '=', 'orders.id')
+            ->value('products_sold');
+
+        // ── Available years for year filter dropdown ──
+        $availableYears = Order::whereNotIn('status', ['cancelled', 'pending'])
+            ->selectRaw('DISTINCT EXTRACT(YEAR FROM created_at)::integer as year')
+            ->orderByDesc('year')
+            ->pluck('year')
+            ->map(fn ($y) => (int) $y)
+            ->values()
+            ->toArray();
+
+        // ── Product dropdown options ──
+        $productOptions = \App\Models\Product::select('id', 'name_en')
+            ->orderBy('name_en')
+            ->get()
+            ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name_en])
+            ->values()
+            ->toArray();
+
+        // ── Paginate with eager-loading ──
+        $perPage = (int) ($request->query('per_page', 8));
+        $orders = $baseQuery
+            ->with(['user', 'items'])
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+
+        return response()->json([
+            'data' => OrderResource::collection($orders->items()),
+            'meta' => [
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+                'per_page' => $orders->perPage(),
+                'total' => $orders->total(),
+                'from' => $orders->firstItem(),
+                'to' => $orders->lastItem(),
+            ],
+            'stats' => [
+                'total_revenue' => (float) $totalRevenue,
+                'total_orders' => $totalOrders,
+                'products_sold' => (int) $productsSold,
+            ],
+            'available_years' => $availableYears,
+            'product_options' => $productOptions,
+        ]);
+    }
+
+    /**
      * GET /api/admin/orders/stats
      * Order statistics for the admin dashboard.
      */

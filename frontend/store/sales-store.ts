@@ -1,151 +1,221 @@
 /**
- * Sales Store — Zustand + persist for sales data.
- * Talks to /admin/orders/sales (delivered orders only + server stats).
+ * Sales Store — Zustand + persist for the Sales & Reviews page.
+ *
+ * This store fetches delivered orders from the dedicated /admin/orders/sales
+ * endpoint. Unlike the generic orders-store which handles ALL orders,
+ * this store is purpose-built for the sales dashboard:
+ *
+ *   - Fetches only delivered orders
+ *   - Gets server-computed stats (revenue, order count, products sold)
+ *   - Gets filter options (years, products) from the server
+ *   - Server-side filtering + pagination (single source of truth)
+ *
+ * Architecture mirrors orders-store for consistency:
+ *   - Request dedup via in-flight tracking
+ *   - AbortController for stale request cancellation
+ *   - Page cache for fast back-navigation
+ *   - Persist to localStorage for instant stale-while-revalidate
  */
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
-  fetchSales as serviceFetchSales,
-  type Order, type SalesStats, type ProductOption, type SalesError,
+  fetchSales,
+  type SalesStats,
+  type SalesFilterOptions,
+  type SalesListResponse,
 } from "@/services/sales-service";
+import type { Order } from "@/services/orders-service";
 import { getErrorMessage } from "@/lib/get-error-message";
 
-export type { Order, SalesStats, ProductOption, SalesError };
+// ─── Constants ────────────────────────────────────────────────────────
 
-export const SALES_PER_PAGE = 50;
+/** Default items per page for the sales table */
+export const SALES_PER_PAGE = 8;
+
+/** Cache TTL — 5 minutes */
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+/** Max cached pages */
+const MAX_CACHE_SIZE = 10;
+
+// ─── Cache types ──────────────────────────────────────────────────────
 
 interface PageCacheEntry {
-  sales: Order[];
-  totalSales: number;
-  totalPages: number;
-  stats: SalesStats;
-  availableYears: number[];
-  productOptions: ProductOption[];
+  response: SalesListResponse;
   timestamp: number;
 }
 
-const CACHE_TTL_MS = 5 * 60 * 1000;
-const MAX_CACHE_SIZE = 10;
+// ─── State shape ──────────────────────────────────────────────────────
 
 export interface SalesFilters {
+  search?: string;
   dateFrom?: string;
   dateTo?: string;
-  search?: string;
-  productId?: string;
   year?: number;
   month?: number;
+  productId?: string;
 }
 
 interface SalesState {
-  sales: Order[];
-  totalSales: number;
+  // Data
+  orders: Order[];
+  stats: SalesStats | null;
+  filterOptions: SalesFilterOptions;
+
+  // Pagination
   currentPage: number;
   totalPages: number;
+  totalOrders: number;
+
+  // Filters
   filters: SalesFilters;
-  stats: SalesStats;
-  availableYears: number[];
-  productOptions: ProductOption[];
+
+  // Loading
   loading: boolean;
+  isFetching: boolean;
   error: string | null;
+
+  // Actions
   fetchSales: (page?: number) => Promise<void>;
-  setSalesFilters: (filters: Partial<SalesFilters>) => void;
-  clearSalesFilters: () => void;
+  setFilters: (filters: Partial<SalesFilters>) => void;
+  clearFilters: () => void;
+  setPage: (page: number) => void;
 }
+
+// ─── In-flight tracking (outside Zustand) ─────────────────────────────
 
 let fetchAbortController: AbortController | null = null;
 const pageCache = new Map<string, PageCacheEntry>();
 
-function buildCacheKey(page: number, f: SalesFilters): string {
-  return `${page}:${f.dateFrom ?? ""}:${f.dateTo ?? ""}:${f.search ?? ""}:${f.productId ?? ""}:${f.year ?? ""}:${f.month ?? ""}`;
+function buildCacheKey(page: number, filters: SalesFilters): string {
+  return `${page}:${filters.search ?? ""}:${filters.dateFrom ?? ""}:${filters.dateTo ?? ""}:${filters.year ?? ""}:${filters.month ?? ""}:${filters.productId ?? ""}`;
 }
 
 function trimCache() {
   if (pageCache.size <= MAX_CACHE_SIZE) return;
-  const entries = [...pageCache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp);
-  for (const [key] of entries.slice(0, entries.length - MAX_CACHE_SIZE)) pageCache.delete(key);
+  const entries = [...pageCache.entries()].sort(
+    (a, b) => a[1].timestamp - b[1].timestamp
+  );
+  for (const [key] of entries.slice(0, entries.length - MAX_CACHE_SIZE)) {
+    pageCache.delete(key);
+  }
 }
 
-const defaultStats: SalesStats = { totalRevenue: 0, totalOrders: 0, productsSold: 0 };
+// ─── Store ────────────────────────────────────────────────────────────
 
 export const useSalesStore = create<SalesState>()(
   persist(
     (set, get) => ({
-      sales: [], totalSales: 0, currentPage: 1, totalPages: 1,
-      filters: {}, stats: defaultStats, availableYears: [], productOptions: [],
-      loading: true, error: null,
+      orders: [],
+      stats: null,
+      filterOptions: { availableYears: [], productOptions: [] },
+
+      currentPage: 1,
+      totalPages: 1,
+      totalOrders: 0,
+
+      filters: {},
+
+      loading: false,
+      isFetching: false,
+      error: null,
 
       fetchSales: async (page?: number) => {
         const state = get();
         const targetPage = page ?? state.currentPage;
-        const filters = state.filters;
 
-        const cacheKey = buildCacheKey(targetPage, filters);
+        // Cache check
+        const cacheKey = buildCacheKey(targetPage, state.filters);
         const cached = pageCache.get(cacheKey);
         if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+          const resp = cached.response;
           set({
-            sales: cached.sales, totalSales: cached.totalSales, currentPage: targetPage,
-            totalPages: cached.totalPages, stats: cached.stats,
-            availableYears: cached.availableYears, productOptions: cached.productOptions,
+            orders: resp.orders,
+            stats: resp.stats,
+            filterOptions: resp.filterOptions,
+            totalOrders: resp.total,
+            currentPage: resp.currentPage,
+            totalPages: resp.lastPage,
             loading: false,
+            isFetching: false,
           });
           return;
         }
 
+        // Abort stale request
         if (fetchAbortController) fetchAbortController.abort();
         fetchAbortController = new AbortController();
         const currentAbort = fetchAbortController;
 
-        set({ loading: !state.sales.length, error: null });
+        const hasData = state.orders.length > 0;
+        set({ loading: !hasData, isFetching: true, error: null });
 
         try {
-          const result = await serviceFetchSales({
-            page: targetPage, perPage: SALES_PER_PAGE,
-            dateFrom: filters.dateFrom, dateTo: filters.dateTo,
-            search: filters.search, productId: filters.productId,
-            year: filters.year, month: filters.month,
+          const result = await fetchSales({
+            page: targetPage,
+            perPage: SALES_PER_PAGE,
+            search: state.filters.search,
+            dateFrom: state.filters.dateFrom,
+            dateTo: state.filters.dateTo,
+            year: state.filters.year,
+            month: state.filters.month,
+            productId: state.filters.productId,
           });
 
           if (currentAbort.signal.aborted) return;
 
-          pageCache.set(cacheKey, {
-            sales: result.orders, totalSales: result.total, totalPages: result.lastPage,
-            stats: result.stats, availableYears: result.availableYears,
-            productOptions: result.productOptions, timestamp: Date.now(),
-          });
+          // Cache
+          pageCache.set(cacheKey, { response: result, timestamp: Date.now() });
           trimCache();
 
           set({
-            sales: result.orders, totalSales: result.total,
-            currentPage: result.currentPage, totalPages: result.lastPage,
-            stats: result.stats, availableYears: result.availableYears,
-            productOptions: result.productOptions, loading: false,
+            orders: result.orders,
+            stats: result.stats,
+            filterOptions: result.filterOptions,
+            totalOrders: result.total,
+            currentPage: result.currentPage,
+            totalPages: result.lastPage,
+            loading: false,
+            isFetching: false,
           });
         } catch (err) {
           if (currentAbort.signal.aborted) return;
-          set({ error: getErrorMessage(err, "Failed to fetch sales"), loading: false });
+          set({
+            error: getErrorMessage(err, "Failed to fetch sales"),
+            loading: false,
+            isFetching: false,
+          });
         }
       },
 
-      setSalesFilters: (newFilters) => {
+      setFilters: (newFilters) => {
         const merged = { ...get().filters, ...newFilters };
         set({ filters: merged, currentPage: 1 });
         pageCache.clear();
         get().fetchSales(1);
       },
 
-      clearSalesFilters: () => {
+      clearFilters: () => {
         set({ filters: {}, currentPage: 1 });
         pageCache.clear();
         get().fetchSales(1);
+      },
+
+      setPage: (page) => {
+        get().fetchSales(page);
       },
     }),
     {
       name: "havana-sales",
       partialize: (state) => ({
-        sales: state.sales, totalSales: state.totalSales, currentPage: state.currentPage,
-        totalPages: state.totalPages, filters: state.filters, stats: state.stats,
-        availableYears: state.availableYears, productOptions: state.productOptions,
+        orders: state.orders,
+        stats: state.stats,
+        filterOptions: state.filterOptions,
+        currentPage: state.currentPage,
+        totalPages: state.totalPages,
+        totalOrders: state.totalOrders,
+        filters: state.filters,
       }),
       skipHydration: true,
     }

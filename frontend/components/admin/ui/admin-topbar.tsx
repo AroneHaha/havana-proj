@@ -9,7 +9,7 @@ import { useLanguageStore } from "@/store/language-store";
 import { useUIStore } from "@/store/ui-store";
 import { useNotificationStore } from "@/store/notification-store";
 import { getDictionary } from "@/i18n";
-import { NotificationDropdown } from "./notification-dropdown";
+import { NotificationDropdown } from "@/components/admin/ui/notifications";
 
 export function AdminTopbar() {
   const router = useRouter();
@@ -73,7 +73,10 @@ export function AdminTopbar() {
                 </span>
               )}
             </button>
-            <NotificationDropdown />
+            <NotificationDropdown
+              open={isNotificationOpen}
+              onClose={toggleNotification}
+            />
           </div>
 
           <div className="flex items-center gap-2.5 pl-3 border-l border-border ml-1">

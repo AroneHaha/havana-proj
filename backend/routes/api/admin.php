@@ -84,6 +84,12 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
         Route::get('/stats', [AdminOrderController::class, 'stats'])
             ->name('admin.orders.stats');
 
+        // GET /api/admin/orders/sales — sales data with filters (paginated)
+        // Query: date_from, date_to, search, product_id, year, month, page, per_page
+        // Returns: { data, meta, stats, available_years, product_options }
+        Route::get('/sales', [AdminOrderController::class, 'sales'])
+            ->name('admin.orders.sales');
+
         // GET /api/admin/orders — list orders with filters (paginated)
         // Query: status, date_from, date_to, search, page, per_page
         Route::get('/', [AdminOrderController::class, 'index'])
@@ -169,6 +175,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     // ═══════════════════════════════════════════════════════════════════
 
     Route::prefix('notifications')->group(function () {
+        // GET /api/admin/notifications/unread-count — unread count for logged-in admin
+        // Returns: { data: { unread_count: number } }
+        Route::get('/unread-count', [AdminNotificationController::class, 'unreadCount'])
+            ->name('admin.notifications.unread-count');
+
         // POST /api/admin/notifications — send notification to user(s)
         // Body: { user_id, type, title_en, title_ar, message_en, message_ar } OR { user_ids: [...], ... } for bulk
         Route::post('/', [AdminNotificationController::class, 'store'])
@@ -179,10 +190,18 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
         Route::post('/broadcast', [AdminNotificationController::class, 'broadcast'])
             ->name('admin.notifications.broadcast');
 
+        // POST /api/admin/notifications/read-all — mark all as read for logged-in admin
+        Route::post('/read-all', [AdminNotificationController::class, 'markAllAsRead'])
+            ->name('admin.notifications.read-all');
+
         // GET /api/admin/notifications — list sent notifications (paginated)
         // Query: type, is_read, date_from, date_to, page, per_page
         Route::get('/', [AdminNotificationController::class, 'index'])
             ->name('admin.notifications.index');
+
+        // PATCH /api/admin/notifications/{notification}/read — mark single notification as read
+        Route::patch('/{notification}/read', [AdminNotificationController::class, 'markAsRead'])
+            ->name('admin.notifications.mark-as-read');
 
         // DELETE /api/admin/notifications/{notification} — delete notification
         Route::delete('/{notification}', [AdminNotificationController::class, 'destroy'])

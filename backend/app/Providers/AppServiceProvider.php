@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Order;
+use App\Models\Product;
+use App\Observers\OrderObserver;
+use App\Observers\ProductObserver;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,5 +29,10 @@ class AppServiceProvider extends ServiceProvider
         // Without this, resources returned directly from controllers would get
         // double-wrapped: { data: { data: { ... } } }.
         JsonResource::withoutWrapping();
+
+        // ── Model Observers ──
+        // Auto-fire notifications when orders are placed or stock drops low.
+        Order::observe(OrderObserver::class);
+        Product::observe(ProductObserver::class);
     }
 }
