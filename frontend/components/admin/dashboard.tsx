@@ -37,6 +37,7 @@ export function AdminDashboard() {
   // ─── Store data ──
   const ordersLoading = useOrdersStore((s) => s.loading);
   const orders = useOrdersStore((s) => s.orders);
+  const totalOrderCount = useOrdersStore((s) => s.totalOrders);
   const orderStats = useOrdersStore((s) => s.stats);
 
   const productsLoading = useProductsStore((s) => s.loading);
@@ -223,12 +224,12 @@ const averageRating = useMemo(() => {
                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.pendingOrders}</span>
               </div>
               <p className="text-2xl lg:text-3xl font-bold text-foreground tracking-tight">
-                {loading ? "..." : activeOrders.length}
+                {loading ? "..." : totalOrderCount || orders.length}
               </p>
               <div className="mt-3 h-1.5 rounded-full bg-muted/50 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-600 transition-all duration-700 ease-out"
-                  style={{ width: `${orders.length > 0 ? (activeOrders.length / orders.length) * 100 : 0}%` }}
+                      style={{ width: `${totalOrderCount > 0 ? (orders.filter(o => o.status === "delivered").length / totalOrderCount) * 100 : 0}%` }}
                 />
               </div>
             </motion.div>

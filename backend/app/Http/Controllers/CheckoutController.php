@@ -17,8 +17,19 @@ use Illuminate\Support\Str;
  * CheckoutController — Convert cart items into an order.
  *
  * Two-step flow:
- *   1. GET /verify — validate stock availability before payment
+ *   1. GET /verify — validate stock availability before checkout
  *   2. POST /      — place the order (transactional)
+ *
+ * Supports the web checkout payload format (the blueprint):
+ *   POST /api/checkout
+ *   {
+ *     items: [{ product_id, quantity }],
+ *     customer: { name, email, phone, address },
+ *     notes: "...",
+ *     payment_method: "cash_on_delivery"
+ *   }
+ *
+ * Fallback: if no items sent, reads from server-side DB cart.
  *
  * All price calculations use bcmul/bcadd/bcsub for KWD 3-decimal precision.
  */
@@ -88,29 +99,93 @@ class CheckoutController extends Controller
 
     /**
      * POST /api/checkout
-     * Place an order from the user's cart items.
+     * Place an order.
+     *
+     * Accepts the web checkout payload:
+     *   { items, customer: { name, email, phone, address }, notes, payment_method }
+     *
+     * Fallback: if no 'items' in body, reads from server-side cart (legacy).
+     * All prices validated server-side from the product database.
      */
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'shipping_address' => ['required', 'string', 'max:1000'],
-            'shipping_phone' => ['required', 'string', 'max:20'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-            'payment_method' => ['required', 'string', 'in:cash_on_delivery'],
-        ]);
+        // Web sends items in body; fallback reads from server-side cart
+        $hasItems = $request->has('items') && is_array($request->input('items'));
 
-        $user = $request->user();
-        $cartItems = $user->cartItems()->with('product')->get();
-
-        if ($cartItems->isEmpty()) {
-            return $this->respondError('Your cart is empty', 422);
+        if ($hasItems) {
+            // ── Web / Android flow: items + customer in request body ──
+            $validated = $request->validate([
+                'items'              => ['required', 'array', 'min:1'],
+                'items.*.product_id' => ['required', 'string'],
+                'items.*.quantity'   => ['required', 'integer', 'min:1'],
+                'customer'           => ['required', 'array'],
+                'customer.name'      => ['required', 'string', 'max:255'],
+                'customer.email'     => ['nullable', 'email', 'max:255'],
+                'customer.phone'     => ['required', 'string', 'max:20'],
+                'customer.address'   => ['required', 'string', 'max:1000'],
+                'notes'              => ['nullable', 'string', 'max:1000'],
+                'payment_method'     => ['required', 'string', 'in:cash_on_delivery'],
+            ]);
+        } else {
+            // ── Legacy flow: flat shipping fields, items from server cart ──
+            $validated = $request->validate([
+                'shipping_address' => ['required', 'string', 'max:1000'],
+                'shipping_phone'   => ['required', 'string', 'max:20'],
+                'notes'             => ['nullable', 'string', 'max:1000'],
+                'payment_method'    => ['required', 'string', 'in:cash_on_delivery'],
+            ]);
         }
 
-        return DB::transaction(function () use ($user, $cartItems, $validated) {
+        $user = $request->user();
+
+        // ── Resolve items list ──
+        if ($hasItems) {
+            $cartItems = collect();
+            foreach ($validated['items'] as $item) {
+                $product = Product::find($item['product_id']);
+                if (!$product) {
+                    return $this->respondError("Product {$item['product_id']} not found", 422);
+                }
+                if (!$product->isInStock()) {
+                    return $this->respondError("Product {$product->name_en} is out of stock", 422);
+                }
+                if ($product->stock < $item['quantity']) {
+                    return $this->respondError(
+                        "Only {$product->stock} items available for {$product->name_en}",
+                        422
+                    );
+                }
+                $cartItems->push((object) [
+                    'product_id' => $product->id,
+                    'quantity'   => $item['quantity'],
+                    'product'    => $product,
+                ]);
+            }
+            // Extract customer info from web payload
+            $customerName  = $validated['customer']['name'];
+            $customerPhone = $validated['customer']['phone'];
+            $customerEmail = $validated['customer']['email'] ?? null;
+            $shippingAddr  = $validated['customer']['address'];
+        } else {
+            // Legacy: items from server-side cart
+            $cartItems = $user->cartItems()->with('product')->get();
+            if ($cartItems->isEmpty()) {
+                return $this->respondError('Your cart is empty', 422);
+            }
+            $customerName  = $user->name ?? 'Customer';
+            $customerPhone = $validated['shipping_phone'];
+            $customerEmail = $user->email;
+            $shippingAddr  = $validated['shipping_address'];
+        }
+
+        $notes = $validated['notes'] ?? null;
+        $paymentMethod = $validated['payment_method'];
+
+        // ── Create order inside transaction ──
+        return DB::transaction(function () use ($user, $cartItems, $customerName, $customerPhone, $customerEmail, $shippingAddr, $notes, $paymentMethod, $hasItems) {
             $subtotal = '0.000';
             $orderItems = [];
 
-            // Validate stock and calculate subtotal
             foreach ($cartItems as $item) {
                 $product = $item->product;
 
@@ -123,55 +198,51 @@ class CheckoutController extends Controller
                 $subtotal = bcadd($subtotal, $lineTotal, 3);
 
                 $orderItems[] = [
-                    'product_id' => $product->id,
-                    'product_name' => $product->name_en,
-                    'product_image' => $product->image,
-                    'price' => $price,
-                    'quantity' => $item->quantity,
+                    'product_id'     => $product->id,
+                    'product_name'   => $product->name_en,
+                    'product_image'  => $product->image,
+                    'price'          => $price,
+                    'quantity'       => $item->quantity,
                 ];
 
-                // Decrement stock
                 $product->decrement('stock', $item->quantity);
             }
 
             $shippingCost = $this->calculateShipping($subtotal);
             $discount = '0.000';
             $total = bcadd(bcadd($subtotal, $shippingCost, 3), $discount, 3);
-
-            // Generate unique order number
             $orderNumber = 'HVN-' . strtoupper(Str::random(8));
 
-            // Create order
             $order = Order::create([
-                'user_id' => $user->id,
-                'order_number' => $orderNumber,
-                'status' => 'pending',
-                'subtotal' => $subtotal,
-                'shipping_cost' => $shippingCost,
-                'discount' => $discount,
-                'total' => $total,
-                'payment_method' => $validated['payment_method'],
-                'payment_status' => $validated['payment_method'] === 'cash_on_delivery' ? 'pending' : 'pending',
-                'shipping_address' => $validated['shipping_address'],
-                'shipping_phone' => $validated['shipping_phone'],
-                'notes' => $validated['notes'] ?? null,
+                'user_id'          => $user->id,
+                'order_number'     => $orderNumber,
+                'status'           => 'pending',
+                'subtotal'         => $subtotal,
+                'shipping_cost'    => $shippingCost,
+                'discount'         => $discount,
+                'total'            => $total,
+                'payment_method'   => $paymentMethod,
+                'payment_status'   => 'pending',
+                'shipping_address' => $shippingAddr,
+                'shipping_phone'   => $customerPhone,
+                'notes'            => $notes,
             ]);
 
-            // Create order items
             foreach ($orderItems as $itemData) {
                 $order->items()->create($itemData);
             }
 
-            // Record initial status in history
             $order->statusHistory()->create([
-                'status' => 'pending',
-                'changed_by' => $user->id,
-                'note' => 'Order placed successfully',
-                'created_at' => now(),
+                'status'      => 'pending',
+                'changed_by'  => $user->id,
+                'note'        => 'Order placed successfully',
+                'created_at'  => now(),
             ]);
 
-            // Clear cart
-            $user->cartItems()->delete();
+            // Clear server-side cart only for legacy flow
+            if (!$hasItems) {
+                $user->cartItems()->delete();
+            }
 
             $order->load(['items', 'statusHistory']);
 

@@ -525,11 +525,11 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
                   </label>
                 </div>
               </>
-            ) : (
+                       ) : (
               <>
                 <div>
                   <label className={labelClass}>
-                    Price (KD)
+                    Price (KWD)
                   </label>
                   <input
                     type="number"
@@ -553,10 +553,13 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
                     onChange={(e) => { setForm((p) => ({ ...p, stock: e.target.value })); clearFieldError("stock"); }}
                     className={getFieldError("stock") ? inputErrorClass : inputClass}
                     placeholder="0"
-                    disabled={submitting}
+                    disabled={submitting || form.soldOut}
                   />
                   {getFieldError("stock") && (
                     <p className={errorTextClass}><AlertCircle className="w-3 h-3" />{getFieldError("stock")}</p>
+                  )}
+                  {form.soldOut && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />Stock is disabled because the product is marked as Sold Out</p>
                   )}
                 </div>
               </>
@@ -566,7 +569,7 @@ export function ProductFormModal(props: ProductFormModalPropsUnion) {
           {/* Sale Price (optional — leave empty for no discount) */}
           <div>
             <label className={labelClass}>
-              Sale Price (KD) — optional
+                Sale Price (KWD) — optional
             </label>
             <input
               type="number"

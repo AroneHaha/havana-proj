@@ -4,14 +4,8 @@ import { usePathname } from "next/navigation";
 import { SiteChrome } from "@/components/layout/site-chrome";
 import { ADMIN_PATHS } from "@/lib/constant";
 
-/**
- * LayoutSwitch — decides which chrome surrounds the current page.
- *
- * - Admin pages:        bare children (admin layout handles its own topbar/sidebar)
- * - Login page:         bare children (login has its own branded layout)
- * - Signup page:        bare children (kept for future, not routed to)
- * - All other pages:    wrapped in SiteChrome (Header, Footer, Cart, etc.)
- */
+const AUTH_PATHS = ["/login", "/signup"];
+
 export default function LayoutSwitch({
   children,
 }: {
@@ -19,8 +13,8 @@ export default function LayoutSwitch({
 }) {
   const pathname = usePathname();
   const isAdmin = ADMIN_PATHS.some((p) => pathname.startsWith(p));
-  const isAuthPage = pathname === "/login" || pathname === "/signup";
+  const isAuth = AUTH_PATHS.some((p) => pathname.startsWith(p));
 
-  if (isAdmin || isAuthPage) return <>{children}</>;
+  if (isAdmin || isAuth || pathname === "/") return <>{children}</>;
   return <SiteChrome>{children}</SiteChrome>;
 }
