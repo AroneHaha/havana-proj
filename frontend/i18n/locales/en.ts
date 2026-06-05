@@ -357,6 +357,8 @@ const en: Translation = {
       minutesAgo: "{count}m ago",
       hoursAgo: "{count}h ago",
       yesterday: "Yesterday",
+      viewAll: "View All",
+      
     },
     dashboard: {
       title: "Dashboard",

@@ -31,18 +31,76 @@ class Product extends Model
         'is_active',
     ];
 
+    protected $appends = [
+        'name',
+        'description',
+        'effective_price',
+        'is_on_sale',
+        'in_stock',
+        'reviews_count',
+    ];
+
     protected function casts(): array
     {
         return [
-            'price' => 'decimal:3',
-            'sale_price' => 'decimal:3',
             'images' => 'array',
-            'rating' => 'decimal:1',
             'is_featured' => 'boolean',
             'is_best_seller' => 'boolean',
             'is_new' => 'boolean',
             'is_active' => 'boolean',
         ];
+    }
+
+    // ─── Accessors (appended to JSON) ──────────────────────────
+
+    public function getNameAttribute(): string
+    {
+        $locale = app()->getLocale();
+        return $locale === 'ar' ? ($this->name_ar ?? '') : ($this->name_en ?? '');
+    }
+
+    public function getDescriptionAttribute(): string
+    {
+        $locale = app()->getLocale();
+        return $locale === 'ar' ? ($this->description_ar ?? '') : ($this->description_en ?? '');
+    }
+
+    public function getEffectivePriceAttribute(): float
+    {
+        return (float) ($this->sale_price ?? $this->price);
+    }
+
+    public function getIsOnSaleAttribute(): bool
+    {
+        return $this->sale_price !== null
+            && (float) $this->sale_price < (float) $this->price;
+    }
+
+    public function getInStockAttribute(): bool
+    {
+        return $this->stock > 0;
+    }
+
+    public function getReviewsCountAttribute(): int
+    {
+        return $this->reviews()->where('visibility', 'visible')->count();
+    }
+
+    // ─── Price/Rating as real numbers (not strings) ───────────
+
+    protected function getPriceAttribute($value): float
+    {
+        return (float) $value;
+    }
+
+    protected function getSalePriceAttribute($value): ?float
+    {
+        return $value !== null ? (float) $value : null;
+    }
+
+    protected function getRatingAttribute($value): float
+    {
+        return (float) $value;
     }
 
     // ─── Relationships ───────────────────────────────────────
@@ -67,11 +125,11 @@ class Product extends Model
         return $this->hasMany(OrderItem::class);
     }
 
-    // ─── Helpers ─────────────────────────────────────────────
+    // ─── Helpers (used by backend logic, not API) ────────────
 
     public function isOnSale(): bool
     {
-        return !is_null($this->sale_price) && $this->sale_price < $this->price;
+        return !is_null($this->sale_price) && (float) $this->sale_price < (float) $this->price;
     }
 
     public function effectivePrice(): string

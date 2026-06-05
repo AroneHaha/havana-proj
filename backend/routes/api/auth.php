@@ -38,9 +38,8 @@ Route::prefix('auth')->group(function () {
         Route::post('/login', [AuthController::class, 'login'])
             ->name('auth.login');
 
-        // DISABLED: Public registration closed — admin-only app.
-        // Route::post('/register', [AuthController::class, 'register'])
-        //     ->name('auth.register');
+        Route::post('/register', [AuthController::class, 'register'])
+            ->name('auth.register');
 
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
             ->name('auth.forgot-password');
