@@ -31,23 +31,38 @@ class Product extends Model
         'is_active',
     ];
 
+    /**
+     * FIX: Removed 'reviews_count' from $appends.
+     *
+     * The original accessor fired a COUNT(*) query for EVERY product instance
+     * whenever it was serialized — including in list endpoints, cart, and order
+     * items. With 15 products per page that was 15 hidden queries, all without
+     * an index.
+     *
+     * reviews_count is now loaded explicitly only where needed:
+     *   - ProductController::show()  → $product->loadCount([...])  (already done)
+     *   - Admin\ProductController::index() → withCount() on the query
+     *   - Public ProductController::index() → withCount() on the query
+     *
+     * The 'name', 'description', 'effective_price', 'is_on_sale', 'in_stock'
+     * appends are fine — they are pure PHP computations with zero DB queries.
+     */
     protected $appends = [
         'name',
         'description',
         'effective_price',
         'is_on_sale',
         'in_stock',
-        'reviews_count',
     ];
 
     protected function casts(): array
     {
         return [
-            'images' => 'array',
-            'is_featured' => 'boolean',
+            'images'        => 'array',
+            'is_featured'   => 'boolean',
             'is_best_seller' => 'boolean',
-            'is_new' => 'boolean',
-            'is_active' => 'boolean',
+            'is_new'        => 'boolean',
+            'is_active'     => 'boolean',
         ];
     }
 
@@ -79,11 +94,6 @@ class Product extends Model
     public function getInStockAttribute(): bool
     {
         return $this->stock > 0;
-    }
-
-    public function getReviewsCountAttribute(): int
-    {
-        return $this->reviews()->where('visibility', 'visible')->count();
     }
 
     // ─── Price/Rating as real numbers (not strings) ───────────
