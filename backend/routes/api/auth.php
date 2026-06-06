@@ -31,8 +31,7 @@ Route::prefix('auth')->group(function () {
         ]);
     });
 
-    // ─── Public (no auth required) ────────────────────────────────────
-    // Throttled to prevent abuse on login/forgot-password
+
 
     Route::middleware('throttle:auth')->group(function () {
         Route::post('/login', [AuthController::class, 'login'])
