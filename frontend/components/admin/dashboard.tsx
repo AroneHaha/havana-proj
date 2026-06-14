@@ -14,6 +14,11 @@ import {
   Clock,
   BarChart3,
   Eye,
+  Leaf,
+  Heart,
+  Sparkles,
+  TrendingDown,
+  PackageOpen,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { useLanguageStore } from "@/store/language-store";
@@ -142,395 +147,464 @@ const averageRating = useMemo(() => {
 
   const revenueRatio = orders.length > 0 ? (orders.filter(o => o.status === "delivered").length / orders.length) : 0;
 
-  // Quick nav items for sidebar
+  // Quick nav items
   const quickNav = [
-    { href: "/orders", label: tOrders.title, icon: ShoppingBag, count: orders.length, color: "text-blue-500" },
-    { href: "/products", label: tProducts.title, icon: Flower2, count: products.length, color: "text-maroon dark:text-gold" },
-    { href: "/sales-reviews", label: tReviews.title, icon: BarChart3, count: null, color: "text-emerald-500" },
+    { href: "/orders", label: tOrders.title, icon: ShoppingBag, count: orders.length, color: "text-rose-500", gradient: "from-rose-50 to-pink-50 dark:from-rose-950/20 dark:to-pink-950/10", border: "border-rose-100 dark:border-rose-900/30" },
+    { href: "/products", label: tProducts.title, icon: Flower2, count: products.length, color: "text-emerald-500", gradient: "from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/10", border: "border-emerald-100 dark:border-emerald-900/30" },
+    { href: "/sales-reviews", label: tReviews.title, icon: BarChart3, count: null, color: "text-amber-500", gradient: "from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/10", border: "border-amber-100 dark:border-amber-900/30" },
   ];
+
+  // Motivational subtitle based on data state
+  const motivationalSubtitle = useMemo(() => {
+    if (loading) return "...";
+    if (activeOrders.length > 0) return "Your garden is blooming today — bouquets are on their way";
+    if (orders.length === 0) return "A new season awaits — let's plant the seeds of success";
+    return "Every petal tells a story — your shop is thriving";
+  }, [loading, activeOrders.length, orders.length]);
+
+  // Animation variants
+  const cardVariants = {
+    hidden: { opacity: 0, y: 16 },
+    visible: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.45, delay: i * 0.07, ease: "easeOut" },
+    }),
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
+      className="space-y-6"
     >
-      {/* ─── Header ─── */}
-      <div className="mb-6">
-        <div className="flex items-end justify-between">
-          <div>
-            <h1 className="font-serif text-2xl lg:text-[28px] font-bold text-foreground tracking-tight">
-              {t.title}
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1.5">
-              {t.subtitle.replace("{name}", user?.firstName ?? "")}
-            </p>
+      {/* ═══════════════════════════════════════════════════════════════
+          1. HEADER SECTION — Warm greeting with flower imagery
+      ═══════════════════════════════════════════════════════════════ */}
+      <div className="relative">
+        {/* Decorative background bloom */}
+        <div className="absolute -right-4 -top-8 w-40 h-40 bg-rose-100/40 dark:bg-rose-900/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -left-8 -top-12 w-32 h-32 bg-amber-100/30 dark:bg-amber-900/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative flex items-start justify-between">
+          <div className="flex items-start gap-3.5">
+            {/* Flower decorative icon */}
+            <div className="mt-1 p-2.5 rounded-2xl bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/30 dark:to-pink-950/20 border border-rose-100 dark:border-rose-900/30">
+              <Flower2 className="h-5 w-5 text-rose-500 dark:text-rose-400" />
+            </div>
+            <div>
+              <h1 className="font-serif text-2xl lg:text-[28px] font-bold text-foreground tracking-tight">
+                {t.title}
+              </h1>
+              <p className="text-muted-foreground text-sm mt-1">
+                {t.subtitle.replace("{name}", user?.firstName ?? "")}
+              </p>
+              <p className="text-xs mt-1.5 text-rose-500/70 dark:text-rose-400/60 italic flex items-center gap-1.5">
+                <Sparkles className="h-3 w-3" />
+                {motivationalSubtitle}
+              </p>
+            </div>
           </div>
-          <div className="hidden sm:flex items-center gap-1.5 text-muted-foreground">
+          <div className="hidden sm:flex items-center gap-1.5 text-muted-foreground mt-2">
             <Clock className="h-3.5 w-3.5" />
             <span className="text-xs font-medium">{dateStr}</span>
           </div>
         </div>
       </div>
 
-      {/* ─── Main Layout: Sidebar Metrics + Dashboard Workspace ─── */}
-      <div className="flex flex-col lg:flex-row gap-5 lg:h-[calc(100vh-13rem)]">
-
-        {/* ═══════ LEFT SIDEBAR — Key Metrics ═══════ */}
-        <motion.aside
-          initial={{ opacity: 0, x: -16 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="lg:w-64 xl:w-72 shrink-0 lg:h-full"
+      {/* ═══════════════════════════════════════════════════════════════
+          2. HERO STATS BAR — Four flower-themed stat cards
+      ═══════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Revenue — Rose / Pink */}
+        <motion.div
+          custom={0}
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+          className="relative bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/30 dark:to-pink-950/20 rounded-2xl p-5 border border-rose-100 dark:border-rose-900/30 overflow-hidden group hover:shadow-lg hover:shadow-rose-100/50 dark:hover:shadow-rose-950/20 transition-all duration-300"
         >
-          <div className="flex flex-row lg:flex-col gap-4 lg:gap-4 lg:h-full">
-
-            {/* Hero Card — Revenue */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0 }}
-              className="flex-1 lg:flex-1 relative bg-gradient-to-br from-maroon to-maroon/80 dark:from-gold dark:to-amber-600 rounded-2xl p-5 lg:p-6 border border-border overflow-hidden flex flex-col justify-between"
-            >
-              <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/5 dark:bg-black/5" />
-              <div className="absolute -right-1 -top-1 w-14 h-14 rounded-full bg-white/5 dark:bg-black/5" />
-
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="p-2 rounded-xl bg-white/15 dark:bg-black/10">
-                    <DollarSign className="h-4 w-4 text-white dark:text-dark-bg" />
-                  </div>
-                  <span className="text-xs font-medium text-white/70 dark:text-dark-bg/70 uppercase tracking-wider">{t.totalRevenue}</span>
-                </div>
-                <p className="text-2xl lg:text-3xl font-bold text-white dark:text-dark-bg tracking-tight">
-                  {loading ? "..." : formatPrice(totalRevenue, locale)}
-                </p>
-                <div className="mt-3 flex items-center gap-1.5">
-                  <ArrowUpRight className="w-3.5 h-3.5 text-emerald-300 dark:text-emerald-800" />
-                  <span className="text-xs text-white/60 dark:text-dark-bg/60">
-                    {Math.round(revenueRatio * 100)}% delivered
-                  </span>
-                </div>
+          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-rose-200/30 dark:bg-rose-800/10" />
+          <div className="absolute -right-1 -bottom-1 w-8 h-8 rounded-full bg-rose-200/20 dark:bg-rose-800/5" />
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 rounded-xl bg-rose-100 dark:bg-rose-900/30">
+                <DollarSign className="h-4 w-4 text-rose-600 dark:text-rose-400" />
               </div>
-            </motion.div>
+              <span className="text-[11px] font-semibold text-rose-600/70 dark:text-rose-400/70 uppercase tracking-wider">{t.totalRevenue}</span>
+            </div>
+            <p className="text-2xl font-bold text-rose-900 dark:text-rose-100 tracking-tight">
+              {loading ? "..." : formatPrice(totalRevenue, locale)}
+            </p>
+            <div className="mt-2.5 flex items-center gap-1.5">
+              <ArrowUpRight className="w-3 h-3 text-rose-400 dark:text-rose-500" />
+              <span className="text-[11px] text-rose-500/70 dark:text-rose-400/60">
+                {Math.round(revenueRatio * 100)}% delivered
+              </span>
+            </div>
+          </div>
+        </motion.div>
 
-            {/* Active Orders Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08 }}
-              className="flex-1 lg:flex-1 bg-white dark:bg-dark-card rounded-2xl p-5 lg:p-6 border border-border group hover:shadow-md transition-shadow duration-300 flex flex-col justify-between"
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-500">
-                  <ShoppingBag className="h-4 w-4" />
-                </div>
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.pendingOrders}</span>
+        {/* Total Orders — Amber / Warm */}
+        <motion.div
+          custom={1}
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+          className="relative bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20 rounded-2xl p-5 border border-amber-100 dark:border-amber-900/30 overflow-hidden group hover:shadow-lg hover:shadow-amber-100/50 dark:hover:shadow-amber-950/20 transition-all duration-300"
+        >
+          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-amber-200/30 dark:bg-amber-800/10" />
+          <div className="absolute -right-1 -bottom-1 w-8 h-8 rounded-full bg-amber-200/20 dark:bg-amber-800/5" />
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/30">
+                <ShoppingBag className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               </div>
-              <p className="text-2xl lg:text-3xl font-bold text-foreground tracking-tight">
-                {loading ? "..." : totalOrderCount || orders.length}
+              <span className="text-[11px] font-semibold text-amber-600/70 dark:text-amber-400/70 uppercase tracking-wider">{t.pendingOrders}</span>
+            </div>
+            <p className="text-2xl font-bold text-amber-900 dark:text-amber-100 tracking-tight">
+              {loading ? "..." : totalOrderCount || orders.length}
+            </p>
+            <div className="mt-2.5 h-1.5 rounded-full bg-amber-100 dark:bg-amber-900/40 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-amber-300 to-amber-500 dark:from-amber-600 dark:to-amber-400 transition-all duration-700 ease-out"
+                style={{ width: `${totalOrderCount > 0 ? (orders.filter(o => o.status === "delivered").length / totalOrderCount) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Products in Bloom — Emerald / Green */}
+        <motion.div
+          custom={2}
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+          className="relative bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/20 rounded-2xl p-5 border border-emerald-100 dark:border-emerald-900/30 overflow-hidden group hover:shadow-lg hover:shadow-emerald-100/50 dark:hover:shadow-emerald-950/20 transition-all duration-300"
+        >
+          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-emerald-200/30 dark:bg-emerald-800/10" />
+          <div className="absolute -right-1 -bottom-1 w-8 h-8 rounded-full bg-emerald-200/20 dark:bg-emerald-800/5" />
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
+                <Flower2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <span className="text-[11px] font-semibold text-emerald-600/70 dark:text-emerald-400/70 uppercase tracking-wider">{tProducts.title}</span>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100 tracking-tight">
+                {loading ? "..." : products.length}
               </p>
-              <div className="mt-3 h-1.5 rounded-full bg-muted/50 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-600 transition-all duration-700 ease-out"
-                      style={{ width: `${totalOrderCount > 0 ? (orders.filter(o => o.status === "delivered").length / totalOrderCount) * 100 : 0}%` }}
-                />
-              </div>
-            </motion.div>
+              <span className="text-xs text-emerald-600/60 dark:text-emerald-400/60 italic">in bloom</span>
+            </div>
+            <div className="mt-2.5 flex items-center gap-1.5">
+              <Leaf className="w-3 h-3 text-emerald-400 dark:text-emerald-500" />
+              <span className="text-[11px] text-emerald-500/70 dark:text-emerald-400/60">
+                {lowStockProducts.length > 0
+                  ? `${lowStockProducts.length} need attention`
+                  : "All thriving"}
+              </span>
+            </div>
+          </div>
+        </motion.div>
 
-            {/* Average Rating Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.16 }}
-              className="flex-1 lg:flex-1 bg-white dark:bg-dark-card rounded-2xl p-5 lg:p-6 border border-border group hover:shadow-md transition-shadow duration-300 flex flex-col justify-between"
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-500">
-                  <Star className="h-4 w-4" />
-                </div>
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.averageRating}</span>
+        {/* Customer Love — Gold / Amber */}
+        <motion.div
+          custom={3}
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+          className="relative bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/20 rounded-2xl p-5 border border-yellow-100 dark:border-yellow-900/30 overflow-hidden group hover:shadow-lg hover:shadow-yellow-100/50 dark:hover:shadow-yellow-950/20 transition-all duration-300"
+        >
+          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-yellow-200/30 dark:bg-yellow-800/10" />
+          <div className="absolute -right-1 -bottom-1 w-8 h-8 rounded-full bg-yellow-200/20 dark:bg-yellow-800/5" />
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 rounded-xl bg-yellow-100 dark:bg-yellow-900/30">
+                <Heart className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               </div>
-              <div className="flex items-center gap-2">
-                <p className="text-2xl lg:text-3xl font-bold text-foreground tracking-tight">
-                  {loading ? "..." : (averageRating ?? 0).toFixed(1)}
-                </p>
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`h-3 w-3 ${i < Math.round(averageRating ?? 0) ? "fill-gold text-gold" : "text-border"}`}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="mt-3 h-1.5 rounded-full bg-muted/50 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-amber-400 to-gold transition-all duration-700 ease-out"
-                  style={{ width: `${(averageRating / 5) * 100}%` }}
-                />
-              </div>
-            </motion.div>
-
-            {/* Quick Nav Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.24 }}
-              className="hidden lg:flex lg:flex-1 bg-white dark:bg-dark-card rounded-2xl p-5 border border-border flex-col justify-between"
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <Eye className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Quick Access</span>
-              </div>
-              <div className="space-y-1.5">
-                {quickNav.map((nav) => (
-                  <Link
-                    key={nav.href}
-                    href={nav.href}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border"
-                  >
-                    <span className="flex items-center gap-2">
-                      <nav.icon className={`h-3.5 w-3.5 ${nav.color}`} />
-                      {nav.label}
-                    </span>
-                    {nav.count !== null && (
-                      <span className="text-[10px] text-muted-foreground/50">{nav.count}</span>
-                    )}
-                  </Link>
+              <span className="text-[11px] font-semibold text-amber-600/70 dark:text-amber-400/70 uppercase tracking-wider">{t.averageRating}</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <p className="text-2xl font-bold text-amber-900 dark:text-amber-100 tracking-tight">
+                {loading ? "..." : (averageRating ?? 0).toFixed(1)}
+              </p>
+              <div className="flex gap-0.5">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`h-3.5 w-3.5 ${i < Math.round(averageRating ?? 0) ? "fill-gold text-gold" : "text-amber-200 dark:text-amber-800"}`}
+                  />
                 ))}
               </div>
-            </motion.div>
-          </div>
-        </motion.aside>
-
-        {/* ═══════ RIGHT MAIN — Dashboard Panels ═══════ */}
-        <motion.div
-          initial={{ opacity: 0, x: 16 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
-          className="flex-1 min-w-0 lg:h-full lg:flex lg:flex-col lg:gap-4 overflow-y-auto lg:overflow-hidden"
-        >
-          {/* Top Row: Avg Order + Inventory Alerts + Total Products */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Avg Order Value */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-border flex items-center gap-4"
-            >
-              <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 shrink-0">
-                <TrendingUp className="h-5 w-5 text-blue-500" />
-              </div>
-              <div className="min-w-0">
-                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide block">{tOrders.averageOrder}</span>
-                <p className="text-lg font-bold text-foreground tracking-tight truncate">
-                  {loading ? "..." : formatPrice(avgOrderValue, locale)}
-                </p>
-              </div>
-            </motion.div>
-
-            {/* Inventory Alerts */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }}
-              className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-border flex items-center gap-4"
-            >
-              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 shrink-0">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
-              </div>
-              <div className="min-w-0">
-                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide block">{t.inventoryAlerts}</span>
-                <p className="text-[13px] font-medium text-foreground leading-snug">
-                  {loading ? "..." : t.inventorySummary
-                    .replace("{lowCount}", String(lowStockProducts.length))
-                    .replace("{outCount}", String(outOfStockProducts.length))}
-                </p>
-              </div>
-            </motion.div>
-
-            {/* Total Products */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
-              className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-border flex items-center gap-4"
-            >
-              <div className="p-3 rounded-xl bg-maroon/8 dark:bg-gold/15 shrink-0">
-                <Flower2 className="h-5 w-5 text-maroon dark:text-gold" />
-              </div>
-              <div className="min-w-0">
-                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide block">{tProducts.title}</span>
-                <p className="text-lg font-bold text-foreground tracking-tight">
-                  {loading ? "..." : products.length}
-                </p>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Scrollable panels area */}
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
-            {/* Recent Orders Table */}
-            <div className="bg-white dark:bg-dark-card rounded-2xl border border-border overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-                <h2 className="text-sm font-semibold text-foreground">{t.recentOrders}</h2>
-                <Link
-                  href="/orders"
-                  className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-maroon dark:hover:text-gold transition-colors"
-                >
-                  {t.viewAll}
-                  <ArrowUpRight className="h-3 w-3" />
-                </Link>
-              </div>
-              <div className="overflow-x-auto">
-                {loading ? (
-                  <div className="p-5 space-y-2.5">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="h-10 bg-muted rounded-lg animate-pulse" />
-                    ))}
-                  </div>
-                ) : recentOrders.length === 0 ? (
-                  <p className="p-8 text-sm text-muted-foreground text-center">{tOrders.noOrders}</p>
-                ) : (
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{t.order}</th>
-                        <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{t.customer}</th>
-                        <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider hidden sm:table-cell">{t.product}</th>
-                        <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{t.amount}</th>
-                        <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{t.status}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recentOrders.map((order) => (
-                        <tr key={order.id} className="border-b border-border/50 last:border-0 table-row-hover">
-                          <td className="px-5 py-3 text-sm font-medium text-foreground">#{order.orderNumber || order.id}</td>
-                          <td className="px-5 py-3 text-sm text-muted-foreground">{order.customer.name}</td>
-                          <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell truncate max-w-[140px]">
-                            {order.items[0]?.productName}{order.items.length > 1 ? ` +${order.items.length - 1}` : ""}
-                          </td>
-                          <td className="px-5 py-3 text-sm font-medium text-foreground">{formatPrice(order.total, locale)}</td>
-                          <td className="px-5 py-3">
-                            <span className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium ${ORDER_STATUS_COLORS[order.status]}`}>
-                              {getStatusLabel(order.status)}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
             </div>
-
-            {/* Bottom Row: Two-column */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-
-              {/* Low & Out of Stock */}
-              <div className="bg-white dark:bg-dark-card rounded-2xl border border-border overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                    <h2 className="text-sm font-semibold text-foreground">{tProducts.lowStockCount} & {tProducts.outOfStockCount}</h2>
-                  </div>
-                  <Link
-                    href="/products"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-maroon dark:hover:text-gold transition-colors"
-                  >
-                    {t.viewAll}
-                    <ArrowUpRight className="h-3 w-3" />
-                  </Link>
-                </div>
-                <div className="overflow-x-auto">
-                  {loading ? (
-                    <div className="p-5 space-y-2.5">
-                      {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-10 bg-muted rounded-lg animate-pulse" />
-                      ))}
-                    </div>
-                  ) : [...lowStockProducts, ...outOfStockProducts].length === 0 ? (
-                    <p className="p-8 text-sm text-muted-foreground text-center">{tProducts.noProducts}</p>
-                  ) : (
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tProducts.productName}</th>
-                          <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tProducts.price}</th>
-                          <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tProducts.stock}</th>
-                          <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tProducts.status}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[...lowStockProducts, ...outOfStockProducts].slice(0, 5).map((product) => {
-                          const status = getStockStatus(product);
-                          const statusConfig = status === "low_stock"
-                            ? { label: tProducts.lowStock, color: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" }
-                            : { label: tProducts.soldOut, color: "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400" };
-                          return (
-                            <tr key={product.id} className="border-b border-border/50 last:border-0 table-row-hover">
-                              <td className="px-5 py-3 text-sm font-medium text-foreground">{product.name}</td>
-                              <td className="px-5 py-3 text-sm font-medium text-foreground">{formatPrice(product.salePrice ?? product.price, locale)}</td>
-                              <td className="px-5 py-3">
-                                <span className="text-sm font-semibold text-foreground">{product.stock}</span>
-                              </td>
-                              <td className="px-5 py-3">
-                                <span className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium ${statusConfig.color}`}>
-                                  {statusConfig.label}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </div>
-
-              {/* Recent Reviews */}
-              <div className="bg-white dark:bg-dark-card rounded-2xl border border-border overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-                  <div className="flex items-center gap-2">
-                    <Star className="h-3.5 w-3.5 text-gold" />
-                    <h2 className="text-sm font-semibold text-foreground">{tReviews.recentReviews}</h2>
-                  </div>
-                  <Link
-                    href="/sales-reviews"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-maroon dark:hover:text-gold transition-colors"
-                  >
-                    {t.viewAll}
-                    <ArrowUpRight className="h-3 w-3" />
-                  </Link>
-                </div>
-                <div className="overflow-x-auto">
-                  {recentReviews.length === 0 ? (
-                    <p className="p-8 text-sm text-muted-foreground text-center">{tReviews.noReviews}</p>
-                  ) : (
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tReviews.customer}</th>
-                          <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tReviews.product}</th>
-                          <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tReviews.rating}</th>
-                          <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{tReviews.visibility}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {recentReviews.map((review) => (
-                          <tr key={review.id} className="border-b border-border/50 last:border-0 table-row-hover">
-                            <td className="px-5 py-3 text-sm font-medium text-foreground">{review.customerName}</td>
-                            <td className="px-5 py-3 text-sm text-muted-foreground truncate max-w-[120px]">{review.product.productName}</td>
-                            <td className="px-5 py-3">
-                              <div className="flex items-center gap-1.5">
-                                <Star className="h-3 w-3 fill-gold text-gold" />
-                                <span className="text-sm font-medium text-foreground">{review.rating}</span>
-                              </div>
-                            </td>
-                            <td className="px-5 py-3">
-                              <span className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium capitalize ${getVisibilityColor(review.visibility)}`}>
-                                {review.visibility}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </div>
+            <div className="mt-2.5 h-1.5 rounded-full bg-amber-100 dark:bg-amber-900/40 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-amber-300 to-gold dark:from-amber-500 dark:to-gold transition-all duration-700 ease-out"
+                style={{ width: `${(averageRating / 5) * 100}%` }}
+              />
             </div>
           </div>
         </motion.div>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          3. MIDDLE SECTION — Two-column layout
+      ═══════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-5">
+
+        {/* ─── LEFT COLUMN (wider): Recent Bouquets & Orders ─── */}
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.25 }}
+          className="xl:col-span-3"
+        >
+          <div className="bg-white dark:bg-dark-card rounded-2xl border border-border overflow-hidden h-full">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-gradient-to-r from-rose-50/50 to-transparent dark:from-rose-950/10 dark:to-transparent">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-rose-100 dark:bg-rose-900/30">
+                  <ShoppingBag className="h-3.5 w-3.5 text-rose-500 dark:text-rose-400" />
+                </div>
+                <h2 className="text-sm font-semibold text-foreground">{t.recentOrders}</h2>
+              </div>
+              <Link
+                href="/orders"
+                className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-maroon dark:hover:text-gold transition-colors"
+              >
+                {t.viewAll}
+                <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              {loading ? (
+                <div className="p-5 space-y-2.5">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-10 bg-muted rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : recentOrders.length === 0 ? (
+                <div className="p-12 text-center">
+                  <Flower2 className="h-8 w-8 mx-auto text-rose-200 dark:text-rose-800 mb-3" />
+                  <p className="text-sm text-muted-foreground">{tOrders.noOrders}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1 italic">Your first bouquet order will appear here</p>
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider">{t.order}</th>
+                      <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider">{t.customer}</th>
+                      <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider hidden sm:table-cell">{t.product}</th>
+                      <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider">{t.amount}</th>
+                      <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider">{t.status}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentOrders.map((order) => (
+                      <tr key={order.id} className="border-b border-border/40 last:border-0 hover:bg-rose-50/30 dark:hover:bg-rose-950/10 transition-colors duration-150">
+                        <td className="px-5 py-3 text-sm font-medium text-foreground">#{order.orderNumber || order.id}</td>
+                        <td className="px-5 py-3 text-sm text-muted-foreground">{order.customer.name}</td>
+                        <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell truncate max-w-[140px]">
+                          {order.items[0]?.productName}{order.items.length > 1 ? ` +${order.items.length - 1}` : ""}
+                        </td>
+                        <td className="px-5 py-3 text-sm font-medium text-foreground">{formatPrice(order.total, locale)}</td>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex px-2.5 py-0.5 rounded-md text-[11px] font-medium ${ORDER_STATUS_COLORS[order.status]}`}>
+                            {getStatusLabel(order.status)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ─── RIGHT COLUMN: Shop Health — Stacked panels ─── */}
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.3 }}
+          className="xl:col-span-2 flex flex-col gap-5"
+        >
+
+          {/* Panel A: Garden Alerts */}
+          <div className="bg-white dark:bg-dark-card rounded-2xl border border-border overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-gradient-to-r from-amber-50/50 to-transparent dark:from-amber-950/10 dark:to-transparent">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                  <Leaf className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
+                </div>
+                <h2 className="text-sm font-semibold text-foreground">{t.inventoryAlerts}</h2>
+              </div>
+              <Link
+                href="/products"
+                className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-maroon dark:hover:text-gold transition-colors"
+              >
+                {t.viewAll}
+                <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            <div className="overflow-x-auto">
+              {loading ? (
+                <div className="p-5 space-y-2.5">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-10 bg-muted rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : [...lowStockProducts, ...outOfStockProducts].length === 0 ? (
+                <div className="p-10 text-center">
+                  <Leaf className="h-7 w-7 mx-auto text-emerald-200 dark:text-emerald-800 mb-2" />
+                  <p className="text-sm text-muted-foreground">{tProducts.noProducts}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1 italic">Your garden is fully stocked</p>
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider">{tProducts.productName}</th>
+                      <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider">{tProducts.stock}</th>
+                      <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider">{tProducts.status}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...lowStockProducts, ...outOfStockProducts].slice(0, 5).map((product) => {
+                      const status = getStockStatus(product);
+                      const statusConfig = status === "low_stock"
+                        ? { label: tProducts.lowStock, color: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400", icon: <TrendingDown className="h-3 w-3 mr-1" /> }
+                        : { label: tProducts.soldOut, color: "bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400", icon: <PackageOpen className="h-3 w-3 mr-1" /> };
+                      return (
+                        <tr key={product.id} className="border-b border-border/40 last:border-0 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 transition-colors duration-150">
+                          <td className="px-5 py-3 text-sm font-medium text-foreground truncate max-w-[120px]">{product.name}</td>
+                          <td className="px-5 py-3">
+                            <span className="text-sm font-semibold text-foreground">{product.stock}</span>
+                          </td>
+                          <td className="px-5 py-3">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium ${statusConfig.color}`}>
+                              {statusConfig.icon}
+                              {statusConfig.label}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+
+          {/* Panel B: Customer Whispers */}
+          <div className="bg-white dark:bg-dark-card rounded-2xl border border-border overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-gradient-to-r from-yellow-50/50 to-transparent dark:from-yellow-950/10 dark:to-transparent">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
+                  <Star className="h-3.5 w-3.5 text-gold" />
+                </div>
+                <h2 className="text-sm font-semibold text-foreground">{tReviews.recentReviews}</h2>
+              </div>
+              <Link
+                href="/sales-reviews"
+                className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-maroon dark:hover:text-gold transition-colors"
+              >
+                {t.viewAll}
+                <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            <div className="overflow-x-auto">
+              {recentReviews.length === 0 ? (
+                <div className="p-10 text-center">
+                  <Heart className="h-7 w-7 mx-auto text-rose-200 dark:text-rose-800 mb-2" />
+                  <p className="text-sm text-muted-foreground">{tReviews.noReviews}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1 italic">Waiting for the first whisper of love</p>
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider">{tReviews.customer}</th>
+                      <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider">{tReviews.rating}</th>
+                      <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider">{tReviews.visibility}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentReviews.map((review) => (
+                      <tr key={review.id} className="border-b border-border/40 last:border-0 hover:bg-yellow-50/30 dark:hover:bg-yellow-950/10 transition-colors duration-150">
+                        <td className="px-5 py-3 text-sm font-medium text-foreground">{review.customerName}</td>
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-1.5">
+                            <Star className="h-3.5 w-3.5 fill-gold text-gold" />
+                            <span className="text-sm font-medium text-foreground">{review.rating}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex px-2.5 py-0.5 rounded-md text-[11px] font-medium capitalize ${getVisibilityColor(review.visibility)}`}>
+                            {review.visibility}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          4. QUICK ACCESS — Elegant navigation tiles
+      ═══════════════════════════════════════════════════════════════ */}
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.4 }}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <Eye className="h-3.5 w-3.5 text-muted-foreground/50" />
+          <span className="text-[11px] font-semibold text-muted-foreground/50 uppercase tracking-wider">Quick Access</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {quickNav.map((nav, i) => (
+            <motion.div
+              key={nav.href}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.45 + i * 0.06 }}
+            >
+              <Link
+                href={nav.href}
+                className={`group relative flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-br ${nav.gradient} border ${nav.border} hover:shadow-md transition-all duration-300 cursor-pointer`}
+              >
+                {/* Decorative background circle */}
+                <div className="absolute -right-2 -bottom-2 w-12 h-12 rounded-full bg-white/20 dark:bg-black/5 pointer-events-none" />
+
+                <div className="p-2.5 rounded-xl bg-white/60 dark:bg-dark-card/60 shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-300">
+                  <nav.icon className={`h-5 w-5 ${nav.color}`} />
+                </div>
+                <div className="min-w-0 relative">
+                  <p className="text-sm font-semibold text-foreground truncate">{nav.label}</p>
+                  {nav.count !== null && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{nav.count} items</p>
+                  )}
+                </div>
+                <ArrowUpRight className="h-4 w-4 text-muted-foreground/40 ml-auto shrink-0 group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300" />
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
